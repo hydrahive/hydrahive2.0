@@ -49,5 +49,10 @@
     "own_title": "My API keys",
     "own_subtitle": "For scripts, apps and your agents' credential profiles. A key has your permissions, do not share it. Creating and deleting only works here with your login.",
     "loading": "Loading API keys …"
+  },
+  "tabs": {
+    "benutzer": "Users",
+    "gruppen": "Groups",
+    "api-keys": "API keys"
   }
 }

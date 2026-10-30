@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from "react"
-import { Crown, KeyRound, Pencil, Plus, Trash2, User as UserIcon } from "lucide-react"
+import { useSearchParams } from "react-router-dom"
+import { Plus } from "lucide-react"
 import { useTranslation } from "react-i18next"
 import { useAuthStore } from "@/features/auth/useAuthStore"
 import { HelpButton } from "@/i18n/HelpButton"
@@ -12,9 +13,10 @@ import { usersApi } from "@/features/users/api"
 import { DeleteDialog } from "@/features/archive/delete/DeleteDialog"
 import type { User } from "@/features/users/types"
 import { CockpitButton } from "../CockpitButton"
-import { AdminAction, AdminFeedback, AdminStatus } from "./ui"
+import { AdminFeedback, AdminTabs } from "./ui"
+import { UserRows } from "./UserRows"
+import { parseUsersTab, USERS_TABS, type UsersTab } from "./usersTabs"
 import { AdminOverlay } from "./AdminOverlay"
-import { VaultAdminReset } from "@/features/vault/VaultAdminReset"
 import { ADMIN_OVERLAY_THEME } from "@/shared/brand/boxThemes"
 
 export function UsersOverlay({ onClose }: { onClose: () => void }) {
@@ -29,6 +31,13 @@ export function UsersOverlay({ onClose }: { onClose: () => void }) {
   const [passwordTarget, setPasswordTarget] = useState<string | null>(null)
   const [editTarget, setEditTarget] = useState<User | null>(null)
   const [deleteTarget, setDeleteTarget] = useState<string | null>(null)
+  const [searchParams, setSearchParams] = useSearchParams()
+  const tab = parseUsersTab(searchParams.get("tab"))
+  function selectTab(next: UsersTab) {
+    const params = new URLSearchParams(searchParams)
+    params.set("tab", next)
+    setSearchParams(params, { replace: true })
+  }
 
   const load = useCallback(async () => {
     try {
@@ -54,9 +63,12 @@ export function UsersOverlay({ onClose }: { onClose: () => void }) {
       headerActions={(
         <div className="flex items-center gap-2">
           <HelpButton topic="users" />
-          <CockpitButton tone="primary" onClick={() => setShowNew(true)}>
-            <Plus size={13} className="mr-1 inline" />{t("actions.new")}
-          </CockpitButton>
+          {/* Gruppen und API-Keys haben eigene Anlege-Knöpfe – „Neuer Benutzer“ nur im Reiter Benutzer. */}
+          {tab === "benutzer" && (
+            <CockpitButton tone="primary" onClick={() => setShowNew(true)}>
+              <Plus size={13} className="mr-1 inline" />{t("actions.new")}
+            </CockpitButton>
+          )}
         </div>
       )}
     >
@@ -64,50 +76,18 @@ export function UsersOverlay({ onClose }: { onClose: () => void }) {
         <p className="text-sm text-[#9aa7bc]">{t("subtitle")}</p>
         {actionError && <AdminFeedback tone="danger">{actionError}</AdminFeedback>}
         {notice && <AdminFeedback tone="success">{notice}</AdminFeedback>}
-        {loading && <AdminFeedback loading>Benutzer werden geladen …</AdminFeedback>}
-
-        {!loading && !actionError && users.length === 0 ? (
-          <AdminFeedback>{t("no_users")}</AdminFeedback>
-        ) : (
-          <div className="space-y-2">
-            {users.map((user) => {
-              const isSelf = user.username === currentUsername
-              const RoleIcon = user.role === "admin" ? Crown : UserIcon
-              return (
-                <div key={user.username} className="flex items-center gap-3 rounded-[6px] border border-s-rand bg-s-innen p-3">
-                  <div className="grid h-9 w-9 shrink-0 place-items-center rounded-[4px] border border-s-rand bg-s-innen text-sm font-black text-[#69d7ff]">
-                    {user.username[0]?.toUpperCase() ?? "?"}
-                  </div>
-                  <div className="min-w-0 flex-1">
-                    <div className="flex flex-wrap items-center gap-2">
-                      <p className="truncate text-sm font-bold text-[#e8eef8]">{user.username}</p>
-                      {isSelf && <AdminStatus>{t("you_marker")}</AdminStatus>}
-                    </div>
-                    <p className="mt-1 flex items-center gap-1 text-xs text-[#9aa7bc]">
-                      <RoleIcon size={11} className="text-[#69d7ff]" />{t(`role.${user.role}`)}
-                    </p>
-                  </div>
-                  <div className="flex items-center gap-1">
-                    <AdminAction tone="ghost" className="px-2" onClick={() => setEditTarget(user)} title={t("actions.edit")} aria-label={t("actions.edit")}>
-                      <Pencil size={14} />
-                    </AdminAction>
-                    <AdminAction tone="ghost" className="px-2" onClick={() => setPasswordTarget(user.username)} title={t("actions.change_password")} aria-label={t("actions.change_password")}>
-                      <KeyRound size={14} />
-                    </AdminAction>
-                    <VaultAdminReset userId={user.user_id} username={user.username}
-                      onDone={(m) => { setActionError(null); setNotice(m) }} onError={(m) => { setNotice(null); setActionError(m) }} />
-                    <AdminAction tone="danger" className="px-2" onClick={() => setDeleteTarget(user.username)} disabled={isSelf} title={t("actions.delete")} aria-label={t("actions.delete")}>
-                      <Trash2 size={14} />
-                    </AdminAction>
-                  </div>
-                </div>
-              )
-            })}
-          </div>
-        )}
-
-        <GroupsSection users={users} />
-        <ApiKeysSection />
+        <AdminTabs label={t("title")} idPrefix="users" active={tab} onSelect={selectTab}
+          tabs={USERS_TABS.map((id) => ({ id, label: t(`tabs.${id}`), ...(id === "benutzer" ? { count: users.length } : {}) }))}>
+          {tab === "benutzer" && (
+            loading ? <AdminFeedback loading>Benutzer werden geladen …</AdminFeedback>
+              : !actionError && users.length === 0 ? <AdminFeedback>{t("no_users")}</AdminFeedback>
+                : <UserRows users={users} currentUsername={currentUsername} onEdit={setEditTarget} onPassword={setPasswordTarget}
+                    onDelete={setDeleteTarget} onNotice={(m) => { setActionError(null); setNotice(m) }}
+                    onError={(m) => { setNotice(null); setActionError(m) }} />
+          )}
+          {tab === "gruppen" && <GroupsSection users={users} />}
+          {tab === "api-keys" && <ApiKeysSection />}
+        </AdminTabs>
       </div>
 
       {showNew && <NewUserDialog onClose={() => setShowNew(false)} onCreated={() => { setShowNew(false); load() }} />}
