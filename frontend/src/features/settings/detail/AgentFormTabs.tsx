@@ -10,6 +10,7 @@ import { MailTab } from "@/features/agents/_MailTab"
 import { SoulTab } from "@/features/agents/_SoulTab"
 import { SkillsTab } from "@/features/agents/_SkillsTab"
 import { AgentFormHeader } from "@/features/agents/_AgentFormHeader"
+import { isManaged, visibleTabs } from "@/features/agents/managedAgent"
 import type { Agent, ToolMeta } from "@/features/agents/types"
 import type { RegistryModel } from "@/features/llm/api"
 import { ScheduledTasksPanel } from "@/features/scheduledTasks/ScheduledTasksPanel"
@@ -73,10 +74,11 @@ export function AgentFormTabs({ agent, models, catalog, tools, onSaved, onDelete
     { id: "advanced", icon: SlidersHorizontal, label: t("tabs.advanced") },
     { id: "schedules", icon: Clock, label: "Intervalle" },
   ].filter((x) => x.show !== false)
+  const VISIBLE = visibleTabs(TABS, agent)
 
   // Falls der aktive Reiter ausgeblendet ist (z.B. Mail weg), zurück auf overview.
   useEffect(() => {
-    if (!TABS.some((x) => x.id === tab)) setTab("overview")
+    if (!VISIBLE.some((x) => x.id === tab)) setTab("overview")
   }, [hasMail]) // eslint-disable-line react-hooks/exhaustive-deps
 
   return (
@@ -90,7 +92,7 @@ export function AgentFormTabs({ agent, models, catalog, tools, onSaved, onDelete
 
       {/* Karteikarten-Reiter */}
       <div className="flex flex-wrap items-center gap-1 border-b border-white/8 px-4 pt-2">
-        {TABS.map(({ id, icon: Icon, label }) => (
+        {VISIBLE.map(({ id, icon: Icon, label }) => (
           <button
             key={id}
             onClick={() => setTab(id)}
@@ -107,6 +109,11 @@ export function AgentFormTabs({ agent, models, catalog, tools, onSaved, onDelete
 
       {/* Reiter-Inhalt: volle Breite, eigener Scroll */}
       <div className="flex-1 overflow-y-auto px-5 py-4">
+        {isManaged(agent) && (
+          <div className="mb-3 rounded-md border border-sky-500/30 bg-sky-500/[6%] px-3 py-2 text-xs text-sky-200" data-agent-managed>
+            {t("managed.hint", { module: agent.managed_by })}
+          </div>
+        )}
         {error && (
           <div className="mb-3 rounded-md border border-rose-500/30 bg-rose-500/[6%] px-3 py-1.5 text-xs text-rose-300">{error}</div>
         )}

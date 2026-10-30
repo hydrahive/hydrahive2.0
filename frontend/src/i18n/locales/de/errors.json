@@ -161,5 +161,6 @@
   "archive_nothing_selected": "Es gibt nichts zu löschen.",
   "delete_in_progress": "Dafür läuft schon ein Auftrag.",
   "module_operation_busy": "Gerade läuft schon eine Modul-Änderung ({{module}}). Bitte kurz warten und dann noch einmal versuchen.",
-  "module_update_all_failed": "Kein Modul konnte aktualisiert werden: {{detail}}"
+  "module_update_all_failed": "Kein Modul konnte aktualisiert werden: {{detail}}",
+  "agent_managed": "Dieser Agent wird von einem Modul verwaltet. Werkzeuge, Prompt und Soul lassen sich hier nicht ändern."
 }

@@ -164,5 +164,8 @@
     "groups": "Gruppen",
     "no_groups": "Keine Gruppen angelegt (Admin → Freigaben).",
     "groups_hint": "Von Gruppenmitgliedern nur Projekt-Sitzungen, keine Buddy-Chats, höchstens Stufe normal."
+  },
+  "managed": {
+    "hint": "Dieser Agent wird vom Modul „{{module}}“ verwaltet. Werkzeuge, Prompt und Soul legt das Modul fest – hier lässt sich nur das Modell ändern."
   }
 }
