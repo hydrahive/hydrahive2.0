@@ -22,24 +22,50 @@ const ENTRIES: ArchiveEntry[] = [
 ]
 const noop = () => {}
 const props = (p: Partial<ArchiveViewProps> = {}): ArchiveViewProps => ({
-  status: STATUS, entries: ENTRIES, host: "192.168.178.2", kind: null, error: null,
+  tab: "speicher", status: STATUS, entries: ENTRIES, host: "192.168.178.2", kind: null, error: null,
   onKind: noop, onEmptyTrash: noop, onSetupSamba: noop, onShareSwitch: noop, onChangeLocation: noop, shareBusy: false, ...p,
 })
-const html = (p: Partial<ArchiveViewProps> = {}) => renderToStaticMarkup(<ArchiveView {...props(p)} />).replace(/&quot;/g, '"')
+const html1 = (p: Partial<ArchiveViewProps> = {}) => renderToStaticMarkup(<ArchiveView {...props(p)} />).replace(/&quot;/g, '"')
+// Bereichs-Tests prüfen den Inhalt unabhängig vom Reiter: alle drei Reiter nacheinander (Plan admin-reiter-archiv).
+const html = (p: Partial<ArchiveViewProps> = {}) =>
+  (["speicher", "vorgaenge", "inhalt"] as const).map((tab) => html1({ tab, ...p })).join("")
+const bereiche = (out: string) => [...out.matchAll(/data-archive-section="([a-z]+)"/g)].map((m) => m[1])
 
 describe("Admin-Fenster Archiv & Sicherung", () => {
-  it("fünf Bereiche: Speicherort, Samba-Freigabe, Laufende Vorgänge, Waisen, Elemente", () => {
-    const out = html()
-    const order = [...out.matchAll(/data-archive-section="([a-z]+)"/g)].map((m) => m[1])
-    expect(order).toEqual(["storage", "share", "jobs", "orphans", "entries"])
+  it("Reiter zeigen nur ihre Bereiche: Speicher, Vorgänge, Inhalt", () => {
+    expect(bereiche(html1({ tab: "speicher" }))).toEqual(["storage", "share"])
+    expect(bereiche(html1({ tab: "vorgaenge" }))).toEqual(["jobs", "orphans"])
+    expect(bereiche(html1({ tab: "inhalt" }))).toEqual(["entries"])
+  })
+
+  it("Fehler steht in jedem Reiter", () => {
+    for (const tab of ["speicher", "vorgaenge", "inhalt"] as const) expect(html1({ tab, error: "Platte voll" })).toContain("Platte voll")
+  })
+
+  it("alle Bereiche über die drei Reiter verteilt, NAS gehört zu Speicher", () => {
+    expect(bereiche(html())).toEqual(["storage", "share", "jobs", "orphans", "entries"])
     const remote = { host: "nas", share: "b", subdir: "", user: "", configured: true, password_set: false, tested: false,
       active: false, waiting: 0, last_error: null, next_try_in_s: null, on_server: 0, local_only: 2, remote_only: 0,
       droppable: 0, droppable_bytes: 0 }
     const noop = () => {}
     const withRemote = html({ status: { ...STATUS, remote }, remote: { form: { host: "nas", share: "b", subdir: "", user: "",
       password: "" }, testResult: null, busy: false, error: null, onForm: noop, onSave: noop, onTest: noop, onActive: noop, onSync: noop } })
-    expect([...withRemote.matchAll(/data-archive-section="([a-z]+)"/g)].map((m) => m[1]))
-      .toEqual(["storage", "share", "remote", "jobs", "orphans", "entries"])
+    expect(bereiche(withRemote)).toEqual(["storage", "share", "remote", "jobs", "orphans", "entries"])
+  })
+
+  it("Zuletzt: erledigte Aufträge kompakt als aufklappbare Zeile mit Ergebnis (Plan admin-reiter-archiv)", () => {
+    const job = { kind: "project" as const, target: "p", mode: "permanent" as const, error: null, bytes_total: 0,
+      bytes_done: 0, files_total: 0, packages: [], leftovers: [], step: "pack" as const }
+    const jobs = { running: null, queued: [], done: [
+      { ...job, id: "ok1", name: "Fertig", state: "done" as const },
+      { ...job, id: "f1", name: "Kaputt", state: "failed" as const, error: "pack_failed" },
+    ] }
+    const out = html1({ tab: "vorgaenge", status: { ...STATUS, jobs } })
+    expect(out).toMatch(/<details[^>]*data-delete-job="ok1"[^>]*data-delete-state="done"/)
+    expect(out).not.toMatch(/<details[^>]*data-delete-job="ok1"[^>]*\sopen/)
+    expect(out).toMatch(/data-job-result="done"/)
+    expect(out).toMatch(/data-job-result="failed"/)
+    expect(out).toContain("delete.error.pack_failed")
   })
 
   it("Laufende Vorgänge: laufend mit Fortschritt, wartend, zuletzt mit Fehler", () => {
