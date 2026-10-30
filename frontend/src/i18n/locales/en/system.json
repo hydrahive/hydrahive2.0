@@ -261,5 +261,11 @@
       "voice": "Local speech recognition and speech output on this server, no cloud.",
       "tailscale": "Secure access on the go through your own tailnet."
     }
+  },
+  "tabs": {
+    "ueberblick": "Overview",
+    "netzwerk": "Network",
+    "erweiterungen": "Extensions",
+    "sicherung": "Backup"
   }
 }

@@ -261,5 +261,11 @@
       "voice": "Spracherkennung und Sprachausgabe lokal auf diesem Server, ohne Cloud.",
       "tailscale": "Sicherer Zugriff von unterwegs über das eigene Tailnet."
     }
+  },
+  "tabs": {
+    "ueberblick": "Überblick",
+    "netzwerk": "Netzwerk",
+    "erweiterungen": "Erweiterungen",
+    "sicherung": "Sicherung"
   }
 }
