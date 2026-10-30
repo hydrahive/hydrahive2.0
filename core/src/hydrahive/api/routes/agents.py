@@ -149,6 +149,8 @@ def update_agent(agent_id: str, req: AgentUpdate) -> dict:
         raise coded(status.HTTP_404_NOT_FOUND, "agent_not_found")
     except AgentValidationError as e:
         raise coded(status.HTTP_400_BAD_REQUEST, "validation_error", message=str(e))
+    except agent_config.AgentManaged as e:
+        raise coded(status.HTTP_409_CONFLICT, "agent_managed", module=e.managed_by)
 
 
 router.add_api_route("/{agent_id}", _delete_job.delete_agent, methods=["DELETE"],
@@ -178,6 +180,8 @@ def set_system_prompt(agent_id: str, req: SystemPromptUpdate) -> dict:
         agent_config.set_system_prompt(agent_id, req.prompt)
     except KeyError:
         raise coded(status.HTTP_404_NOT_FOUND, "agent_not_found")
+    except agent_config.AgentManaged as e:
+        raise coded(status.HTTP_409_CONFLICT, "agent_managed", module=e.managed_by)
     return {"prompt": req.prompt}
 
 
@@ -194,8 +198,11 @@ def set_soul_component(
     component: str,
     content: str = Body(..., embed=True),
 ) -> dict:
-    if not agent_config.get(agent_id):
+    agent = agent_config.get(agent_id)
+    if not agent:
         raise coded(status.HTTP_404_NOT_FOUND, "agent_not_found")
+    if agent.get("managed_by"):            # verwaltete Agenten: Soul wäre ein Weg am Systemprompt vorbei
+        raise coded(status.HTTP_409_CONFLICT, "agent_managed", module=agent["managed_by"])
     if component not in SOUL_COMPONENTS:
         raise coded(status.HTTP_400_BAD_REQUEST, "invalid_component",
                     message=f"Erlaubte Komponenten: {SOUL_COMPONENTS}")
