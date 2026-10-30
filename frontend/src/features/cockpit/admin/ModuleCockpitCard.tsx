@@ -10,11 +10,13 @@ type Action = "install" | "update" | "uninstall"
 interface Props {
   mod: ModuleEntry
   onRefresh: () => void
+  /** Wird beim Start einer Aktion gerufen (Module-Fenster hält die Karte dann im Reiter). */
+  onAction?: () => void
 }
 
 /** Modul-Karte im Cockpit-Design (Pendant zu features/modules/ModuleCard,
  *  ohne box/zinc — nutzt dieselbe Stream-API). */
-export function ModuleCockpitCard({ mod, onRefresh }: Props) {
+export function ModuleCockpitCard({ mod, onRefresh, onAction }: Props) {
   const { t } = useTranslation("modules")
   const [phase, setPhase] = useState<Phase>("idle")
   const [action, setAction] = useState<Action>("install")
@@ -27,6 +29,7 @@ export function ModuleCockpitCard({ mod, onRefresh }: Props) {
   useEffect(() => () => stopRef.current?.(), [])
 
   function run(a: Action) {
+    onAction?.()
     setAction(a); setPhase("running"); setLines([]); setFailed(false)
     const fn = a === "install" ? installModule : a === "update" ? updateModule : uninstallModule
     stopRef.current = fn(
@@ -105,7 +108,7 @@ export function ModuleCockpitCard({ mod, onRefresh }: Props) {
         </div>
       ) : (
         <button onClick={() => run("install")} disabled={busy}
-          className="rounded-[4px] bg-violet-600 py-1.5 text-xs font-medium text-white transition-colors hover:bg-violet-500 disabled:opacity-40">
+          className="rounded-[4px] border border-[#69d7ff]/45 bg-[#163248] py-1.5 text-xs font-bold text-[#c8f2ff] transition-colors hover:border-[#69d7ff]/70 hover:bg-[#1b3d56] disabled:opacity-40">
           {busy && action === "install" ? t("actions.installing") : t("actions.install")}
         </button>
       )}
