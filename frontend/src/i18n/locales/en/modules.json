@@ -37,5 +37,14 @@
     "waiting": "Waiting for output…",
     "success": "Completed successfully",
     "failed": "Failed"
+  },
+  "tabs": {
+    "installiert": "Installed",
+    "verfuegbar": "Available"
+  },
+  "search": {
+    "label": "Search modules",
+    "placeholder": "Name, id or description …",
+    "none": "No module matches the search."
   }
 }

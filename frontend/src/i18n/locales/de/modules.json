@@ -37,5 +37,14 @@
     "waiting": "Warte auf Ausgabe…",
     "success": "Erfolgreich abgeschlossen",
     "failed": "Fehlgeschlagen"
+  },
+  "tabs": {
+    "installiert": "Installiert",
+    "verfuegbar": "Verfügbar"
+  },
+  "search": {
+    "label": "Module durchsuchen",
+    "placeholder": "Name, Kennung oder Beschreibung …",
+    "none": "Kein Modul passt zur Suche."
   }
 }

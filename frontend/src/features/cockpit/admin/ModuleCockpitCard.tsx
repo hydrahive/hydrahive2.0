@@ -10,16 +10,19 @@ type Action = "install" | "update" | "uninstall"
 interface Props {
   mod: ModuleEntry
   onRefresh: () => void
+  /** Wird beim Start einer Aktion gerufen (Module-Fenster hält die Karte dann im Reiter). */
+  onAction?: () => void
 }
 
 /** Modul-Karte im Cockpit-Design (Pendant zu features/modules/ModuleCard,
  *  ohne box/zinc — nutzt dieselbe Stream-API). */
-export function ModuleCockpitCard({ mod, onRefresh }: Props) {
+export function ModuleCockpitCard({ mod, onRefresh, onAction }: Props) {
   const { t } = useTranslation("modules")
   const [phase, setPhase] = useState<Phase>("idle")
   const [action, setAction] = useState<Action>("install")
   const [lines, setLines] = useState<string[]>([])
   const [failed, setFailed] = useState(false)
+  const [open, setOpen] = useState(false)
   const logRef = useRef<HTMLDivElement>(null)
   const stopRef = useRef<(() => void) | null>(null)
 
@@ -27,6 +30,7 @@ export function ModuleCockpitCard({ mod, onRefresh }: Props) {
   useEffect(() => () => stopRef.current?.(), [])
 
   function run(a: Action) {
+    onAction?.()
     setAction(a); setPhase("running"); setLines([]); setFailed(false)
     const fn = a === "install" ? installModule : a === "update" ? updateModule : uninstallModule
     stopRef.current = fn(
@@ -40,7 +44,7 @@ export function ModuleCockpitCard({ mod, onRefresh }: Props) {
   const busy = phase === "running"
 
   return (
-    <div className="flex flex-col gap-3 rounded-[6px] border border-s-rand bg-s-innen p-4">
+    <div className="flex flex-col gap-2.5 rounded-[6px] border border-s-rand bg-s-innen p-3">
       <div className="flex items-start gap-3">
         <div className={"shrink-0 rounded-[4px] p-2 " + (mod.installed ? "bg-emerald-500/10 text-emerald-400" : "bg-s-hebung text-[#9aa7bc]")}>
           <Boxes size={18} />
@@ -67,7 +71,13 @@ export function ModuleCockpitCard({ mod, onRefresh }: Props) {
               </span>
             ))}
           </div>
-          {mod.description && <p className="mt-1 text-[12px] leading-snug text-[#9aa7bc]">{mod.description}</p>}
+          {/* Zwei Zeilen, Klick zeigt alles (eine Beschreibung hat 1400 Zeichen und machte die Kartenreihe 460 px hoch). */}
+          {mod.description && (
+            <button type="button" onClick={() => setOpen((o) => !o)} aria-expanded={open} title={open ? undefined : mod.description}
+              className={`mt-1 w-full text-left text-[12px] leading-snug text-[#9aa7bc] hover:text-[#c8d2df] ${open ? "block" : "line-clamp-2"}`}>
+              {mod.description}
+            </button>
+          )}
           {mod.error && <p className="mt-0.5 font-mono text-[11px] text-rose-400">{mod.error}</p>}
         </div>
       </div>
@@ -105,7 +115,7 @@ export function ModuleCockpitCard({ mod, onRefresh }: Props) {
         </div>
       ) : (
         <button onClick={() => run("install")} disabled={busy}
-          className="rounded-[4px] bg-violet-600 py-1.5 text-xs font-medium text-white transition-colors hover:bg-violet-500 disabled:opacity-40">
+          className="rounded-[4px] border border-[#69d7ff]/45 bg-[#163248] py-1.5 text-xs font-bold text-[#c8f2ff] transition-colors hover:border-[#69d7ff]/70 hover:bg-[#1b3d56] disabled:opacity-40">
           {busy && action === "install" ? t("actions.installing") : t("actions.install")}
         </button>
       )}
