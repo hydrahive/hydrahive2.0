@@ -67,7 +67,8 @@ def test_unbekannter_container(client, admin_headers, known_container):
 
 
 @pytest.mark.parametrize(("workdir", "user"), [("relativ", 1000), ("/", 1000), ("/work/../etc", 1000),
-                                               ("/work", 0), ("/work", -1), ("/work", "1000")])
+                                               ("/work", 0), ("/work", -1), ("/work", "1000"), ("/work", True),
+                                               ("/work", 65536)])
 def test_ungueltiges_arbeitsverzeichnis_oder_nutzer(client, admin_headers, known_container, workdir, user):
     from hydrahive.projects import execution
     pid = _project(client, admin_headers)
@@ -101,6 +102,11 @@ def test_zurueck_auf_server_nur_ausdruecklich(client, admin_headers, known_conta
     execution.set_container(pid, "hh-labor-probe", actor="admin")
     with pytest.raises(execution.ExecutionError):
         execution.set_host(pid, actor="admin", confirm="")
+    assert execution.of(project_config.get(pid))["mode"] == "container"
+    with pytest.raises(execution.ExecutionError):
+        execution.set_host(pid, actor="admin", confirm="Labor-Prob")
+    with pytest.raises(execution.ExecutionError):
+        execution.set_host(pid, actor="admin", confirm="ja")
     assert execution.of(project_config.get(pid))["mode"] == "container"
     execution.set_host(pid, actor="admin", confirm="Labor-Probe")
     assert execution.of(project_config.get(pid)) == {"mode": "host"}
@@ -202,7 +208,7 @@ def fake_incus(monkeypatch):
         if args[:2] == ("incus", "list"):
             p = _Proc(out=b"RUNNING\n" if state["running"] else b"STOPPED\n")
             return p
-        if "pkill" in args or "kill" in " ".join(args[-1:]):
+        if "pkill" in " ".join(args):
             return _Proc(out=b"")
         p = _Proc(hang=state["hang"])
         state["proc"] = p
@@ -230,9 +236,10 @@ def test_befehl_als_ein_argument_ohne_host_shell(fake_incus):
     a = ex[0]["args"]
     assert a[:3] == ["incus", "exec", "hh-labor-probe"]
     i = a.index("--")
-    assert a[i + 1:i + 3] == ["bash", "-lc"]
-    assert a[i + 3].endswith(cmd)                     # Befehl unverändert, als genau ein Argument am Ende
-    assert len(a) == i + 4
+    assert a[i + 1:i + 3] == ["setsid", "bash"]
+    assert a[-1] == cmd                               # Befehl unverändert, als genau ein Argument am Ende
+    assert cmd not in a[i + 4]                        # nie in den Wrapper-Text eingesetzt
+    assert 'bash -lc "$1"' in a[i + 4]
     assert ["--cwd", "/work"] == a[a.index("--cwd"):a.index("--cwd") + 2]
     assert ["--user", "1000"] == a[a.index("--user"):a.index("--user") + 2]
     assert ["--group", "1000"] == a[a.index("--group"):a.index("--group") + 2]
@@ -253,6 +260,8 @@ def test_keine_server_umgebung_im_container(fake_incus, monkeypatch):
     text = " ".join(c["args"]) + " " + " ".join(f"{k}={v}" for k, v in c["env"].items())
     for s in ("ghp_GEHEIM", "ghp_SERVER", "server-secret", "GITEA_TOKEN", "HH_SECRET_KEY"):
         assert s not in text
+    # auch der Host-Prozess (incus selbst) bekommt nur PATH – sonst sähe ein incus-Wrapper die Server-Geheimnisse
+    assert c["env"] == {"PATH": "/usr/bin:/bin"}
     envs = [c["args"][i + 1] for i, x in enumerate(c["args"]) if x == "--env"]
     assert sorted(envs) == sorted(["HOME=/home/labor", "LANG=C.UTF-8", "HH_EXEC_ID=" + envs_id(envs)])
 
@@ -276,8 +285,9 @@ def test_zeitlimit_beendet_auch_im_container(fake_incus):
     assert fake_incus["state"]["proc"].killed
     exec_id = envs_id([c for c in _exec_calls(fake_incus["calls"])][0]["args"][
         _exec_calls(fake_incus["calls"])[0]["args"].index("--env") + 1:])
-    kills = [c for c in fake_incus["calls"] if c["args"][:2] == ["incus", "exec"] and "pkill" in c["args"]]
-    assert kills and any(f"HH_EXEC_ID={exec_id}" in " ".join(k["args"]) for k in kills)
+    kills = [c for c in fake_incus["calls"] if c["args"][:2] == ["incus", "exec"] and "pkill" in " ".join(c["args"])]
+    assert kills and any(f"/tmp/hh-exec-{exec_id}.pgid" in " ".join(k["args"]) for k in kills)
+    assert all("--user" in k["args"] for k in kills)  # nie als root im Container killen
 
 
 def test_abbruch_beendet_auch_im_container(fake_incus):
@@ -292,7 +302,7 @@ def test_abbruch_beendet_auch_im_container(fake_incus):
 
     asyncio.run(go())
     assert fake_incus["state"]["proc"].killed
-    assert any("pkill" in c["args"] for c in fake_incus["calls"])
+    assert any("pkill" in " ".join(c["args"]) for c in fake_incus["calls"])
 
 
 def test_shell_exec_nimmt_den_projekt_launcher(monkeypatch, tmp_path):
@@ -363,3 +373,19 @@ def test_kaputte_ausfuehrung_ergibt_keine_werkzeuge():
     from hydrahive.runner._project_tool_scope import scope_tools
     broken = {**_CT, "execution": {"mode": "container", "container": "X;y"}}
     assert scope_tools(broken, ["shell_exec", "file_read", "web_search"], ["m1"]) == ([], [])
+
+
+def test_direkter_aufruf_eines_gesperrten_werkzeugs_wird_abgelehnt(client, tmp_path):
+    """Auch wenn das Modell ein nicht angebotenes Werkzeug trotzdem aufruft: Der Dispatcher prüft gegen die Liste
+    nach scope_tools – und die enthält für Container-Projekte nur die Allowlist."""
+    from hydrahive.db import messages as messages_db
+    from hydrahive.db import sessions as sessions_db
+    from hydrahive.runner._project_tool_scope import scope_tools
+    from hydrahive.runner.dispatcher import execute_tool
+    allowed, _ = scope_tools(_CT, ["shell_exec", "web_browser", "webmin_status", "plugin__git-stats__git_commits"], [])
+    s = sessions_db.create(agent_id="a1", user_id="u1", title="t")
+    msg = messages_db.append(s.id, "assistant", "hi")
+    ctx = ToolContext(session_id=s.id, agent_id="a1", user_id="u1", workspace=tmp_path)
+    for name in ("web_browser", "webmin_status", "plugin__git-stats__git_commits"):
+        res, _, _ = asyncio.run(execute_tool({"id": "x", "name": name, "input": {}}, allowed, ctx, msg.id))
+        assert res.success is False and "nicht erlaubt" in (res.error or "")
