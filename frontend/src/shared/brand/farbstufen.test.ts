@@ -3,9 +3,9 @@
 import { readFileSync } from "node:fs"
 import { join } from "node:path"
 import { describe, expect, it } from "vitest"
-import tailwind from "../../../tailwind.config.js"
 
 const CSS = readFileSync(join(__dirname, "..", "..", "index.css"), "utf8")
+const TAILWIND = readFileSync(join(__dirname, "..", "..", "..", "tailwind.config.js"), "utf8")
 const STUFEN = ["grund", "tief", "box", "kopf", "innen", "hebung", "rand", "rand-hover"] as const
 
 /** Stufe aus index.css lesen: `--hh-s-box: 23 32 48;` → [23, 32, 48]. */
@@ -34,8 +34,11 @@ describe("Farbstufen", () => {
   })
 
   it("Tailwind kennt die Stufen als s-* und verweist nur auf die Variablen", () => {
-    const farben = (tailwind as { theme: { extend: { colors: Record<string, unknown> } } }).theme.extend.colors.s as Record<string, string>
-    for (const s of STUFEN) expect(farben[s], s).toBe(`rgb(var(--hh-s-${s}) / <alpha-value>)`)
+    for (const s of STUFEN) expect(TAILWIND, s).toContain(`"${s}": "rgb(var(--hh-s-${s}) / <alpha-value>)"`)
+    // Kein Hex-Wert in der s-Gruppe: die Werte stehen nur in index.css.
+    const gruppe = TAILWIND.match(/\n\s+s: \{([^}]*)\}/)?.[1]
+    expect(gruppe).toContain("--hh-s-box")
+    expect(gruppe).not.toMatch(/#[0-9a-f]{6}/i)
   })
 
   it("jede Stufe ist heller als die darunter", () => {

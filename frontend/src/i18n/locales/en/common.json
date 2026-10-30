@@ -61,5 +61,10 @@
   "empty": {
     "no_results": "No results",
     "select_to_view": "Select an item to see details"
+  },
+  "boxStatus": {
+    "warnung": "Warning",
+    "fehler": "Error",
+    "ok": "Running"
   }
 }
