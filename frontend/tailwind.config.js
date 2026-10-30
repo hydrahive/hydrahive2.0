@@ -41,6 +41,17 @@ export default {
           DEFAULT: "hsl(var(--card))",
           foreground: "hsl(var(--card-foreground))",
         },
+        // Helligkeitsstufen — Werte stehen NUR in index.css (--hh-s-*), hier nur Verweise.
+        s: {
+          "grund": "rgb(var(--hh-s-grund) / <alpha-value>)",
+          "tief": "rgb(var(--hh-s-tief) / <alpha-value>)",
+          "box": "rgb(var(--hh-s-box) / <alpha-value>)",
+          "kopf": "rgb(var(--hh-s-kopf) / <alpha-value>)",
+          "innen": "rgb(var(--hh-s-innen) / <alpha-value>)",
+          "hebung": "rgb(var(--hh-s-hebung) / <alpha-value>)",
+          "rand": "rgb(var(--hh-s-rand) / <alpha-value>)",
+          "rand-hover": "rgb(var(--hh-s-rand-hover) / <alpha-value>)",
+        },
       },
       // UI-Standard Regel 1 (docs/specs/ui-standard.md): zinc-500 nur als TEXTfarbe anheben.
       // #71717a hatte auf dem Panel #1c2334 nur 3,24:1 (AA verlangt 4,5:1); #94949e: 5,22:1.

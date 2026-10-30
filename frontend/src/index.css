@@ -24,6 +24,18 @@
     --destructive-foreground: 0 0% 100%;
     --radius: 0.75rem;
 
+    /* Helligkeitsstufen (Plan docs/plans/farbstufen-kopffarben.md) — EINZIGE Stelle für die Flächen.
+       Jede Stufe ist heller als die darunter. Tailwind: bg-s-box, border-s-rand, bg-s-innen/80 …
+       Gemessen: Grund→Box 1,22 · Box→Kopf 1,13 · Box→Innen 1,24 · Box→Rand 1,62. */
+    --hh-s-grund:      8 11 17;   /* #080b11 App-Hintergrund                    */
+    --hh-s-tief:       14 20 31;  /* #0e141f Eingabefelder, Konsolen, Fußzeilen */
+    --hh-s-box:        23 32 48;  /* #172030 Box / Fensterfläche                */
+    --hh-s-kopf:       31 42 61;  /* #1f2a3d Kopfzeile von Box und Fenster      */
+    --hh-s-innen:      36 48 71;  /* #243047 Zeile/Karte in einer Box, Knöpfe   */
+    --hh-s-hebung:     43 56 82;  /* #2b3852 Hover von Innenzeilen/Knöpfen      */
+    --hh-s-rand:       52 66 92;  /* #34425c Standardrand + Trenner             */
+    --hh-s-rand-hover: 70 97 127; /* #46617f Hover-/Fokusrand                   */
+
     /* Redesign: angehobene Panel-Fläche + Box-Radius (Boxen runder als shadcn-Controls) */
     --hh-bg:        #0b0e16;
     --hh-panel:     #1c2334;
@@ -331,14 +343,14 @@
    ============================================================ */
 @layer components {
   .cockpit-route {
-    --cockpit-bg: #080b11;
-    --cockpit-panel: #151c2b;
-    --cockpit-panel-deep: #101724;
-    --cockpit-input: #0d1420;
-    --cockpit-border: #2a364b;
+    --cockpit-bg: rgb(var(--hh-s-grund));
+    --cockpit-panel: rgb(var(--hh-s-box));
+    --cockpit-panel-deep: rgb(var(--hh-s-tief));
+    --cockpit-input: rgb(var(--hh-s-tief));
+    --cockpit-border: rgb(var(--hh-s-rand));
     --cockpit-text: #e8eef8;
     --cockpit-copy: #c8d2df;
-    --cockpit-muted: #8d9ab0;
+    --cockpit-muted: #9aa7bc;
     --cockpit-dim: #718097;
     --cockpit-accent: #69d7ff;
   }
