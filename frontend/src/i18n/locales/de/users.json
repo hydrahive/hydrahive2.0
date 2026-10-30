@@ -49,5 +49,10 @@
     "own_title": "Meine API-Keys",
     "own_subtitle": "Für Skripte, Apps und Zugangsdaten-Profile deiner Agenten. Ein Key hat deine Rechte, gib ihn nicht weiter. Anlegen und Löschen geht nur hier mit deiner Anmeldung.",
     "loading": "API-Keys werden geladen …"
+  },
+  "tabs": {
+    "benutzer": "Benutzer",
+    "gruppen": "Gruppen",
+    "api-keys": "API-Keys"
   }
 }
