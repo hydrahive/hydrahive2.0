@@ -267,5 +267,11 @@
     "netzwerk": "Netzwerk",
     "erweiterungen": "Erweiterungen",
     "sicherung": "Sicherung"
+  },
+  "health": {
+    "title": "Zustand",
+    "eyebrow": "System",
+    "loading": "Prüfungen werden geladen …",
+    "agent": "Admin-Agent öffnen"
   }
 }
