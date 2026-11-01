@@ -137,6 +137,9 @@ def test_stufen_je_modell():
     assert effort_levels_for_model(M3) == ("low", "medium", "high", "xhigh", "max")
     assert effort_levels_for_model(M27) == ("low", "medium", "high")
     assert effort_levels_for_model("MiniMax-M2.5") == ("low", "medium", "high")
+    # mit Anbieter-Vorsatz (so stehen Modelle teils in der Agent-Konfiguration)
+    assert effort_levels_for_model("minimax/MiniMax-M3.1-Flash") == ("low", "medium", "high", "xhigh", "max")
+    assert effort_levels_for_model("minimax/MiniMax-M2.7") == ("low", "medium", "high")
 
 
 def test_katalog_meldet_effort_unterstuetzung():
@@ -175,8 +178,8 @@ def test_anbieter_wird_erkannt():
 
 def test_preise_flash_und_m3():
     f, m = lookup("minimax", FLASH), lookup("minimax", M3)
-    assert (f.input, f.output, f.cache_read) == (0.015, 0.06, 0.0015)
-    assert (m.input, m.output, m.cache_read) == (0.03, 0.12, 0.006)
+    assert (f.input, f.output, f.cache_read, f.cache_creation) == (0.015, 0.06, 0.0015, 0.015)
+    assert (m.input, m.output, m.cache_read, m.cache_creation) == (0.03, 0.12, 0.006, 0.03)
     assert lookup("minimax", "minimax/MiniMax-M3") == m
     assert lookup("minimax", M27) is None
 
