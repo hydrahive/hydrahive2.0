@@ -35,10 +35,19 @@ EFFORT_PARAM_MODELS = (
 EFFORT_TO_BUDGET = {"low": 1024, "medium": 4096, "high": 16384}
 
 
+# MiniMax M3.x (Stand 01.11.2026, Spec docs/specs/minimax-m3.md): thinking adaptive + output_config.effort wie bei Claude 4.6+,
+# aber ohne temperature (wird ignoriert) und nie „disabled“ (M3.1-Flash antwortet darauf mit 400). M2.x bleibt Legacy.
+MINIMAX_EFFORT_MODELS = ("MiniMax-M3",)
+
+
+def _is_minimax_m3(model: str) -> bool:
+    return strip_provider_prefix(model).startswith(MINIMAX_EFFORT_MODELS)
+
+
 def _uses_effort_param(model: str) -> bool:
-    """True für Claude 4.6+ (adaptive thinking + output_config.effort)."""
+    """True für Claude 4.6+ und MiniMax M3.x (adaptive thinking + output_config.effort)."""
     bare = strip_provider_prefix(model)
-    return any(bare.startswith(p) for p in EFFORT_PARAM_MODELS)
+    return any(bare.startswith(p) for p in EFFORT_PARAM_MODELS) or _is_minimax_m3(model)
 
 
 def apply_effort(kwargs: dict, model: str, effort: str | None) -> None:
@@ -63,7 +72,9 @@ def apply_effort(kwargs: dict, model: str, effort: str | None) -> None:
             return
         kwargs["thinking"] = {"type": "adaptive"}
         kwargs.setdefault("output_config", {})["effort"] = effort
-        if "temperature" in kwargs:
+        if _is_minimax_m3(model):
+            kwargs.pop("temperature", None)  # MiniMax ignoriert sie (immer 1)
+        elif "temperature" in kwargs:
             kwargs["temperature"] = 1.0
         return
     budget = EFFORT_TO_BUDGET.get(effort)
@@ -96,12 +107,15 @@ def is_minimax_model(model: str) -> bool:
     return strip_provider_prefix(model).lower().startswith("minimax-")
 
 
-def convert_images_for_minimax(messages: list[dict]) -> list[dict]:
-    """Anthropic image blocks → OpenAI image_url blocks für MiniMax.
+def convert_images_for_minimax(messages: list[dict], model: str | None = None) -> list[dict]:
+    """Anthropic image blocks → OpenAI image_url blocks für MiniMax M2.x.
 
-    MiniMax's /anthropic Endpoint übergibt Anthropic-Image-Blöcke nicht ans Modell.
-    Das Modell erwartet intern OpenAI-Format: {type:"image_url",image_url:{url:"data:..."}}.
+    MiniMax's /anthropic Endpoint übergibt Anthropic-Image-Blöcke bei M2.x nicht ans Modell (dort ohnehin ohne
+    Bild-Eingabe). M3.1-Flash und M3 lesen den normalen Anthropic-Block (gemessen 01.11.2026) – für sie bleibt alles
+    unverändert. Ohne Modellangabe gilt das alte Verhalten.
     """
+    if model and _is_minimax_m3(model):
+        return messages
     result = []
     for m in messages:
         if m.get("role") == "user" and isinstance(m.get("content"), list):

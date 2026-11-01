@@ -24,6 +24,7 @@ from hydrahive.llm._catalog_data import (
     METADATA,
     PROVIDER_ENDPOINTS,
     PROVIDER_PREFIX,
+    RETIRED_MODELS,
     STATIC_MODELS,
 )
 
@@ -141,6 +142,9 @@ def _parse_models_response(provider_id: str, data: dict) -> list[dict]:
             "input_modalities": arch.get("input_modalities") or [],
             "tool_use": tool_use,
         })
+    retired = RETIRED_MODELS.get(provider_id, ())
+    if retired:
+        out = [e for e in out if e["id"] not in retired]
     return out
 
 
@@ -413,9 +417,10 @@ async def catalog_for_providers(providers: list[dict]) -> list[dict]:
         # auch bei einem fehlenden/verkürzten Live-Katalog in den Pickern bleiben
         # (z.B. Codex OAuth oder ein neuer DeepSeek-NIM-Slug).
         known = {str(e.get("id")) for e in entries}
+        retired = RETIRED_MODELS.get(pid, ())
         for model in p.get("models", []) or []:
             model_id = _normalize_id(pid, str(model).strip())
-            if model_id and model_id not in known:
+            if model_id and model_id not in known and model_id not in retired:
                 entries.append({"id": model_id, "context_window": None,
                                 "is_free": None, "price_prompt": None,
                                 "price_completion": None})

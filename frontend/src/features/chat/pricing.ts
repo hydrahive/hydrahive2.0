@@ -15,8 +15,10 @@ const PRICING: { match: RegExp; price: Pricing }[] = [
   { match: /^claude-haiku-4/i,            price: { input: 1.00,  output: 5.00,  cache_read: 0.10,  cache_write: 1.25  } },
   { match: /^claude-3-7-sonnet/i,         price: { input: 3.00,  output: 15.00, cache_read: 0.30,  cache_write: 3.75  } },
   { match: /^claude-3-5-haiku/i,          price: { input: 0.80,  output: 4.00,  cache_read: 0.08,  cache_write: 1.00  } },
+  // MiniMax, platform.minimax.io „Pricing Overview“ (01.11.2026). M3: bis 512k Eingabe, dauerhaft −50 %.
+  { match: /^(minimax\/)?minimax-m3\.1-flash/i, price: { input: 0.15, output: 0.60, cache_read: 0.015, cache_write: 0.15 } },
+  { match: /^(minimax\/)?minimax-m3/i,          price: { input: 0.30, output: 1.20, cache_read: 0.06,  cache_write: 0.30 } },
   { match: /^minimax-?m2/i,               price: { input: 0.30,  output: 1.20  } },
-  { match: /^abab6\.5/i,                  price: { input: 0.20,  output: 0.80  } },
   { match: /^gpt-4o-mini/i,               price: { input: 0.15,  output: 0.60  } },
   { match: /^gpt-4o/i,                    price: { input: 2.50,  output: 10.00 } },
   { match: /^o1-preview/i,                price: { input: 15.00, output: 60.00 } },

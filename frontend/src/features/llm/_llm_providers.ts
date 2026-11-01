@@ -38,7 +38,7 @@ export const KNOWN_PROVIDERS = [
     models: [],
   },
   {
-    id: "minimax", name: "MiniMax", placeholder: "eyJ...",
+    id: "minimax", name: "MiniMax", placeholder: "sk-...",
     models: [],
   },
   {

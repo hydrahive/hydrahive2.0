@@ -59,6 +59,14 @@ _DEEPSEEK: dict[str, Pricing] = {
     "deepseek-reasoner": Pricing(0.055, 0.22, 0.014, 0.055),
 }
 
+# MiniMax (platform.minimax.io „Pricing Overview“, 01.11.2026), USD je Mio. Token → ×0.1 Mikro-Cent je Token.
+# M3 bis 512k Eingabe mit dauerhaften 50 % Rabatt: 0,30 / 1,20 / Cache lesen 0,06. Cache-Schreiben wird nicht extra berechnet.
+# Über 512k Eingabe und Priority (1,5×) sind hier nicht abgebildet. M2.x hat keine veröffentlichten Preise → None.
+_MINIMAX: dict[str, Pricing] = {
+    "minimax-m3.1-flash": Pricing(0.015, 0.06, 0.0015, 0.015),
+    "minimax-m3": Pricing(0.03, 0.12, 0.006, 0.03),
+}
+
 _GEMINI: dict[str, Pricing] = {
     "gemini-2.0-flash": Pricing(0.01, 0.04, 0.0025, 0.01),
     "gemini-2.0-pro": Pricing(0.125, 0.5, 0.03125, 0.125),
@@ -111,6 +119,8 @@ def lookup(provider: str, model: str) -> Pricing | None:
         return _match(model, _DEEPSEEK)
     if p in {"gemini", "google"}:
         return _match(model, _GEMINI)
+    if p == "minimax":
+        return _match(model.removeprefix("minimax/"), _MINIMAX)
     if p == "openrouter":
         return None  # Option A: kein per-Modell-Pricing; Tokens werden gezählt, Kosten als NULL
     return None
