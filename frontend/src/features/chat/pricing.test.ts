@@ -38,6 +38,11 @@ describe("MiniMax-Preise", () => {
     expect(estimateCostUsd("MiniMax-M3", { input: M(2), output: M(1) })).toBeCloseTo(1.8, 6)
     expect(estimateCostUsd("minimax/MiniMax-M3", { cache_read: M(1) })).toBeCloseTo(0.06, 6)
   })
+  it("Cache schreiben: Flash 0,15, M3 0,30; auch Flash mit Anbieter-Vorsatz", () => {
+    expect(estimateCostUsd("MiniMax-M3.1-Flash", { cache_creation: M(1) })).toBeCloseTo(0.15, 6)
+    expect(estimateCostUsd("MiniMax-M3", { cache_creation: M(1) })).toBeCloseTo(0.30, 6)
+    expect(estimateCostUsd("minimax/MiniMax-M3.1-Flash", { input: M(1) })).toBeCloseTo(0.15, 6)
+  })
   it("Flash wird nicht mit M3 verwechselt", () => {
     expect(estimateCostUsd("MiniMax-M3.1-Flash", { input: M(1) })).toBeCloseTo(0.15, 6)
     expect(estimateCostUsd("MiniMax-M3", { input: M(1) })).toBeCloseTo(0.30, 6)
