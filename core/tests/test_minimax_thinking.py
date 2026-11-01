@@ -77,13 +77,14 @@ def test_m21_ist_minimax_modell():
     assert is_minimax_model("MiniMax-M2.1") is True
 
 
-def test_m21_in_static_models():
-    from hydrahive.llm._catalog_data import STATIC_MODELS
-    assert "MiniMax-M2.1" in STATIC_MODELS["minimax"]
+def test_m21_ist_abgeschaltet_und_nicht_mehr_in_der_auswahl():
+    """MiniMax-M2.1 antwortet seit 2026 mit 404 „no longer available (2069)“ (gemessen 01.11.2026)."""
+    from hydrahive.llm._catalog_data import RETIRED_MODELS, STATIC_MODELS
+    assert "MiniMax-M2.1" not in STATIC_MODELS["minimax"]
+    assert "MiniMax-M2.1" in RETIRED_MODELS["minimax"]
 
 
-def test_m21_metadata_vorhanden():
+def test_m27_metadata_vorhanden():
     from hydrahive.llm._catalog_data import METADATA
-    assert "MiniMax-M2.1" in METADATA
-    assert METADATA["MiniMax-M2.1"]["tool_use"] is True
-    assert METADATA["MiniMax-M2.1"]["context_window"] == 205_000
+    assert METADATA["MiniMax-M2.7"]["tool_use"] is True
+    assert METADATA["MiniMax-M2.7"]["context_window"] == 200_000

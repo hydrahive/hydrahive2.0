@@ -182,6 +182,14 @@ def test_preise_flash_und_m3():
 
 
 def test_kosten_flash():
-    # 1 Mio. Eingabe + 1 Mio. Ausgabe + 1 Mio. Cache gelesen = 0,15 + 0,60 + 0,015 USD = 77,5 Cent = 77 500 Mikro-Cent
+    # 1 Mio. Eingabe + 1 Mio. Ausgabe + 1 Mio. Cache gelesen = 0,15 + 0,60 + 0,015 = 0,765 USD = 76,5 Cent = 76 500 Mikro-Cent
     assert cost_micros("minimax", FLASH, prompt_tokens=1_000_000, completion_tokens=1_000_000,
-                       cache_read_tokens=1_000_000, cache_creation_tokens=0) == 77_500
+                       cache_read_tokens=1_000_000, cache_creation_tokens=0) == 76_500
+
+
+def test_kosten_m3_ohne_cache_und_unbekanntes_modell():
+    # 2 Mio. Eingabe (0,60) + 1 Mio. Ausgabe (1,20) = 1,80 USD = 180 Cent = 180 000 Mikro-Cent
+    assert cost_micros("minimax", M3, prompt_tokens=2_000_000, completion_tokens=1_000_000,
+                       cache_read_tokens=0, cache_creation_tokens=0) == 180_000
+    assert cost_micros("minimax", M27, prompt_tokens=10, completion_tokens=10, cache_read_tokens=0,
+                       cache_creation_tokens=0) is None

@@ -8,7 +8,7 @@ _WITH_ULTRA = (*_WITH_MAX, "ultra")
 
 def effort_levels_for_model(model: str) -> tuple[str, ...]:
     """Erlaubte Effort-Werte für ein Modell, leer wenn nicht unterstützt."""
-    bare = model.removeprefix("anthropic/")
+    bare = model.removeprefix("anthropic/").removeprefix("minimax/")
     if model.startswith(("openai-codex/gpt-6-astra", "openai-codex/gpt-5.6-sol", "openai-codex/gpt-5.6-terra")):
         return _WITH_ULTRA
     if model.startswith("openai-codex/gpt-5.6-luna"):
@@ -23,6 +23,9 @@ def effort_levels_for_model(model: str) -> tuple[str, ...]:
         if _uses_effort_param(model):
             return EFFORT_LEVELS
         return ("low", "medium", "high")
+    if bare.startswith("MiniMax-M3"):
+        from hydrahive.llm._anthropic import EFFORT_LEVELS
+        return EFFORT_LEVELS
     if bare.startswith("MiniMax-M2"):
         return ("low", "medium", "high")
     return ()

@@ -20,10 +20,10 @@ PROVIDER_ENDPOINTS = {
     "deepseek":   {"url": "https://api.deepseek.com/models", "auth": "bearer"},
     "gemini":     {"url": "https://generativelanguage.googleapis.com/v1beta/models",
                    "auth": "query", "query_param": "key"},
-    # MiniMax hat keinen öffentlichen /models-Endpoint; Codex nutzt den
-    # account-authentifizierten ChatGPT-Katalog unterhalb.
+    # MiniMax: Live-Liste unter /v1/models (Bearer, nur id/created/owned_by). Sie enthält auch schon abgeschaltete
+    # Modelle → RETIRED_MODELS. Codex nutzt den account-authentifizierten ChatGPT-Katalog unterhalb.
     "anthropic":    {"url": "https://api.anthropic.com/v1/models", "auth": "x-api-key"},
-    "minimax":      {"url": None, "auth": None},
+    "minimax":      {"url": "https://api.minimax.io/v1/models", "auth": "bearer"},
     "openai-codex": {
         "url": "https://chatgpt.com/backend-api/codex/models",
         "auth": "bearer",
@@ -53,11 +53,18 @@ STATIC_MODELS = {
     ],
     # DeepSeek: Ersatz, falls /models nicht erreichbar ist (offizielle Namen laut Doku, 20.10.2026).
     "deepseek": ["deepseek/deepseek-flash", "deepseek/deepseek-v4-pro"],
+    # Stand 01.11.2026 (echte Aufrufe): nur diese Modelle antworten und gehören in die Auswahl.
     "minimax": [
-        "MiniMax-Text-01", "MiniMax-M2", "MiniMax-M2.1", "MiniMax-M2.7", "MiniMax-M1",
-        "abab6.5s-chat", "abab6.5-chat", "abab5.5-chat", "abab5.5s-chat",
-        "embo-01",
+        "MiniMax-M3.1-Flash", "MiniMax-M3", "MiniMax-M2.7", "MiniMax-M2.7-highspeed",
+        "MiniMax-M2.5", "MiniMax-M2.5-highspeed",
     ],
+}
+
+# Abgeschaltete Modelle je Anbieter: stehen teils noch in der Live-Liste, antworten aber mit 404 (MiniMax 2069 „no longer
+# available“) oder sind unbekannt. Sie werden aus Live-Liste, Fallback und Nutzer-Modellliste entfernt. Eine Pflegestelle.
+RETIRED_MODELS: dict[str, tuple[str, ...]] = {
+    "minimax": ("MiniMax-M2.1", "MiniMax-M2.1-highspeed", "MiniMax-M2", "MiniMax-M1", "MiniMax-Text-01",
+                "abab6.5s-chat", "abab6.5-chat", "abab5.5-chat", "abab5.5s-chat"),
 }
 
 # Modell-Prefix für LiteLLM bei Provider die das brauchen.
@@ -90,17 +97,17 @@ METADATA: dict[str, dict[str, Any]] = {
     "claude-haiku-4-5":  {"context_window": 200_000, "tool_use": True, "category": "chat", "family": "anthropic"},
     "claude-3-7-sonnet-20250219": {"context_window": 200_000, "tool_use": True, "category": "chat", "family": "anthropic"},
     "claude-3-5-haiku-20241022":  {"context_window": 200_000, "tool_use": True, "category": "chat", "family": "anthropic"},
-    # MiniMax
-    "MiniMax-Text-01": {"context_window": 1_000_000, "tool_use": True, "category": "chat", "family": "minimax"},
-    "MiniMax-M1":      {"context_window": 1_000_000, "tool_use": True, "category": "chat", "family": "minimax"},
-    "MiniMax-M2":      {"context_window": 256_000, "tool_use": True, "category": "chat", "family": "minimax"},
-    "MiniMax-M2.1":    {"context_window": 205_000, "tool_use": True, "category": "chat", "family": "minimax"},
-    "MiniMax-M2.7":    {"context_window": 256_000, "tool_use": True, "category": "chat", "family": "minimax"},
-    "abab6.5s-chat":   {"context_window": 245_000, "tool_use": True, "category": "chat", "family": "minimax"},
-    "abab6.5-chat":    {"context_window": 8_192, "tool_use": True, "category": "chat", "family": "minimax"},
-    "abab5.5-chat":    {"context_window": 16_384, "tool_use": False, "category": "chat", "family": "minimax"},
-    "abab5.5s-chat":   {"context_window": 8_192, "tool_use": False, "category": "chat", "family": "minimax"},
-    "embo-01":         {"context_window": 4_096, "tool_use": False, "category": "embed", "family": "minimax"},
+    # MiniMax (Stand 01.11.2026): M3.x 1 Mio. Kontext, Bild- und Video-Eingabe; M2.x nur Text. "vision": Bild-Eingabe.
+    "MiniMax-M3.1-Flash":     {"context_window": 1_000_000, "tool_use": True, "category": "chat", "family": "minimax", "vision": True},
+    "MiniMax-M3":             {"context_window": 1_000_000, "tool_use": True, "category": "chat", "family": "minimax", "vision": True},
+    "MiniMax-M2.7":           {"context_window": 200_000, "tool_use": True, "category": "chat", "family": "minimax"},
+    "MiniMax-M2.7-highspeed": {"context_window": 200_000, "tool_use": True, "category": "chat", "family": "minimax"},
+    "MiniMax-M2.5":           {"context_window": 200_000, "tool_use": True, "category": "chat", "family": "minimax"},
+    "MiniMax-M2.5-highspeed": {"context_window": 200_000, "tool_use": True, "category": "chat", "family": "minimax"},
+    "embo-01":                {"context_window": 4_096, "tool_use": False, "category": "embed", "family": "minimax"},
+    # Abgeschaltet (RETIRED_MODELS), die Einträge bleiben nur als bekannte Beispiele für „kann keine Werkzeuge“ erhalten.
+    "abab5.5-chat":           {"context_window": 16_384, "tool_use": False, "category": "chat", "family": "minimax"},
+    "abab5.5s-chat":          {"context_window": 8_192, "tool_use": False, "category": "chat", "family": "minimax"},
     # NVIDIA NIM — empirisch verifiziert wo möglich
     # Meta Llama
     "nvidia_nim/meta/llama-3.3-70b-instruct":           {"context_window": 128_000, "tool_use": True,  "category": "chat",        "family": "llama",    "params": "70B"},
