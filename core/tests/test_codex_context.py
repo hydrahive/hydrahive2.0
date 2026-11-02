@@ -3,7 +3,7 @@ from hydrahive.runner._codex_convert import messages_to_codex
 from hydrahive.runner._codex_provider import _build_payload
 
 
-def test_codex_oauth_context_windows_match_official_client():
+def test_codex_oauth_static_fallback_windows_without_live_catalog():
     assert context_window_for("openai-codex/gpt-6-astra") == 272_000
     assert context_window_for("openai-codex/gpt-5.6-sol") == 372_000
     assert context_window_for("openai-codex/gpt-5.6-terra") == 372_000
@@ -13,21 +13,21 @@ def test_codex_oauth_context_windows_match_official_client():
     assert context_window_for("openai-codex/gpt-5.4-mini") == 272_000
 
 
-def test_codex_windows_hold_with_warm_registry(monkeypatch):
-    """Die gepflegten Fenster gelten auch, wenn der Live-Katalog geladen ist.
-
-    Der Codex-Katalog meldet für GPT-5.6 context_window=272000. Die
-    Produktionsdaten zeigen aber 924 erfolgreiche Calls mit >272k Input
-    (Maximum ~370k) — der Wert aus der API ist hier zu konservativ.
-    #440 hatte dem Live-Wert Vorrang gegeben und die 372k still auf 272k
-    gesenkt. Der obige Test lief mit leerer Registry und merkte nichts.
-    """
+def test_codex_window_prefers_account_max_from_warm_registry(monkeypatch):
+    """Der accountbezogene OAuth-Maximalwert schlägt den statischen Fallback."""
     from hydrahive.llm import registry
 
-    monkeypatch.setattr(registry, "cached_context_window", lambda model_id: 272_000)
+    monkeypatch.setattr(registry, "cached_context_window", lambda model_id: 872_000)
+
+    assert context_window_for("openai-codex/gpt-5.6-sol") == 872_000
+
+
+def test_codex_window_keeps_static_fallback_without_live_catalog(monkeypatch):
+    from hydrahive.llm import registry
+
+    monkeypatch.setattr(registry, "cached_context_window", lambda model_id: None)
 
     assert context_window_for("openai-codex/gpt-5.6-sol") == 372_000
-    assert context_window_for("openai-codex/gpt-5.6-luna") == 372_000
 
 
 def test_codex_payload_omits_unsupported_output_limit():

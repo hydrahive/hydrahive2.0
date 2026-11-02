@@ -111,6 +111,27 @@ def _parse_models_response(provider_id: str, data: dict) -> list[dict]:
             item["id"] = (model.get("slug") or model.get("name", "")).replace("models/", "")
             if "context_length" not in item:
                 item["context_length"] = model.get("context_window")
+            if provider_id == "openai-codex":
+                base_window = item.get("context_length")
+                max_window = model.get("max_context_window")
+                if (
+                    isinstance(max_window, int)
+                    and not isinstance(max_window, bool)
+                    and max_window > 0
+                    and (not isinstance(base_window, int) or max_window >= base_window)
+                ):
+                    item["context_length"] = max_window
+                effective_window = item.get("context_length")
+                if isinstance(effective_window, int) and effective_window > 0:
+                    codex_limit = effective_window * 9 // 10
+                    advertised_limit = model.get("auto_compact_token_limit")
+                    if (
+                        isinstance(advertised_limit, int)
+                        and not isinstance(advertised_limit, bool)
+                        and advertised_limit > 0
+                    ):
+                        codex_limit = min(codex_limit, advertised_limit)
+                    item["auto_compact_token_limit"] = codex_limit
             raw.append(item)
     else:
         raw = []
@@ -132,7 +153,7 @@ def _parse_models_response(provider_id: str, data: dict) -> list[dict]:
         tool_use = m.get("tool_use")
         if tool_use is None and provider_id == "openai-codex":
             tool_use = bool(m.get("tool_mode") or m.get("experimental_supported_tools"))
-        out.append({
+        entry = {
             "id": _normalize_id(provider_id, mid),
             "context_window": m.get("context_length"),
             "is_free": is_free,
@@ -141,7 +162,10 @@ def _parse_models_response(provider_id: str, data: dict) -> list[dict]:
             "output_modalities": arch.get("output_modalities") or [],
             "input_modalities": arch.get("input_modalities") or [],
             "tool_use": tool_use,
-        })
+        }
+        if m.get("auto_compact_token_limit") is not None:
+            entry["auto_compact_token_limit"] = m["auto_compact_token_limit"]
+        out.append(entry)
     retired = RETIRED_MODELS.get(provider_id, ())
     if retired:
         out = [e for e in out if e["id"] not in retired]
@@ -345,6 +369,9 @@ def _enrich(provider_id: str, entry: dict) -> dict[str, Any]:
     return {
         "id": result_id,
         "context_window": entry.get("context_window") or md.get("context_window"),
+        "auto_compact_token_limit": (
+            entry.get("auto_compact_token_limit") or md.get("auto_compact_token_limit")
+        ),
         # Live-tool_use (z.B. aus Ollama /api/show capabilities) hat Vorrang vor
         # der statischen METADATA. `entry.get("tool_use")` kann True/False/None
         # sein — nur wenn es None ist, auf METADATA zurückfallen.

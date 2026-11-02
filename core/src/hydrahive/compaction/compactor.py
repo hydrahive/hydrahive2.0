@@ -13,7 +13,11 @@ from hydrahive.compaction.cut_point import find_cut_point
 from hydrahive.compaction.hooks import CompactionContext, all_hooks, collect_facts
 from hydrahive.compaction.serialize import serialize_for_summary
 from hydrahive.compaction.summarize import summarize
-from hydrahive.compaction.tokens import context_window_for, estimate_message
+from hydrahive.compaction.tokens import (
+    auto_compact_token_limit_for,
+    context_window_for,
+    estimate_message,
+)
 from hydrahive.db import compaction_events as compaction_events_db
 from hydrahive.db import messages as messages_db
 from hydrahive.db import sessions as sessions_db
@@ -77,16 +81,20 @@ def effective_reserve_tokens(
     """Die Reserve, die der Auto-Compaction-Trigger tatsächlich verwendet.
 
     Spiegelt runner._runner_iter.prepare_history: die konfigurierte Reserve,
-    angehoben auf die Früh-Compaction-Headroom aus threshold_pct (<100).
-    Gibt None zurück wenn keine Reserve konfiguriert ist (Caller fällt dann auf
-    should_compact's Default zurück) — hält das Runner-Verhalten byte-genau.
+    angehoben auf die Früh-Compaction-Headroom aus threshold_pct (<100) und eine
+    optionale modellseitige Auto-Compaction-Grenze. Gibt nur dann None zurück,
+    wenn weder Agent noch Modell eine Reserve vorgeben.
     """
-    if reserve_tokens is None:
-        return None
+    window = context_window_for(model)
+    reserves: list[int] = []
+    if reserve_tokens is not None:
+        reserves.append(reserve_tokens)
     if threshold_pct < 100:
-        window = context_window_for(model)
-        return max(reserve_tokens, window - int(window * threshold_pct / 100))
-    return reserve_tokens
+        reserves.append(window - int(window * threshold_pct / 100))
+    model_limit = auto_compact_token_limit_for(model)
+    if model_limit is not None:
+        reserves.append(max(0, window - model_limit))
+    return max(reserves) if reserves else None
 
 
 def compact_threshold_tokens(

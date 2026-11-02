@@ -30,6 +30,7 @@ class ModelEntry:
     label: str
     purposes: frozenset[str]
     context_window: int | None = None
+    auto_compact_token_limit: int | None = None
     is_free: bool | None = None
     embed_dim: int | None = None
     source: str = "live"  # "live" | "fallback"
@@ -76,6 +77,9 @@ def _add(acc: dict[str, ModelEntry], entry: ModelEntry) -> None:
             id=prev.id, provider=prev.provider, label=prev.label,
             purposes=prev.purposes | entry.purposes,
             context_window=prev.context_window or entry.context_window,
+            auto_compact_token_limit=(
+                prev.auto_compact_token_limit or entry.auto_compact_token_limit
+            ),
             is_free=prev.is_free if prev.is_free is not None else entry.is_free,
             embed_dim=prev.embed_dim or entry.embed_dim,
             source=prev.source,
@@ -108,8 +112,9 @@ async def _build() -> tuple[list[ModelEntry], bool]:
                 _add(acc, ModelEntry(
                     id=mid, provider=prov.get("provider_id", ""), label=mid,
                     purposes=_classify_catalog_entry(m),
-                    context_window=m.get("context_window"), is_free=m.get("is_free"),
-                    embed_dim=embed_dim,
+                    context_window=m.get("context_window"),
+                    auto_compact_token_limit=m.get("auto_compact_token_limit"),
+                    is_free=m.get("is_free"), embed_dim=embed_dim,
                     source="live" if prov.get("live_count") else "fallback",
                     tool_use=m.get("tool_use"),
                 ))
@@ -225,6 +230,16 @@ def cached_context_window(model_id: str) -> int | None:
     for entry in _cache[1]:
         if entry.id == model_id and entry.context_window:
             return entry.context_window
+    return None
+
+
+def cached_auto_compact_token_limit(model_id: str) -> int | None:
+    """Sync, kein Fetch: accountbezogene Auto-Compaction-Grenze aus dem Cache."""
+    if not _cache:
+        return None
+    for entry in _cache[1]:
+        if entry.id == model_id and entry.auto_compact_token_limit:
+            return entry.auto_compact_token_limit
     return None
 
 
