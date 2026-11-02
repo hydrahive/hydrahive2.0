@@ -105,6 +105,19 @@ def context_window_for(model: str) -> int:
     SSOT ist der Modell-Katalog (METADATA in _catalog_data). Heuristik greift
     nur für live-gefetchte Modelle die nicht im Katalog stehen.
     """
+    # Der accountbezogene Codex-Katalog liefert neben dem normalen Fenster auch
+    # max_context_window. catalog.py normalisiert diesen Wert als effektives
+    # Fenster. Nur für Codex hat der Live-Wert Vorrang vor der statischen Tabelle:
+    # er ist an den eingeloggten ChatGPT-Account gebunden und kann sich ändern.
+    if model.startswith("openai-codex/"):
+        try:
+            from hydrahive.llm import registry
+            live = registry.cached_context_window(model)
+        except Exception:  # noqa: BLE001 - Registry ist optional, nie blockierend
+            live = None
+        if live:
+            return live
+
     # Ollama-Modelle laufen NICHT mit ihrem theoretischen Fenster, sondern mit
     # dem num_ctx, das wir an den Ollama-Endpoint schicken (gedeckelt, KV-Cache-
     # Schutz). Die Compaction muss mit exakt dieser Zahl rechnen, sonst compacted
@@ -178,3 +191,23 @@ def context_window_for(model: str) -> int:
             return 262_144
         return 32_000  # unbekannte qwen-Variante: konservativ
     return 32_000  # safe default
+
+
+def auto_compact_token_limit_for(model: str) -> int | None:
+    """Modellseitige Obergrenze für automatische History-Kompaktierung.
+
+    Der Codex-Client begrenzt Auto-Compaction auf 90 Prozent des aufgelösten
+    Kontextfensters. Der accountbezogene Live-Katalog kann zusätzlich eine
+    kleinere explizite Grenze liefern. Andere Provider behalten ausschließlich
+    die Agentenkonfiguration und liefern hier None.
+    """
+    if not model.startswith("openai-codex/"):
+        return None
+    try:
+        from hydrahive.llm import registry
+        live = registry.cached_auto_compact_token_limit(model)
+    except Exception:  # noqa: BLE001 - Registry ist optional, nie blockierend
+        live = None
+    if live:
+        return live
+    return context_window_for(model) * 9 // 10

@@ -41,6 +41,26 @@ def test_none_reserve_faellt_auf_default_zurueck():
     )
 
 
+def test_codex_model_limit_caps_late_agent_threshold(monkeypatch):
+    from hydrahive.llm import registry
+
+    model = "openai-codex/gpt-5.6-sol"
+    monkeypatch.setattr(registry, "cached_context_window", lambda _model: 872_000)
+    monkeypatch.setattr(registry, "cached_auto_compact_token_limit", lambda _model: 784_800)
+
+    assert compact_threshold_tokens(model, threshold_pct=95, reserve_tokens=16_384) == 784_800
+
+
+def test_codex_earlier_agent_threshold_stays_effective(monkeypatch):
+    from hydrahive.llm import registry
+
+    model = "openai-codex/gpt-5.6-sol"
+    monkeypatch.setattr(registry, "cached_context_window", lambda _model: 872_000)
+    monkeypatch.setattr(registry, "cached_auto_compact_token_limit", lambda _model: 784_800)
+
+    assert compact_threshold_tokens(model, threshold_pct=75, reserve_tokens=16_384) == 654_000
+
+
 def test_invariante_meter_schwelle_gleich_trigger_reserve():
     """Die vom Balken gezeigte 100%-Marke == der Punkt, an dem should_compact umklappt.
 

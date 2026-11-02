@@ -8,7 +8,8 @@ def fake_sources(monkeypatch):
     async def fake_catalog(providers):
         return [{"provider_id": "openrouter", "provider_name": "OpenRouter", "configured": True,
                  "models": [
-                    {"id": "openrouter/chatty", "context_window": 8000, "is_free": True, "output_modalities": []},
+                    {"id": "openrouter/chatty", "context_window": 8000,
+                     "auto_compact_token_limit": 7200, "is_free": True, "output_modalities": []},
                     {"id": "openrouter/painter", "output_modalities": ["image"]},
                     {"id": "openrouter/baai/bge-m3", "category": "embed", "embed_dim": 1024,
                      "output_modalities": ["embedding"]},
@@ -47,6 +48,14 @@ async def test_is_known_reads_cache_after_build(fake_sources):
     await r.list_models()
     assert r.is_known("openrouter/chatty") is True
     assert r.is_known("does-not-exist") is False
+
+
+@pytest.mark.asyncio
+async def test_compact_limit_reads_cache_after_build(fake_sources):
+    r = fake_sources
+    await r.list_models()
+    assert r.cached_auto_compact_token_limit("openrouter/chatty") == 7200
+    assert r.cached_auto_compact_token_limit("does-not-exist") is None
 
 
 def test_is_known_empty_cache_is_failopen(monkeypatch):

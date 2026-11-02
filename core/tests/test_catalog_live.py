@@ -120,9 +120,10 @@ def test_codex_endpoint_and_static_fallback_include_gpt6_astra():
     assert METADATA["openai-codex/gpt-6-astra"]["context_window"] == 272_000
 
 
-def test_parse_codex_models_uses_slug_context_and_visibility():
+def test_parse_codex_models_uses_account_max_context_and_visibility():
     response = {"models": [
-        {"slug": "gpt-6-astra", "context_window": 272_000,
+        {"slug": "gpt-5.6-sol", "context_window": 272_000,
+         "max_context_window": 872_000, "auto_compact_token_limit": None,
          "visibility": "list", "supported_in_api": True, "tool_mode": "code_mode_only"},
         {"slug": "codex-auto-review", "context_window": 272_000,
          "visibility": "hide", "supported_in_api": False},
@@ -131,8 +132,9 @@ def test_parse_codex_models_uses_slug_context_and_visibility():
     entries = catalog._parse_models_response("openai-codex", response)
 
     assert entries == [{
-        "id": "openai-codex/gpt-6-astra",
-        "context_window": 272_000,
+        "id": "openai-codex/gpt-5.6-sol",
+        "context_window": 872_000,
+        "auto_compact_token_limit": 784_800,
         "is_free": None,
         "price_prompt": None,
         "price_completion": None,
@@ -140,6 +142,32 @@ def test_parse_codex_models_uses_slug_context_and_visibility():
         "input_modalities": [],
         "tool_use": True,
     }]
+
+
+def test_parse_codex_models_respects_smaller_explicit_compact_limit():
+    response = {"models": [{
+        "slug": "gpt-5.6-sol", "context_window": 272_000,
+        "max_context_window": 872_000, "auto_compact_token_limit": 700_000,
+        "visibility": "list", "supported_in_api": True,
+    }]}
+
+    [entry] = catalog._parse_models_response("openai-codex", response)
+
+    assert entry["context_window"] == 872_000
+    assert entry["auto_compact_token_limit"] == 700_000
+
+
+def test_parse_codex_models_ignores_invalid_smaller_max_window():
+    response = {"models": [{
+        "slug": "gpt-5.6-sol", "context_window": 272_000,
+        "max_context_window": 128_000,
+        "visibility": "list", "supported_in_api": True,
+    }]}
+
+    [entry] = catalog._parse_models_response("openai-codex", response)
+
+    assert entry["context_window"] == 272_000
+    assert entry["auto_compact_token_limit"] == 244_800
 
 
 def test_codex_catalog_uses_live_fetch(monkeypatch):
