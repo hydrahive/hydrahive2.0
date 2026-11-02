@@ -14,7 +14,10 @@ from hydrahive.settings import settings
 
 logger = logging.getLogger(__name__)
 
-_CAUGHT = (installer.InstallError, OSError, subprocess.CalledProcessError)
+_CAUGHT = (
+    installer.InstallError, installer.ServiceScriptError,
+    OSError, subprocess.CalledProcessError,
+)
 
 
 def _installed_versions() -> dict[str, str]:
@@ -35,6 +38,8 @@ def _installed_versions() -> dict[str, str]:
 
 def _reason(exc: BaseException) -> str:
     """Kurzer Grund in einfacher Sprache; der volle Fehler mit Pfad steht im Protokoll."""
+    if isinstance(exc, installer.ServiceScriptError):
+        return str(exc)
     if isinstance(exc, installer.InstallError):
         return str(exc) or "Installationsfehler"
     if isinstance(exc, PermissionError):
@@ -54,10 +59,10 @@ def _update_one(module_id: str) -> Iterator[str]:
     # Stoppen nach dem ALTEN Manifest, Starten nach dem NEUEN – ein Update kann den ersten Dienst mitbringen
     # (Radiostream 0.2.0) oder ihn entfernen (docs/specs/modul-update-alle.md, Nachtrag 30.10.).
     if installer._manifest_has_service(module_id):
-        installer._run_service_script(module_id, "uninstall.sh")
+        yield from installer._run_service_script(module_id, "uninstall.sh")
     installer.replace_module_in(module_id)
     if installer._manifest_has_service(module_id):
-        installer._run_service_script(module_id, "install.sh")
+        yield from installer._run_service_script(module_id, "install.sh")
 
 
 def update_all() -> Iterator[str]:

@@ -16,6 +16,28 @@ def test_install_flow_calls_steps(mod_env):
     svc.assert_not_called()
 
 
+def test_install_flow_streamt_ausgabe_des_service_scripts(mod_env):
+    with (patch("hydrahive.modules.installer._ensure_dependencies", return_value=iter(())),
+          patch("hydrahive.modules.installer.copy_module_in"),
+          patch("hydrahive.modules.installer._run_service_script", return_value=iter(["paket fehlt", "paket da"])),
+          patch("hydrahive.modules.installer._frontend_build"),
+          patch("hydrahive.modules.installer._request_restart"),
+          patch("hydrahive.modules.installer._manifest_has_service", return_value=True)):
+        from hydrahive.modules.installer import install
+
+        lines = list(install("example"))
+
+    assert lines == [
+        "[modules] installiere example …",
+        "[modules] Dateien kopiert",
+        "paket fehlt",
+        "paket da",
+        "[modules] Dienst installiert",
+        "[modules] Frontend gebaut",
+        "[modules] Neustart angefordert — fertig",
+    ]
+
+
 def test_uninstall_keeps_data(mod_env):
     with (patch("hydrahive.modules.installer.remove_module_files") as rm,
           patch("hydrahive.modules.installer._run_service_script"),

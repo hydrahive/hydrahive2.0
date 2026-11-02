@@ -43,7 +43,8 @@ def _env(mod_env, *, fail=None, service=(), build_error=None, hub=HUB):
           patch("hydrahive.modules.installer._ensure_dependencies", side_effect=lambda mid, seen: iter(())),
           patch("hydrahive.modules.installer.replace_module_in", side_effect=replace),
           patch("hydrahive.modules.installer._manifest_has_service", side_effect=lambda mid: mid in service),
-          patch("hydrahive.modules.installer._run_service_script", side_effect=lambda mid, s: calls.append(f"{s}:{mid}")),
+          patch("hydrahive.modules.installer._run_service_script",
+                side_effect=lambda mid, s: (calls.append(f"{s}:{mid}"), iter(()))[1]),
           patch("hydrahive.modules.installer._frontend_build", side_effect=build),
           patch("hydrahive.modules.installer._request_restart", side_effect=lambda: calls.append("restart"))):
         yield calls
@@ -178,6 +179,16 @@ def test_install_error_behaelt_seinen_code(mod_env):
     assert "[modules] delta: FEHLER – module_not_in_hub:delta" in lines
 
 
+def test_service_script_error_bleibt_im_sammel_update_konkret(mod_env):
+    from hydrahive.modules.installer import ServiceScriptError
+
+    reason = "extension_script_failed: delta/install.sh, exit 7: xz fehlt"
+    with _env(mod_env, fail={"delta": ServiceScriptError(reason)}) as calls:
+        lines = _run()
+    assert f"[modules] delta: FEHLER – {reason}" in lines
+    assert "replace:gamma" in calls
+
+
 def test_voller_fehler_im_protokoll(mod_env, caplog):
     import logging
     err = PermissionError(13, "Permission denied", "/var/lib/x/delta")
@@ -204,7 +215,8 @@ def _env_real_manifest(mod_env, *, before: bool, after: bool):
           patch("hydrahive.modules.installer.available_version", side_effect=lambda mid: "0.2.0"),
           patch("hydrahive.modules.installer._ensure_dependencies", side_effect=lambda mid, seen: iter(())),
           patch("hydrahive.modules.installer.replace_module_in", side_effect=replace),
-          patch("hydrahive.modules.installer._run_service_script", side_effect=lambda mid, s: calls.append(s)),
+          patch("hydrahive.modules.installer._run_service_script",
+                side_effect=lambda mid, s: (calls.append(s), iter(()))[1]),
           patch("hydrahive.modules.installer._frontend_build", side_effect=lambda: None),
           patch("hydrahive.modules.installer._request_restart", side_effect=lambda: None)):
         yield calls

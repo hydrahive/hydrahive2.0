@@ -23,6 +23,7 @@ from pathlib import Path
 
 from hydrahive.modules import hub_client
 from hydrahive.modules.hub_client import refresh
+from hydrahive.modules.service_script import ServiceScriptError, run as run_service_script
 from hydrahive.settings import settings
 
 logger = logging.getLogger(__name__)
@@ -309,10 +310,9 @@ def _ensure_dependencies(module_id: str, seen: set[str]) -> Iterator[str]:
         yield from install(dep, _seen=seen)
 
 
-def _run_service_script(module_id: str, script: str) -> None:  # "install.sh" | "uninstall.sh"
+def _run_service_script(module_id: str, script: str) -> Iterator[str]:
     path = settings.modules_dir / module_id / "extension" / script
-    if path.exists():
-        subprocess.run(["bash", str(path)], check=True)
+    return run_service_script(path, module_id, script)
 
 
 def install(module_id: str, *, _seen: set[str] | None = None) -> Iterator[str]:
@@ -325,7 +325,8 @@ def install(module_id: str, *, _seen: set[str] | None = None) -> Iterator[str]:
     yield f"[modules] installiere {module_id} …"
     copy_module_in(module_id); yield "[modules] Dateien kopiert"
     if _manifest_has_service(module_id):
-        _run_service_script(module_id, "install.sh"); yield "[modules] Dienst installiert"
+        yield from _run_service_script(module_id, "install.sh")
+        yield "[modules] Dienst installiert"
     _frontend_build(); yield "[modules] Frontend gebaut"
     _request_restart(); yield "[modules] Neustart angefordert — fertig"
 
@@ -334,7 +335,8 @@ def uninstall(module_id: str) -> Iterator[str]:
     _validate_module_id(module_id)
     yield f"[modules] deinstalliere {module_id} …"
     if _manifest_has_service(module_id):
-        _run_service_script(module_id, "uninstall.sh"); yield "[modules] Dienst entfernt"
+        yield from _run_service_script(module_id, "uninstall.sh")
+        yield "[modules] Dienst entfernt"
     remove_module_files(module_id); yield "[modules] Dateien entfernt (Daten bleiben)"
     _frontend_build(); yield "[modules] Frontend gebaut"
     _request_restart(); yield "[modules] Neustart angefordert — fertig"
@@ -346,10 +348,12 @@ def update(module_id: str) -> Iterator[str]:
     yield from _ensure_dependencies(module_id, {module_id})
     yield f"[modules] update {module_id} …"
     if _manifest_has_service(module_id):
-        _run_service_script(module_id, "uninstall.sh"); yield "[modules] Dienst gestoppt"
+        yield from _run_service_script(module_id, "uninstall.sh")
+        yield "[modules] Dienst gestoppt"
     replace_module_in(module_id); yield "[modules] Dateien sicher ersetzt"
     if _manifest_has_service(module_id):
-        _run_service_script(module_id, "install.sh"); yield "[modules] Dienst gestartet"
+        yield from _run_service_script(module_id, "install.sh")
+        yield "[modules] Dienst gestartet"
     _frontend_build(); yield "[modules] Frontend gebaut"
     _request_restart(); yield "[modules] Neustart angefordert — fertig"
 
