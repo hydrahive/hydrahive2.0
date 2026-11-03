@@ -5,7 +5,7 @@ from __future__ import annotations
 # der Master ein Tool sehen das nur Stub-Fehler zurückgibt.
 _BASE_TOOLS: dict[str, list[str]] = {
     "master": [
-        "shell_exec", "file_read", "file_write", "file_patch",
+        "shell_exec", "file_read", "read_document", "file_write", "file_patch",
         "web_search", "fetch_url",
         "read_memory", "write_memory", "search_memory",
         "todo_write", "ask_agent", "send_mail", "read_mail", "list_projects",
@@ -13,7 +13,7 @@ _BASE_TOOLS: dict[str, list[str]] = {
         "webmin_status", "webmin_call",
     ],
     "project": [
-        "shell_exec", "file_read", "file_write", "file_patch",
+        "shell_exec", "file_read", "read_document", "file_write", "file_patch",
         "fetch_url",
         "read_memory", "write_memory", "search_memory",
         "todo_write", "ask_agent", "list_projects",

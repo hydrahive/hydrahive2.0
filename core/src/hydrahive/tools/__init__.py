@@ -40,6 +40,7 @@ from hydrahive.tools import (
     delete_skill_tool,
     write_skill,
     prompt_archive,
+    read_document,
     read_mail,
     read_memory,
     search_memory,
@@ -63,6 +64,7 @@ def _build_registry() -> dict[str, Tool]:
     tools: list[Tool] = [
         shell.TOOL,
         file_read.TOOL,
+        read_document.TOOL,
         file_write.TOOL,
         file_patch.TOOL,
         web_search.TOOL,

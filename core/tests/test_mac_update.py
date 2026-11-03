@@ -44,6 +44,9 @@ esac
 exit 0
 ''')
     (bin_ / "npm").write_text(f'#!/bin/bash\necho "npm $*" >> "{calls}"\necho "npm-ausgabe $1"\n')
+    (bin_ / "tesseract").write_text('#!/bin/bash\n[ "$1" = "--list-langs" ] && echo deu\n')
+    for command_name in ("pdfinfo", "pdftotext", "pdftoppm"):
+        (bin_ / command_name).write_text("#!/bin/bash\nexit 0\n")
     for f in bin_.iterdir():
         f.chmod(0o755)
     cfg = tmp_path / "etc"
@@ -55,6 +58,8 @@ exit 0
     (repo / "installer" / "modules-mac").symlink_to(INSTALLER / "modules-mac")
     (repo / "installer" / "lib" / "mac-backend-start.sh").symlink_to(WRAPPER)
     (repo / "installer" / "lib" / "mac-python-heal.sh").symlink_to(INSTALLER / "lib" / "mac-python-heal.sh")
+    (repo / "installer" / "lib" / "mac-document-tools.sh").symlink_to(INSTALLER / "lib" / "mac-document-tools.sh")
+    (repo / "installer" / "lib" / "mac-roles.sh").symlink_to(INSTALLER / "lib" / "mac-roles.sh")
     (repo / "frontend" / "dist").mkdir(parents=True)
     (repo / "frontend" / "dist" / "index.html").write_text("<html/>")
     (repo / "frontend" / "dist" / ".hh-frontend-rev").write_text("fe-rev-1\n")   # Build passt zum Stand
@@ -88,7 +93,8 @@ exit 0
 def _env(m: dict) -> dict:
     return {**os.environ, "PATH": f"{m['bin']}:{os.environ['PATH']}",
             "HH_CONFIG_DIR": str(m["cfg"]), "HH_DATA_DIR": str(m["data"]), "HH_REPO_DIR": str(m["repo"]),
-            "HH_USER": "tester", "HH_HOST": "127.0.0.1", "HH_PORT": "8001",
+            "HH_USER": "tester", "HH_BREW_USER": "tester", "HH_BREW": str(m["bin"] / "brew"),
+            "HH_SUDO": str(m["bin"] / "sudo"), "HH_HOST": "127.0.0.1", "HH_PORT": "8001",
             "HH_BACKEND_PLIST": str(m["plist"]), "HH_UPDATE_LOG": str(m["log"])}
 
 
@@ -260,7 +266,7 @@ def test_git_runs_as_service_user(mac):
     assert r.returncode == 0, r.stdout + r.stderr
     calls = _calls(mac).splitlines()
     git_lines = [c for c in calls if c.startswith("git ")]
-    sudo_git = [c for c in calls if c.startswith("sudo -H -u tester git ")]
+    sudo_git = [c for c in calls if c.startswith("sudo -H -u tester env ") and " git " in c]
     assert git_lines and len(sudo_git) == len(git_lines)
 
 
@@ -380,6 +386,11 @@ def test_npm_found_under_sudo_with_secure_path(mac, tmp_path):
     # Wie der echte Update-Dienst (launchd, root): PATH OHNE Homebrew; brew liegt nur unter seinem vollen Pfad.
     (brew_bin / "brew").write_text(f'#!/bin/bash\ncase "$1" in --prefix) echo "{brew_bin.parent}";; esac\n')
     (brew_bin / "brew").chmod(0o755)
+    # Dieser Regressionstest prüft nur npm/PATH; Dokument-Helper separat vollständig getestet.
+    helper = mac["repo"] / "installer" / "lib" / "mac-document-tools.sh"
+    helper.unlink()
+    helper.write_text("#!/bin/bash\nexit 0\n")
+    helper.chmod(0o755)
     env = {**_env(mac), "PATH": f"{mac['bin']}:/usr/bin:/bin", "HH_BREW": str(brew_bin / "brew")}
     r = subprocess.run(["bash", str(UPDATE)], env=env, capture_output=True, text=True, timeout=60)
     assert r.returncode == 0, r.stdout + r.stderr + mac["log"].read_text()
@@ -511,6 +522,19 @@ def test_update_abort_writes_error_marker_with_reason(mac):
     assert _last_line(mac) == "HH-UPDATE-ENDE: fehler git pull fehlgeschlagen"
 
 
+def test_update_abort_writes_document_tools_reason(mac):
+    _launchd(mac)
+    helper = mac["repo"] / "installer" / "lib" / "mac-document-tools.sh"
+    helper.unlink()
+    helper.write_text('#!/bin/bash\necho "brew kaputt" >&2\nexit 7\n')
+    helper.chmod(0o755)
+
+    r = _update(mac)
+
+    assert r.returncode != 0
+    assert _last_line(mac) == "HH-UPDATE-ENDE: fehler Dokument-Werkzeuge konnten nicht installiert werden"
+
+
 def test_update_unexpected_error_still_writes_marker(mac):
     """Auch ein unerwarteter Abbruch (set -e, ohne eigene Meldung) hinterlässt eine Schlusszeile."""
     _launchd(mac)
@@ -563,7 +587,8 @@ def test_update_after_move_uses_service_account(mac):
     env = {k: v for k, v in _env(mac).items() if k != "HH_USER"}
     r = subprocess.run(["bash", str(UPDATE)], env=env, capture_output=True, text=True, timeout=60)
     assert r.returncode == 0, r.stdout + r.stderr
-    assert "sudo -H -u _hydrahive git pull" in _calls(mac)
+    assert any(line.startswith("sudo -H -u _hydrahive env ") and " git pull" in line
+               for line in _calls(mac).splitlines())
 
 
 def test_update_move_failure_does_not_fail_update(mac):

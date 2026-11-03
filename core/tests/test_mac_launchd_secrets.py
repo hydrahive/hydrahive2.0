@@ -55,7 +55,8 @@ def fake_mac(tmp_path: Path) -> dict:
 def _env(m: dict) -> dict:
     return {**os.environ, "PATH": f"{m['bin']}:{os.environ['PATH']}",
             "HH_CONFIG_DIR": str(m["cfg"]), "HH_DATA_DIR": str(m["tmp"] / "data"),
-            "HH_REPO_DIR": str(m["repo"]), "HH_USER": "tester", "HH_HOST": "127.0.0.1",
+            "HH_REPO_DIR": str(m["repo"]), "HH_USER": "tester", "HH_BREW_USER": "tester",
+            "HH_BREW": str(m["bin"] / "brew"), "HH_HOST": "127.0.0.1",
             "HH_PORT": "8001", "HH_BACKEND_PLIST": str(m["plist"])}
 
 
@@ -153,6 +154,9 @@ def _run_update(m: dict) -> subprocess.CompletedProcess:
     if not (inst / "modules-mac").exists():
         (inst / "modules-mac").symlink_to(INSTALLER / "modules-mac")
         (inst / "lib" / "mac-backend-start.sh").symlink_to(WRAPPER)
+        helper = inst / "lib" / "mac-document-tools.sh"
+        helper.write_text("#!/bin/bash\nexit 0\n")
+        helper.chmod(0o755)
     # Fertiges Frontend, damit update-mac.sh nicht neu baut (docs/specs/mac-update.md §2.3)
     (m["repo"] / "frontend" / "dist").mkdir(parents=True, exist_ok=True)
     (m["repo"] / "frontend" / "dist" / "index.html").write_text("<html/>")
