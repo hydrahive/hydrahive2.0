@@ -1,6 +1,6 @@
 import { useRef, type KeyboardEvent, type ReactNode } from "react"
 import { useTranslation } from "react-i18next"
-import { nextTab } from "./adminTabs"
+import { nextTab } from "./adminTabState"
 
 export interface AdminTab<T extends string = string> {
   id: T
@@ -26,7 +26,7 @@ interface Props<T extends string> {
 
 /**
  * Reiter für Admin-Fenster (Plan admin-reiter-archiv, Regel „Seiten kurz halten“). Der Aufrufer hält den
- * aktiven Reiter in der Adresse (`tab=`, siehe adminTabs.ts). Tastatur: ←/→ wechseln, nur der aktive Reiter
+ * aktiven Reiter in der Adresse (`tab=`, siehe adminTabState.ts). Tastatur: ←/→ wechseln, nur der aktive Reiter
  * ist per Tab erreichbar (WAI-ARIA Tabs).
  */
 export function AdminTabs<T extends string>({ label, idPrefix, tabs, active, onSelect, grid, children }: Props<T>) {

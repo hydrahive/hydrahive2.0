@@ -1,6 +1,6 @@
 // Plan docs/plans/admin-reiter-archiv.md, Task 1: Reiter-Logik für alle Admin-Fenster.
 import { describe, expect, it } from "vitest"
-import { nextTab, parseTab, withTab } from "./adminTabs"
+import { nextTab, parseTab, withTab } from "./adminTabState"
 
 const LISTE = ["a", "b", "c"] as const
 
