@@ -46,8 +46,9 @@ trap _hh_end EXIT
 rm -f "$HH_DATA_DIR/.update_request"
 log "Update gestartet"
 
-eval "$(/usr/local/bin/brew shellenv zsh 2>/dev/null || /opt/homebrew/bin/brew shellenv zsh 2>/dev/null || true)"
-# Als root (Update-Dienst) verweigert `brew shellenv` – Homebrew-bin dann über den vollen Pfad in den PATH, sonst
+# Niemals die Homebrew-Umgebung als root auswerten: Homebrew gehört dem Mac-Besitzer und ist von ihm beschreibbar.
+# Den festen Standardpfad nur als Datenwert bestimmen; jedes Brew-Programm läuft erst nach Privilegabwurf.
+# Als root (Update-Dienst) fehlt Homebrew im PATH – deshalb den vollen Pfad bestimmen.
 # finden npm/node nichts (Befund 21.10.2026: „env: npm: No such file or directory“).
 HH_BREW="${HH_BREW:-}"
 if [ -z "$HH_BREW" ]; then
@@ -55,14 +56,37 @@ if [ -z "$HH_BREW" ]; then
     if [ -x "$candidate" ]; then HH_BREW="$candidate"; break; fi
   done
 fi
-[ -n "$HH_BREW" ] && PATH="$(dirname "$HH_BREW"):$PATH" && export PATH
+# Root darf niemals Programme aus dem durch den Mac-Besitzer schreibbaren Homebrew-Prefix auflösen.
+# Nur Prozesse NACH dem Privilegabwurf bekommen diesen PATH (git/npm; Dokument-Helper stuft sich selbst herunter).
+HH_BREW_PATH="$PATH"
+[ -n "$HH_BREW" ] && HH_BREW_PATH="${HH_BREW%/*}:$PATH"
+export HH_BREW
 
 cd "$HH_REPO_DIR"
 # git immer als Dienstnutzer – als root lehnt git das fremde Repo ab („dubious ownership“, docs/specs/mac-update.md).
-sudo -H -u "$HH_USER" git pull --ff-only 2>&1 | to_log || fail "git pull fehlgeschlagen"
+sudo -H -u "$HH_USER" env "PATH=$HH_BREW_PATH" git pull --ff-only 2>&1 | to_log || fail "git pull fehlgeschlagen"
 
 log "PDF-Text und lokale OCR prüfen"
-if ! HH_USER="$HH_USER" bash "$HH_REPO_DIR/installer/lib/mac-document-tools.sh" 2>&1 | to_log; then
+HH_BREW_USER="${HH_BREW_USER:-}"
+if [ -z "$HH_BREW_USER" ] && [ -n "$HH_BREW" ]; then
+  if [ "$(/usr/bin/uname)" = Darwin ]; then HH_BREW_USER="$(/usr/bin/stat -f %Su "$HH_BREW")"
+  else HH_BREW_USER="$(/usr/bin/stat -c %U "$HH_BREW")"; fi
+fi
+[[ "$HH_BREW_USER" =~ ^[A-Za-z_][A-Za-z0-9_.-]{0,31}$ ]] && [ "$HH_BREW_USER" != root ] \
+  || fail "Homebrew-Besitzer konnte nicht sicher bestimmt werden"
+run_document_helper() {
+  if [ "$(/usr/bin/id -u)" -eq 0 ]; then
+    /usr/bin/sudo -H -u "$HH_BREW_USER" /usr/bin/env \
+      "PATH=${HH_BREW%/*}:/usr/bin:/bin" "HH_USER=$HH_BREW_USER" \
+      "HH_BREW_USER=$HH_BREW_USER" "HH_BREW=$HH_BREW" \
+      /bin/bash "$HH_REPO_DIR/installer/lib/mac-document-tools.sh"
+  else
+    /usr/bin/env "PATH=${HH_BREW%/*}:/usr/bin:/bin" "HH_USER=$HH_BREW_USER" \
+      "HH_BREW_USER=$HH_BREW_USER" "HH_BREW=$HH_BREW" \
+      /bin/bash "$HH_REPO_DIR/installer/lib/mac-document-tools.sh"
+  fi
+}
+if ! run_document_helper 2>&1 | to_log; then
   fail "Dokument-Werkzeuge konnten nicht installiert werden"
 fi
 
@@ -82,7 +106,7 @@ fi
 # docs/specs/mac-update.md §4) – holt so auch Builds nach, die frühere Updates verpasst haben.
 DIST="$HH_REPO_DIR/frontend/dist"
 MARK="$DIST/.hh-frontend-rev"
-FRONTEND_REV="$(sudo -H -u "$HH_USER" git log -1 --format=%H -- frontend/ 2>>"$LOG" || true)"
+FRONTEND_REV="$(sudo -H -u "$HH_USER" env "PATH=$HH_BREW_PATH" git log -1 --format=%H -- frontend/ 2>>"$LOG" || true)"
 BUILD=""
 if [ ! -f "$DIST/index.html" ]; then
   BUILD="kein fertiger Build"
@@ -96,8 +120,8 @@ if [ -n "$BUILD" ]; then
   cd "$HH_REPO_DIR/frontend"
   # npm ci: genau nach package-lock.json, ändert sie nie (npm install schrieb sie um → nächstes git pull scheiterte)
   # PATH mitgeben: sudo setzt secure_path ohne Homebrew → „sudo: npm: command not found“ (Befund 21.10.2026).
-  sudo -H -u "$HH_USER" env "PATH=$PATH" npm ci --no-fund --no-audit >> "$LOG" 2>&1 || fail "npm ci fehlgeschlagen"
-  sudo -H -u "$HH_USER" env "PATH=$PATH" npm run build >> "$LOG" 2>&1 || fail "Frontend-Build fehlgeschlagen"
+  sudo -H -u "$HH_USER" env "PATH=$HH_BREW_PATH" npm ci --no-fund --no-audit >> "$LOG" 2>&1 || fail "npm ci fehlgeschlagen"
+  sudo -H -u "$HH_USER" env "PATH=$HH_BREW_PATH" npm run build >> "$LOG" 2>&1 || fail "Frontend-Build fehlgeschlagen"
   [ -n "$FRONTEND_REV" ] && printf '%s\n' "$FRONTEND_REV" | sudo -H -u "$HH_USER" tee "$MARK" > /dev/null
   cd "$HH_REPO_DIR"
 fi

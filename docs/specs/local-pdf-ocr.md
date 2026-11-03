@@ -43,8 +43,10 @@ Ausgabe:
 5. Eine Seite gilt als sinnvoll lesbar, wenn sie mindestens 20 alphanumerische Zeichen enthält.
 6. Nur fehlende/zu kurze Seiten werden mit `pdftoppm` auf maximal 2500 Pixel Kantenlänge gerendert und mit `tesseract` erkannt. Temporäre Bilder liegen in einem automatisch gelöschten temporären Ordner.
 7. Maximal 20 Seiten und 100.000 Ausgabezeichen je Aufruf. Bei Kürzung weist das Ergebnis auf einen kleineren Seitenbereich hin.
-8. Externe Prozesse erhalten nur eine minimale Umgebung ohne Provider-Keys oder HydraHive-Secrets. Pfade werden als einzelne Argumente übergeben, nie in Shell-Text eingesetzt.
-9. Jeder Prozess und der gesamte OCR-Lauf besitzen Zeitlimits; beim Abbruch wird die Prozessgruppe beendet.
+8. Die geprüfte PDF wird aus demselben symlink-sicher geöffneten Dateideskriptor in einen privaten Snapshot kopiert; ausschließlich dieser unveränderliche Snapshot erreicht die Parser.
+9. Externe Prozesse erhalten nur eine minimale Umgebung ohne Provider-Keys oder HydraHive-Secrets. Pfade werden als einzelne Argumente übergeben, nie in Shell-Text eingesetzt.
+10. Parser laufen fail-closed in einer lokalen Sandbox: Linux über Bubblewrap mit eigenem Mount-, PID- und Netzwerk-Namespace je Aufruf; ein geladenes AppArmor-Profil erlaubt Bubblewrap auf restriktiven Ubuntu-Systemen den benötigten User-Namespace. Nur der aktuelle Snapshot ist read-only und nur sein privater Arbeitsordner schreibbar eingebunden. macOS nutzt `sandbox-exec` mit deny-by-default-Profil. Fehlt die Isolation, wird nicht geparst.
+11. Jeder Prozess und der gesamte OCR-Lauf besitzen Zeitlimits; beim Abbruch wird die Prozessgruppe beendet. Linux begrenzt zusätzlich Adressraum, CPU, Dateigröße, Prozesse und Deskriptoren über `prlimit`; stdout wird inkrementell hart begrenzt.
 
 ## Plattformen
 
@@ -66,6 +68,9 @@ Erstinstallation und bestehende Updates stellen bereit:
 - `tesseract-ocr`
 - `tesseract-ocr-deu`
 - `tesseract-ocr-eng`
+- `bubblewrap` (Mount-/PID-/Netzwerk-Sandbox je Dokument)
+- `apparmor` (User-Namespace-Freigabe für Bubblewrap auf restriktiven Ubuntu-Systemen)
+- `util-linux` (`prlimit` für harte Ressourcenlimits)
 
 ### Projektcontainer
 
@@ -77,9 +82,9 @@ V1 wird nicht an der Container-Allowlist vorbeigeführt. In Projekten mit Ausfü
 
 ## Sicherheit und Datenschutz
 
-- keine Netzwerkverbindung im Werkzeug;
+- keine Netzwerkverbindung im Werkzeug oder in der Parser-Sandbox;
 - kein Cloud-OCR;
-- kein Zugriff außerhalb zulässiger lesender Projektpfade;
+- kein Zugriff außerhalb zulässiger lesender Projektpfade; Parser sehen nur den privaten Snapshot, Systembibliotheken und einen leeren Arbeitsordner;
 - keine Shell-Interpolation von Nutzerpfaden oder Sprachnamen;
 - begrenzte Dateigröße, Seitenzahl, Bildgröße, Ausgabe und Laufzeit;
 - Kindprozesse erhalten keine API-Keys, Tokens oder Datenbankzugänge;

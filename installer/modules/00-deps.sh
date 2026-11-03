@@ -32,6 +32,10 @@ REQUIRED_PACKAGES=(
   tesseract-ocr
   tesseract-ocr-deu
   tesseract-ocr-eng
+  # Parser-Isolation + harte Ressourcenlimits für nicht vertrauenswürdige Dokumente.
+  bubblewrap
+  apparmor
+  util-linux
 )
 
 log() { printf "  · %s\n" "$*"; }
@@ -55,6 +59,9 @@ apt-get update
 
 log "apt install: ${REQUIRED_PACKAGES[*]}"
 DEBIAN_FRONTEND=noninteractive apt-get install -y "${REQUIRED_PACKAGES[@]}"
+
+# Profil für native PDF-/OCR-Parser laden (kein Netz, nur privater Snapshot/Arbeitsordner).
+bash "$(dirname "${BASH_SOURCE[0]}")/../lib/debian-document-tools.sh"
 
 # Nur wenn das System-Python älter als 3.12 ist (Ubuntu 22.04): 3.12 aus deadsnakes.
 # hh_pick_python (lib/python-venv.sh) nimmt es dann als Ausweich.

@@ -129,6 +129,9 @@ def _fake_repo(m: dict, owner_env: dict) -> tuple[Path, dict]:
     repo = m["tmp"] / "repo"
     (repo / "installer" / "lib").mkdir(parents=True)
     (repo / "installer" / "lib" / "mac-postgres-daemon.sh").symlink_to(DAEMON)
+    helper = repo / "installer" / "lib" / "mac-document-tools.sh"
+    helper.write_text("#!/bin/bash\nexit 0\n")
+    helper.chmod(0o755)
     (repo / "frontend" / "dist").mkdir(parents=True)               # fertiges Frontend → kein Neubau (mac-update.md)
     (repo / "frontend" / "dist" / "index.html").write_text("<html/>")
     (repo / ".venv" / "bin").mkdir(parents=True)
@@ -178,7 +181,8 @@ def test_update_nutzer_ist_besitzer_des_repos_statt_admin(fake):
     assert r.returncode == 0, r.stdout + r.stderr
     owner = subprocess.run(["stat", "-c", "%U", env["HH_REPO_DIR"]], capture_output=True, text=True).stdout.strip()
     calls = fake["calls"].read_text()
-    assert f"sudo -H -u {owner} git pull" in calls
+    assert any(line.startswith(f"sudo -H -u {owner} env ") and " git pull" in line
+               for line in calls.splitlines())
     assert "-u admin " not in calls or owner == "admin"
 
 
