@@ -44,6 +44,7 @@ esac
 exit 0
 ''')
     (bin_ / "npm").write_text(f'#!/bin/bash\necho "npm $*" >> "{calls}"\necho "npm-ausgabe $1"\n')
+    (bin_ / "tesseract").write_text('#!/bin/bash\n[ "$1" = "--list-langs" ] && echo deu\n')
     for f in bin_.iterdir():
         f.chmod(0o755)
     cfg = tmp_path / "etc"
@@ -55,6 +56,8 @@ exit 0
     (repo / "installer" / "modules-mac").symlink_to(INSTALLER / "modules-mac")
     (repo / "installer" / "lib" / "mac-backend-start.sh").symlink_to(WRAPPER)
     (repo / "installer" / "lib" / "mac-python-heal.sh").symlink_to(INSTALLER / "lib" / "mac-python-heal.sh")
+    (repo / "installer" / "lib" / "mac-document-tools.sh").symlink_to(INSTALLER / "lib" / "mac-document-tools.sh")
+    (repo / "installer" / "lib" / "mac-roles.sh").symlink_to(INSTALLER / "lib" / "mac-roles.sh")
     (repo / "frontend" / "dist").mkdir(parents=True)
     (repo / "frontend" / "dist" / "index.html").write_text("<html/>")
     (repo / "frontend" / "dist" / ".hh-frontend-rev").write_text("fe-rev-1\n")   # Build passt zum Stand

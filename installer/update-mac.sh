@@ -61,6 +61,11 @@ cd "$HH_REPO_DIR"
 # git immer als Dienstnutzer – als root lehnt git das fremde Repo ab („dubious ownership“, docs/specs/mac-update.md).
 sudo -H -u "$HH_USER" git pull --ff-only 2>&1 | to_log || fail "git pull fehlgeschlagen"
 
+log "PDF-Text und lokale OCR prüfen"
+if ! HH_USER="$HH_USER" bash "$HH_REPO_DIR/installer/lib/mac-document-tools.sh" 2>&1 | to_log; then
+  fail "Dokument-Werkzeuge konnten nicht installiert werden"
+fi
+
 log "Python-Pakete aktualisieren"
 sudo -H -u "$HH_USER" "$HH_REPO_DIR/.venv/bin/pip" install -e "$HH_REPO_DIR/core" >> "$LOG" 2>&1 \
   || fail "pip install fehlgeschlagen"

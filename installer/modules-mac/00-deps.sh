@@ -27,4 +27,7 @@ if ! command -v mmx >/dev/null 2>&1; then
   npm install -g mmx-cli --silent
 fi
 
+# Text-PDFs + lokale OCR (als Homebrew-Besitzer, HydraHive selbst läuft ggf. als _hydrahive).
+bash "$(dirname "$0")/../lib/mac-document-tools.sh"
+
 log "Dependencies bereit."

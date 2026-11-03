@@ -133,6 +133,9 @@ source "$HH_REPO_DIR/installer/lib/system-upgrade.sh"
 hh_ensure_auto_updates
 hh_system_upgrade
 
+log "PDF-Text und lokale OCR prüfen"
+bash "$HH_REPO_DIR/installer/lib/debian-document-tools.sh"
+
 # sudo-rs (Ubuntu 26.04) kennt `requiretty` nicht – alte Zeile aus der Extensions-sudoers entfernen (Task ddec8288).
 # shellcheck source=installer/lib/sudoers-heal.sh
 source "$HH_REPO_DIR/installer/lib/sudoers-heal.sh"

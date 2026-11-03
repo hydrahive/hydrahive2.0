@@ -27,6 +27,11 @@ REQUIRED_PACKAGES=(
   # rsync: HydraLink-Installer (Kern) und Server-Migration. Kam früher nur über incus mit – seit incus ein
   # Zusatz-Modul ist (installer-core-first), muss es hier stehen.
   rsync
+  # Lokales Lesen von Text- und Scan-PDFs (read_document, ohne Cloud-OCR).
+  poppler-utils
+  tesseract-ocr
+  tesseract-ocr-deu
+  tesseract-ocr-eng
 )
 
 log() { printf "  · %s\n" "$*"; }
