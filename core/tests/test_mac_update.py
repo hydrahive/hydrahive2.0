@@ -45,6 +45,8 @@ exit 0
 ''')
     (bin_ / "npm").write_text(f'#!/bin/bash\necho "npm $*" >> "{calls}"\necho "npm-ausgabe $1"\n')
     (bin_ / "tesseract").write_text('#!/bin/bash\n[ "$1" = "--list-langs" ] && echo deu\n')
+    for command_name in ("pdfinfo", "pdftotext", "pdftoppm"):
+        (bin_ / command_name).write_text("#!/bin/bash\nexit 0\n")
     for f in bin_.iterdir():
         f.chmod(0o755)
     cfg = tmp_path / "etc"
