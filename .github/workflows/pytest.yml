@@ -144,7 +144,8 @@ jobs:
   frontend-macos-arm:
     name: Frontend (macOS ARM)
     runs-on: macos-15
-    timeout-minutes: 20
+    # GitHub weist für ARM64-macOS ausdrücklich auf längere Kapazitäts-Wartezeiten hin.
+    timeout-minutes: 45
     steps:
       - uses: actions/checkout@v4
 
