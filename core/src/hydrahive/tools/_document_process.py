@@ -59,8 +59,10 @@ def _mac_profile(root: Path, work: Path) -> Path:
 
 
 def _sandbox_argv(argv: list[str], root: Path, work: Path) -> list[str]:
-    command = _required(argv[0])
     system = platform.system()
+    if system not in {"Linux", "Darwin"}:
+        raise DocumentIsolationError("Lokale Dokument-Isolation ist auf diesem Betriebssystem nicht verfügbar.")
+    command = _required(argv[0])
     if system == "Linux":
         bwrap, prlimit = _required("bwrap"), _required("prlimit")
         return [
@@ -79,7 +81,6 @@ def _sandbox_argv(argv: list[str], root: Path, work: Path) -> list[str]:
         sandbox = [_required("sandbox-exec"), "-f", str(_mac_profile(root, work)), command, *argv[1:]]
         limits = "ulimit -t 120 -f 524288 -n 64 -u 64 -d 1048576 -v 1048576; exec \"$@\""
         return [_required("bash"), "-c", limits, "hh-document-limit", *sandbox]
-    raise DocumentIsolationError("Lokale Dokument-Isolation ist auf diesem Betriebssystem nicht verfügbar.")
 
 
 def _terminate(process: subprocess.Popen) -> None:
