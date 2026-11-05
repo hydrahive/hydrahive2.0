@@ -19,13 +19,27 @@ import logging
 from dataclasses import dataclass
 from typing import AsyncIterator
 
+import httpx
+
 from hydrahive.runner._failover import should_failover
 from hydrahive.runner.events import Event, MessageStart, TextBlock, TextDelta
 from hydrahive.runner.llm_bridge import call_with_tools
-from hydrahive.runner._codex_provider import CodexModelNotAllowed
+from hydrahive.runner._codex_provider import CodexModelNotAllowed, CodexStreamStall
 from hydrahive.runner.llm_bridge_stream import StreamingNotSupported, stream_with_tools
 
 logger = logging.getLogger(__name__)
+
+# Eine stehende Codex-Verbindung (CodexStreamStall) betrifft die Verbindung, nicht die Anfrage: Der sofortige neue
+# Versuch war in der Messung (hydratest 5.11.2026, 60 Läufe) fast immer erfolgreich. Darum bis zu 5 Stream-Versuche,
+# jeweils neue Verbindung. Andere Fehler behalten ihre bisherige Regel (1 Wiederholung, dann Fallback).
+STALL_ATTEMPTS = 5
+# Verbindungsfehler von httpx (Messung: 2 von 60 echten Anfragen, mit LEERER Meldung) sind dieselbe Sorte Aussetzer
+# wie ein Stall: die Verbindung, nicht die Anfrage. Bewusst NICHT: HTTPStatusError (eine Antwort), UnsupportedProtocol/ProxyError/LocalProtocolError (dauerhaft), PoolTimeout (Überlast).
+_CONNECTION_ERRORS = (
+    CodexStreamStall, httpx.ReadError, httpx.ConnectError, httpx.WriteError, httpx.RemoteProtocolError,
+    httpx.ReadTimeout, httpx.ConnectTimeout, httpx.WriteTimeout,
+)
+_STALL_PAUSE = 0.5
 
 
 @dataclass
@@ -84,6 +98,22 @@ def _tools_for(model: str, tools: list[dict]) -> list[dict]:
     return []
 
 
+async def _call_with_connection_retry(**kwargs):
+    """Non-Streaming-Aufruf, der Verbindungs-Aussetzer (siehe `_CONNECTION_ERRORS`) bis zu STALL_ATTEMPTS-mal auf
+    frischer Verbindung wiederholt. Messung hydratest 5.11., 150 Läufe: Lauf 127 scheiterte, weil der Fallback ein
+    einzelner Versuch war und selbst in einen Stall lief. Alle anderen Fehler laufen unverändert durch (Failover,
+    Statusfehler, Abbruch von außen)."""
+    for attempt in range(STALL_ATTEMPTS):
+        try:
+            return await call_with_tools(**kwargs)
+        except _CONNECTION_ERRORS as e:
+            if attempt == STALL_ATTEMPTS - 1:
+                raise
+            logger.warning("Fallback-Aufruf (Versuch %d) — retry in %gs: %s: %s",
+                           attempt + 1, _STALL_PAUSE, type(e).__name__, e)
+            await asyncio.sleep(_STALL_PAUSE)
+
+
 async def call_with_stream_or_fallback(
     *,
     models: list[str],
@@ -113,9 +143,10 @@ async def call_with_stream_or_fallback(
         tools=_tools_for(primary, tools), temperature=temperature, max_tokens=max_tokens,
         reasoning_effort=reasoning_effort,
     )
-    # Retry einmal bei transientem Connection-Fehler — aber nur solange noch
-    # kein Text ans Frontend geliefert wurde (sonst würde der User Text doppelt sehen).
-    for _attempt in range(2):
+    # Retry bei transientem Connection-Fehler — aber nur solange noch kein Text ans Frontend geliefert wurde (sonst
+    # würde der User Text doppelt sehen). Stall: bis STALL_ATTEMPTS; sonstige Fehler: 1 Wiederholung (wie bisher).
+    other_retried = False
+    for _attempt in range(STALL_ATTEMPTS):
         text_sent = False
         try:
             async for raw_ev in stream_with_tools(**_stream_kwargs):
@@ -141,11 +172,16 @@ async def call_with_stream_or_fallback(
         except CodexModelNotAllowed:
             raise
         except Exception as e:
-            if _attempt == 0 and not text_sent:
-                logger.warning("Stream-Fehler (Versuch 1) — retry in 1.5s: %s", e)
-                await asyncio.sleep(1.5)
+            is_stall = isinstance(e, _CONNECTION_ERRORS)
+            can_retry = not text_sent and (
+                (is_stall and _attempt < STALL_ATTEMPTS - 1) or (not is_stall and not other_retried and _attempt == 0))
+            if can_retry:
+                wait = _STALL_PAUSE if is_stall else 1.5
+                logger.warning("Stream-Fehler (Versuch %d) — retry in %gs: %s: %s", _attempt + 1, wait, type(e).__name__, e)
+                other_retried = other_retried or not is_stall
+                await asyncio.sleep(wait)
             else:
-                logger.warning("Stream-Fehler — Fallback auf non-streaming: %s", e)
+                logger.warning("Stream-Fehler — Fallback auf non-streaming: %s: %s", type(e).__name__, e)
                 break
 
     if streamed_ok:
@@ -161,7 +197,7 @@ async def call_with_stream_or_fallback(
     for i, model in enumerate(models):
         is_last = i == len(models) - 1
         try:
-            fallback_blocks, fallback_stop, fallback_usage = await call_with_tools(
+            fallback_blocks, fallback_stop, fallback_usage = await _call_with_connection_retry(
                 model=model, system_prompt=system_prompt, volatile_system=volatile_system,
                 summary_system=summary_system,
                 cache_ttl=cache_ttl, messages=messages, tools=_tools_for(model, tools),
