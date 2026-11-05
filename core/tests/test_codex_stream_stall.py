@@ -155,7 +155,7 @@ def test_abbruch_von_aussen_wird_nicht_verschluckt(slow, monkeypatch):
 
 def test_standardwerte_sind_die_vereinbarten():
     assert cp._FIRST_EVENT_TIMEOUT == 30.0
-    assert cp._GAP_TIMEOUT == 90.0
+    assert cp._GAP_TIMEOUT == 45.0
 
 
 # --- Phase VOR dem Antwortkopf (Messung hydratest 5.11., 30 echte Anfragen: 4 von 5 Aussetzern standen hier) --------
