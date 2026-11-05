@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react"
+import { useEffect, useMemo, useState } from "react"
 import { useTranslation } from "react-i18next"
 import { Coins, Download, FileText, GamepadIcon, GitMerge, Hammer, HelpCircle, Pencil, RotateCcw, Wand2 } from "lucide-react"
 import { AgentPixelMonitor } from "./AgentPixelMonitor"
@@ -23,16 +23,14 @@ import { ChatBubbleThread } from "./_ChatBubbleThread"
 import { LoadOlderSentinel } from "./_LoadOlderSentinel"
 import { useMessageWindow } from "./_useMessageWindow"
 import { useHydraRuntime } from "./_assistantRuntime"
-import type { AgentBrief, Message, Session } from "./types"
-import type { ProjectBrief } from "./api"
+import type { Message } from "./types"
 import { useChat } from "./useChat"
 import { CmdPill } from "@/features/buddy/_BuddyCmdPill"
 import { SkillCatalogPill } from "./_SkillCatalogPill"
 import { isCommand, runChatCommand } from "./commands"
 import { ChatSearchProvider, useChatSearch } from "./ChatSearchContext"
 import { ChatSearchBar } from "./ChatSearchBar"
-import { pickSessionFor } from "./_pickSession"
-import { forgetDeleted, readStoredSession, rememberActive } from "./_storedSession"
+import { useSessionCatalog } from "./useSessionCatalog"
 
 function ChatSearchScrollEffect() {
   const { activeMessageId } = useChatSearch()
@@ -60,99 +58,27 @@ interface ChatPaneProps {
 
 export function ChatPane({ deepLinkSid = null, projectId, showSidePanels = true, preferredAgentId = null, agentSelectionExplicit = false, openSessionRequest = null, onSessionRequestHandled }: ChatPaneProps) {
   const { t } = useTranslation("chat")
-  const deepLinkApplied = useRef(false)
-
+  const {
+    agents, setAgents, projects, activeId, setActiveId, activeSession,
+    activeAgent: catalogActiveAgent, visibleSessions, sessionTotal, hasMoreSessions,
+    loadingMoreSessions, loadMoreSessions, loadError, refreshCatalog: loadAll,
+    handleNew, handleDelete, createPreferredSession, newSessionBusy, handleSessionChanged,
+  } = useSessionCatalog({
+    deepLinkSid, projectId, preferredAgentId, agentSelectionExplicit,
+    openSessionRequest, onSessionRequestHandled, onSessionCreated: () => setShowNew(false), t,
+  })
   const [wsFile, setWsFile] = useState<{ path: string; kind: FileKind } | null>(null)
-  const [sessions, setSessions] = useState<Session[]>([])
-  const [agents, setAgents] = useState<AgentBrief[]>([])
-  const [projects, setProjects] = useState<ProjectBrief[]>([])
-  const [activeId, setActiveId] = useState<string | null>(null)
   const [showNew, setShowNew] = useState(false)
-  const [loadError, setLoadError] = useState<string | null>(null)
   const [localMsgs, setLocalMsgs] = useState<Message[]>([])
   const chat = useChat(activeId)
   const allMessages = useMemo(() => [...chat.messages, ...localMsgs], [chat.messages, localMsgs])
-  // Nur die letzten N Nachrichten rendern; ältere werden beim Hochscrollen
-  // nachgeladen. Hält den DOM klein, damit lange Threads flüssig bleiben.
   const { windowed, hasMore, loadMore, visibleCount } = useMessageWindow(allMessages, activeId)
   const runtime = useHydraRuntime(windowed, chat.busy, chat.send, chat.cancel)
+  const knownAgentIds = new Set(agents.map((agent) => agent.id))
+  const buddyAgentIds = new Set(agents.filter((agent) => agent.is_buddy).map((agent) => agent.id))
 
-  const knownAgentIds = new Set(agents.map((a) => a.id))
-  const buddyAgentIds = new Set(agents.filter((a) => a.is_buddy).map((a) => a.id))
-
-  async function loadAll() {
-    try {
-      const [s, a, p] = await Promise.all([
-        chatApi.listSessions(),
-        chatApi.listAgents(),
-        chatApi.listProjects(),
-      ])
-      setSessions(s); setAgents(a); setProjects(p)
-      setLoadError(null)
-      const visibleSessions = projectId === undefined ? s : s.filter((session) => session.project_id === projectId)
-      if (!deepLinkApplied.current && deepLinkSid) {
-        deepLinkApplied.current = true
-        setActiveId(deepLinkSid)
-      } else if (!activeId && !deepLinkSid && visibleSessions.length > 0) {
-        setActiveId(pickSessionFor(visibleSessions, preferredAgentId, readStoredSession(projectId ?? null), { agentExplicit: agentSelectionExplicit }))
-      }
-    } catch {
-      // Nicht still schlucken (#211): die Sitzungsliste wäre sonst unbemerkt veraltet.
-      setLoadError("Sitzungen konnten nicht geladen werden — Anzeige ist evtl. veraltet.")
-    }
-  }
-
-  // Einmalig beim Mount laden — loadAll bewusst nicht in den Deps (sonst Re-Run pro Render).
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  useEffect(() => { loadAll() }, [])
   useEffect(() => { setLocalMsgs([]); chat.reload() }, [activeId, chat.reload])
-  useEffect(() => {
-    if (projectId === undefined || !activeId) return
-    const current = sessions.find((s) => s.id === activeId)
-    if (current && current.project_id !== projectId) setActiveId(null)
-  }, [projectId, activeId, sessions])
-
-  // Externe Anforderung (z. B. Session-Klick im Auswerten-Panel, oder eine im
-  // Cockpit frisch erstellte Session) in-place öffnen. Ist die Session hier noch
-  // unbekannt — bei Neuanlage von außen der Normalfall — muss die Liste zuerst
-  // nachgeladen werden: sonst verwirft der Projekt-Guard oben die activeId
-  // wieder, weil sie in `sessions` nicht auffindbar ist.
-  useEffect(() => {
-    if (!openSessionRequest) return
-    if (!sessions.some((s) => s.id === openSessionRequest)) {
-      void loadAll()
-      return
-    }
-    setActiveId(openSessionRequest)
-    onSessionRequestHandled?.()
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [openSessionRequest, onSessionRequestHandled, sessions])
-
-  // Offene Session pro Projekt merken, damit ein Reload nicht in einem anderen
-  // Chat landet. Nur im Projekt-Kontext — ohne projectId gibt es nichts zu
-  // unterscheiden. Eingebettete Chats (metadata.embedded_in) nie (Task 8fd82c02).
-  useEffect(() => {
-    if (activeId) rememberActive(projectId, sessions.find((s) => s.id === activeId))
-  }, [projectId, activeId, sessions])
-
-  async function handleNew(agentId: string, title: string, projectId?: string) {
-    if (activeSession?.project_id) await chatApi.handover(activeSession.id)
-    const s = await chatApi.createSession(agentId, title || undefined, projectId)
-    setShowNew(false); setSessions((cur) => [s, ...cur]); setActiveId(s.id)
-  }
-
-  async function handleDelete(id: string) {
-    await chatApi.deleteSession(id)
-    setSessions((cur) => cur.filter((s) => s.id !== id))
-    if (activeId === id) {
-      setActiveId(null)
-      // Gemerkte Session mitlöschen — sie zeigt sonst ins Leere.
-      forgetDeleted(projectId, id)
-    }
-  }
-
   const [tokenRefresh, setTokenRefresh] = useState(0)
-  const [newSessionBusy, setNewSessionBusy] = useState(false)
   const [showPixelMonitor, setShowPixelMonitor] = useState(false)
   const [searchOpen, setSearchOpen] = useState(false)
 
@@ -196,9 +122,7 @@ export function ChatPane({ deepLinkSid = null, projectId, showSidePanels = true,
       if (result.agentChanged) {
         setAgents((cur) => cur.map((a) => a.id === result.agentChanged!.id ? result.agentChanged! : a))
       }
-      if (result.sessionChanged) {
-        setSessions((cur) => cur.map((s) => s.id === result.sessionChanged!.id ? result.sessionChanged! : s))
-      }
+      if (result.sessionChanged) handleSessionChanged(result.sessionChanged)
       if (result.newSessionId) {
         setLocalMsgs([])
         await loadAll()
@@ -215,19 +139,9 @@ export function ChatPane({ deepLinkSid = null, projectId, showSidePanels = true,
     await chat.send(text, files); loadAll(); setTokenRefresh((n) => n + 1)
   }
 
-  const visibleSessions = useMemo(
-    () => projectId === undefined ? sessions : sessions.filter((session) => session.project_id === projectId),
-    [sessions, projectId],
-  )
-  const activeSession = visibleSessions.find((s) => s.id === activeId) ?? null
   const preferredAgent = preferredAgentId ? (agents.find((a) => a.id === preferredAgentId) ?? null) : null
   const activeOrphaned = activeSession ? !knownAgentIds.has(activeSession.agent_id) : false
-  const activeAgent = activeSession ? (agents.find((a) => a.id === activeSession.agent_id) ?? null) : preferredAgent
-
-  useEffect(() => {
-    if (activeId || deepLinkSid || visibleSessions.length === 0) return
-    setActiveId(pickSessionFor(visibleSessions, preferredAgentId, readStoredSession(projectId ?? null), { agentExplicit: agentSelectionExplicit }))
-  }, [activeId, deepLinkSid, visibleSessions, preferredAgentId, projectId, agentSelectionExplicit])
+  const activeAgent = activeSession ? catalogActiveAgent : preferredAgent
 
   const [pixelScope, setPixelScope] = useState<"chat" | "all">("chat")
   const { running, doneNames } = useAgentActivity(showPixelMonitor)
@@ -259,28 +173,6 @@ export function ChatPane({ deepLinkSid = null, projectId, showSidePanels = true,
       .catch(() => {})
     return () => { alive = false }
   }, [activeAgent?.id])
-
-  const handleSessionChanged = (updated: Session) =>
-    setSessions((cur) => cur.map((s) => s.id === updated.id ? updated : s))
-
-  async function createPreferredSession() {
-    // preferredAgent (im Cockpit: der links ausgewählte Projekt-Agent) hat
-    // Vorrang vor dem Agenten der zufällig offenen Session. Sonst startet der
-    // Button eine Session mit dem zuletzt benutzten Agenten statt mit dem
-    // sichtbar ausgewählten — im Projekt-Cockpit mit gemischten Sessions
-    // (Projekt-Agent + Buddy) war das reproduzierbar der falsche.
-    const agent = preferredAgent ?? activeAgent ?? agents.find((a) => !a.is_buddy) ?? agents[0]
-    if (!agent) return
-    setNewSessionBusy(true)
-    try {
-      if (activeSession?.project_id) await chatApi.handover(activeSession.id)
-      const s = await chatApi.createSession(agent.id, undefined, projectId ?? undefined)
-      setSessions((cur) => [s, ...cur])
-      setActiveId(s.id)
-    } finally {
-      setNewSessionBusy(false)
-    }
-  }
 
   const center = activeSession ? (
     <div className="flex h-full min-w-0 flex-col">
@@ -398,6 +290,8 @@ export function ChatPane({ deepLinkSid = null, projectId, showSidePanels = true,
               onSelect={setActiveId} onDelete={handleDelete} onNew={() => setShowNew(true)}
               activeSession={activeSession} activeAgent={activeAgent}
               onSessionChanged={handleSessionChanged}
+              total={sessionTotal} hasMore={hasMoreSessions}
+              loadingMore={loadingMoreSessions} onLoadMore={loadMoreSessions}
             />
           }
           center={embeddedCenter}

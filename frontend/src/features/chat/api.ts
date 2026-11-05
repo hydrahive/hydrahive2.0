@@ -1,6 +1,6 @@
 import { useAuthStore } from "@/features/auth/useAuthStore"
 import { api, buildErrorMessage } from "@/shared/api-client"
-import type { AgentBrief, Message, RunnerEvent, Session } from "./types"
+import type { AgentBrief, Message, RunnerEvent, Session, SessionPage } from "./types"
 import type { PendingConfirm } from "./useChat"
 import { runSseLoop } from "./_sseLoop"
 import { pingKind } from "./_runFollow"
@@ -12,8 +12,22 @@ export interface ProjectBrief {
   status: string
 }
 
+export interface SessionPageOptions {
+  limit: number
+  offset: number
+  /** undefined = alle Sessions, null = nicht zugeordnete Sessions. */
+  projectId?: string | null
+}
+
 export const chatApi = {
   listSessions: () => api.get<Session[]>("/sessions"),
+  getSession: (id: string) => api.get<Session>(`/sessions/${encodeURIComponent(id)}`),
+  listSessionPage: ({ limit, offset, projectId }: SessionPageOptions) => {
+    const query = new URLSearchParams({ limit: String(limit), offset: String(offset) })
+    if (projectId === null) query.set("unassigned", "true")
+    else if (projectId !== undefined) query.set("project_id", projectId)
+    return api.get<SessionPage>(`/sessions/page?${query.toString()}`)
+  },
   createSession: (agent_id: string, title?: string, project_id?: string) =>
     api.post<Session>("/sessions", { agent_id, title, project_id }),
   deleteSession: (id: string) => api.delete<void>(`/sessions/${id}`),
