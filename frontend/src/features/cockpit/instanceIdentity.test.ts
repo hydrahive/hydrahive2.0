@@ -13,19 +13,39 @@ describe("Instanzidentität", () => {
       roleBadge: "NUTZER",
       host: "cockpit",
       shortHost: "cockpit",
-      isAdmin: false,
+      isAdministrator: false,
+      isSystemAccount: false,
       buttonLabel: "Benutzermenü: mira, Nutzer, Instanz cockpit",
-      adminWarning: null,
+      systemAccountWarning: null,
     })
   })
 
-  it("kennzeichnet admin als Systemadministrator und liefert den Warnhinweis", () => {
-    const identity = getInstanceIdentity("admin", "admin", { host: "localhost:5173" })
+  it("behandelt till mit Admin-Rechten als Administrator, nicht als Systemkonto", () => {
+    const identity = getInstanceIdentity("till", "admin", { host: "192.168.178.2" })
+
+    expect(identity.roleLabel).toBe("Administrator")
+    expect(identity.roleBadge).toBe("ADMIN")
+    expect(identity.isSystemAccount).toBe(false)
+    expect(identity.buttonLabel).toBe("Benutzermenü: till, Administrator, Instanz 192.168.178.2")
+    expect(identity.systemAccountWarning).toBeNull()
+  })
+
+  it.each(["admin", "Admin", "ADMIN"])("erkennt %s rollenunabhängig als Systemkonto", (username) => {
+    const identity = getInstanceIdentity(username, "user", { host: "localhost:5173" })
 
     expect(identity.roleLabel).toBe("SYSTEM-ADMIN")
-    expect(identity.isAdmin).toBe(true)
-    expect(identity.buttonLabel).toBe("Benutzermenü: admin, SYSTEM-ADMIN, Instanz localhost:5173")
-    expect(identity.adminWarning).toContain("getrennt")
+    expect(identity.isAdministrator).toBe(true)
+    expect(identity.isSystemAccount).toBe(true)
+    expect(identity.buttonLabel).toBe(`Benutzermenü: ${username}, SYSTEM-ADMIN, Instanz localhost:5173`)
+    expect(identity.systemAccountWarning).toContain("getrennt")
+  })
+
+  it("verändert Benutzernamen nicht und klassifiziert Leerzeichen nicht als Systemkonto", () => {
+    const identity = getInstanceIdentity(" admin ", "user", { host: "cockpit" })
+
+    expect(identity.username).toBe(" admin ")
+    expect(identity.isSystemAccount).toBe(false)
+    expect(identity.systemAccountWarning).toBeNull()
   })
 
   it("kürzt lange Hosts mit stabiler, unterscheidbarer Kennung", () => {

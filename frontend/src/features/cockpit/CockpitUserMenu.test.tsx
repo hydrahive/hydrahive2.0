@@ -35,6 +35,22 @@ describe("CockpitUserMenu", () => {
     expect(html).toContain('aria-label="Benutzermenü: mira, Nutzer, Instanz ws.local"')
   })
 
+  it("zeigt till mit Admin-Rechten ohne Systemkonto-Warnung", () => {
+    vi.stubGlobal("window", { location: { host: "ws.local" } })
+    auth.username = "till"
+    auth.role = "admin"
+
+    const html = renderMenu()
+
+    expect(html).toContain("ADMIN · ws.local")
+    expect(html).toContain("Administrator")
+    expect(html).toContain('data-instance-identity="administrator"')
+    expect(html).not.toContain("SYSTEM-ADMIN")
+    expect(html).not.toContain("Chats und Sitzungen werden getrennt")
+    expect(html).not.toContain("border-amber-500")
+    expect(html).not.toContain("text-amber-300")
+  })
+
   it("markiert admin mit Shield, Warnstil und Systemadministrator-Beschriftung", () => {
     vi.stubGlobal("window", { location: { host: "ws.local" } })
     auth.username = "admin"
@@ -44,7 +60,7 @@ describe("CockpitUserMenu", () => {
 
     expect(html).toContain("ADMIN · ws.local")
     expect(html).toContain("SYSTEM-ADMIN")
-    expect(html).toContain('data-instance-identity="admin"')
+    expect(html).toContain('data-instance-identity="system-admin"')
     expect(html).toContain("text-amber-300")
     expect(html).toContain("shield")
   })

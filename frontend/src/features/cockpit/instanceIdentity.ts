@@ -1,12 +1,13 @@
 export interface InstanceIdentity {
   username: string
-  roleLabel: "Nutzer" | "SYSTEM-ADMIN"
+  roleLabel: "Nutzer" | "Administrator" | "SYSTEM-ADMIN"
   roleBadge: "NUTZER" | "ADMIN"
   host: string
   shortHost: string
-  isAdmin: boolean
+  isAdministrator: boolean
+  isSystemAccount: boolean
   buttonLabel: string
-  adminWarning: string | null
+  systemAccountWarning: string | null
 }
 
 type LocationLike = Pick<Location, "host">
@@ -34,10 +35,11 @@ export function compactInstanceHost(host: string): string {
 
 /** Formatiert die rein informative Konto- und Instanzanzeige für das Cockpit-Menü. */
 export function getInstanceIdentity(username: string | null | undefined, role: string | null | undefined, location?: LocationLike): InstanceIdentity {
-  const isAdmin = role === "admin"
   const displayUsername = username || "User"
-  const roleLabel = isAdmin ? "SYSTEM-ADMIN" : "Nutzer"
-  const roleBadge = isAdmin ? "ADMIN" : "NUTZER"
+  const isSystemAccount = displayUsername.toLowerCase() === "admin"
+  const isAdministrator = role === "admin" || isSystemAccount
+  const roleLabel = isSystemAccount ? "SYSTEM-ADMIN" : isAdministrator ? "Administrator" : "Nutzer"
+  const roleBadge = isAdministrator ? "ADMIN" : "NUTZER"
   const host = getInstanceHost(location)
 
   return {
@@ -46,8 +48,9 @@ export function getInstanceIdentity(username: string | null | undefined, role: s
     roleBadge,
     host,
     shortHost: compactInstanceHost(host),
-    isAdmin,
+    isAdministrator,
+    isSystemAccount,
     buttonLabel: `Benutzermenü: ${displayUsername}, ${roleLabel}, Instanz ${host}`,
-    adminWarning: isAdmin ? ADMIN_WARNING : null,
+    systemAccountWarning: isSystemAccount ? ADMIN_WARNING : null,
   }
 }
