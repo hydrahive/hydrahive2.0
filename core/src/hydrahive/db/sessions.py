@@ -88,6 +88,7 @@ def list_for_user(user_id: str, limit: int = 50) -> list[Session]:
     return [Session.from_row(r) for r in rows]
 
 
+
 def list_for_agent(agent_id: str, limit: int = 50) -> list[Session]:
     with db() as conn:
         rows = conn.execute(
