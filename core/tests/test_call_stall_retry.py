@@ -15,6 +15,7 @@ from __future__ import annotations
 
 import asyncio
 
+import httpx
 import pytest
 
 from hydrahive.runner import _call
@@ -184,3 +185,66 @@ def test_streaming_nicht_unterstuetzt_geht_direkt_in_den_fallback(fake):
     f = fake(StreamingNotSupported("kein Streaming"))
     assert result(run()).blocks == [{"type": "text", "text": "FB"}]
     assert f.stream_calls == 1 and f.fallback_calls == 1
+
+
+# --- Verbindungsfehler von httpx zählen wie ein Stall (Messung hydratest 5.11., 60 Anfragen: 2 von 60 waren
+# ReadError/ConnectError mit LEERER Meldung; Lauf 75 scheiterte an Stall → ReadError → Fallback) ---------------------
+
+CONN_ERRORS = [httpx.ReadError(""), httpx.ConnectError(""), httpx.RemoteProtocolError("Server disconnected"),
+               httpx.ReadTimeout(""), httpx.ConnectTimeout(""), httpx.WriteError("")]
+
+
+@pytest.mark.parametrize("exc", CONN_ERRORS, ids=lambda e: type(e).__name__)
+def test_verbindungsfehler_wird_wie_ein_stall_mehrfach_wiederholt(fake, exc):
+    f = fake(exc, exc, exc, GOOD)
+    assert result(run()).blocks == [{"type": "text", "text": "Hallo"}]
+    assert f.stream_calls == 4 and f.fallback_calls == 0
+
+
+def test_lauf_75_stall_dann_readerror_dann_erfolg(fake):
+    """Genau die Folge, die in der echten Messung scheiterte."""
+    f = fake(STALL, httpx.ReadError(""), GOOD)
+    assert result(run()).blocks == [{"type": "text", "text": "Hallo"}]
+    assert f.stream_calls == 3 and f.fallback_calls == 0
+
+
+def test_verbindungsfehler_nach_text_wird_nicht_wiederholt(fake):
+    f = fake(("text-dann-fehler", httpx.ReadError("")), GOOD)
+    run()
+    assert f.stream_calls == 1 and f.fallback_calls == 1
+
+
+def test_verbindungsfehler_fuenf_mal_dann_fallback(fake):
+    f = fake(*[httpx.ReadError("")] * 5)
+    assert result(run()).blocks == [{"type": "text", "text": "FB"}]
+    assert f.stream_calls == 5 and f.fallback_calls == 1
+
+
+def test_http_statusfehler_ist_kein_verbindungsfehler(fake):
+    """Ein 4xx/5xx-Status ist eine Antwort des Servers: nicht 5× wiederholen, sondern wie bisher (1 Wiederholung)."""
+    req = httpx.Request("POST", "https://x")
+    err = httpx.HTTPStatusError("429", request=req, response=httpx.Response(429, request=req))
+    f = fake(err, err, GOOD)
+    run()
+    assert f.stream_calls == 2 and f.fallback_calls == 1
+
+
+def test_runtime_error_mit_codex_api_status_bleibt_beim_alten_verhalten(fake):
+    f = fake(RuntimeError("Codex API 500: boom"), RuntimeError("Codex API 500: boom"), GOOD)
+    run()
+    assert f.stream_calls == 2 and f.fallback_calls == 1
+
+
+def test_isinstance_ist_exakt_nicht_ueber_den_text(fake):
+    """Eine Meldung, die „Timeout“ enthält, ist noch kein Verbindungsfehler."""
+    f = fake(RuntimeError("Timeout bei der Auswertung"), RuntimeError("Timeout bei der Auswertung"), GOOD)
+    run()
+    assert f.stream_calls == 2
+
+
+def test_log_zeigt_den_typ_wenn_die_meldung_leer_ist(fake, caplog):
+    import logging
+    fake(httpx.ReadError(""), GOOD)
+    with caplog.at_level(logging.WARNING, logger="hydrahive.runner._call"):
+        run()
+    assert any("ReadError" in r.getMessage() for r in caplog.records)
