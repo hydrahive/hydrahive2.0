@@ -5,8 +5,10 @@ codex_stream yieldet HH2-normalisierte Events (kompatibel zu anthropic_stream).
 """
 from __future__ import annotations
 
+import asyncio
 import json
 import logging
+from contextlib import AsyncExitStack, asynccontextmanager
 from typing import AsyncIterator
 
 import httpx
@@ -16,6 +18,7 @@ from hydrahive.runner._codex_http import (  # noqa: F401 — Re-Export für Aufr
     CODEX_URL,
     CodexModelNotAllowed,
     CodexStreamError,
+    CodexStreamStall,
     _build_payload,
     _headers,
     _parse_sse_line,
@@ -25,6 +28,45 @@ from hydrahive.runner._codex_http import (  # noqa: F401 — Re-Export für Aufr
 logger = logging.getLogger(__name__)
 
 _TIMEOUT = 300.0
+# Fristen gegen stehende Verbindungen (Befund hydratest 5.11.2026: 2 von 12 Anfragen blieben ohne Daten stehen und
+# warteten das volle 300-s-Lesezeitlimit ab). Normal: erstes Ereignis ~1 s, größte Lücke bei reasoning_effort=high 4,3 s.
+# Pausenfrist 45 s (zuerst 90 s): Ein Aussetzer MITTEN im Stream kostete in der echten Probe sonst 90 s allein.
+# Die Fristen gelten je Leseschritt, nicht für die Gesamtdauer – wer stetig liefert, wird nie abgebrochen.
+_FIRST_EVENT_TIMEOUT = 30.0
+_GAP_TIMEOUT = 45.0
+
+
+@asynccontextmanager
+async def _open_stream(client: httpx.AsyncClient, **kwargs) -> AsyncIterator[httpx.Response]:
+    """`client.stream(...)` mit Frist bis zum Antwortkopf. Gemessen (hydratest 5.11., 30 echte Anfragen): 4 von 5
+    Aussetzern standen VOR dem Kopf – dort greift keine Zeilenfrist. Gilt die erste Frist; Abbruch von außen läuft
+    unverändert durch. `AsyncExitStack` räumt die Antwort in jedem Fall auf (Normalende, Fehler, Abbruch)."""
+    async with AsyncExitStack() as stack:
+        try:
+            resp = await asyncio.wait_for(stack.enter_async_context(client.stream("POST", **kwargs)), _FIRST_EVENT_TIMEOUT)
+        except asyncio.TimeoutError:
+            raise CodexStreamStall(
+                f"Codex-Stream steht: Antwortkopf nach {_FIRST_EVENT_TIMEOUT:g} s noch nicht da") from None
+        yield resp
+
+
+async def _timed_lines(resp: httpx.Response) -> AsyncIterator[str]:
+    """Zeilen der Antwort mit Frist je Leseschritt. Frist verstrichen → CodexStreamStall; ein Abbruch von außen
+    (CancelledError) läuft unverändert durch."""
+    it = resp.aiter_lines().__aiter__()
+    first = True
+    while True:
+        limit = _FIRST_EVENT_TIMEOUT if first else _GAP_TIMEOUT
+        try:
+            line = await asyncio.wait_for(it.__anext__(), limit)
+        except StopAsyncIteration:
+            return
+        except asyncio.TimeoutError:
+            what = "erstes Ereignis" if first else "Pause zwischen Ereignissen"
+            raise CodexStreamStall(f"Codex-Stream steht: {what} nach {limit:g} s noch nicht da") from None
+        if line.strip():
+            first = False
+        yield line
 
 
 async def codex_stream(
@@ -51,8 +93,8 @@ async def codex_stream(
     yield {"type": "message_start"}
 
     async with httpx.AsyncClient(timeout=_TIMEOUT) as client:
-        async with client.stream(
-            "POST", CODEX_URL,
+        async with _open_stream(
+            client, url=CODEX_URL,
             headers=_headers(access_token=access_token, account_id=account_id),
             json=payload,
         ) as resp:
@@ -66,7 +108,7 @@ async def codex_stream(
                     )
                 raise RuntimeError(f"Codex API {resp.status_code}: {body}")
 
-            async for line in resp.aiter_lines():
+            async for line in _timed_lines(resp):
                 ev = _parse_sse_line(line)
                 if ev is None:
                     continue

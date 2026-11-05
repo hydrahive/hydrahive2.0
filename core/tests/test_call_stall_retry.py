@@ -1,0 +1,405 @@
+"""LLM-Call: stehende Codex-Verbindung (CodexStreamStall) wird mehrfach auf frischer Verbindung wiederholt.
+
+Messung hydratest 5.11.2026: Ein Stall betrifft die Verbindung, nicht die Anfrage – der unmittelbare Wiederholversuch
+ist in ~80 % der Fälle sofort erfolgreich (erstes Ereignis nach ~1 s). Bisher gab es nur 3 Versuche (2× Stream, 1×
+Non-Streaming); drei Aussetzer hintereinander ließen den Lauf scheitern (1 von 60 echten Läufen).
+
+Vertrag:
+- Nach einem Stall bis zu `STALL_ATTEMPTS` (5) Stream-Versuche, jeweils neue Verbindung; Pause kurz.
+- Andere Fehler behalten genau das bisherige Verhalten (1 Wiederholung, dann Fallback).
+- Wurde schon Text an die Oberfläche geliefert, wird NICHT wiederholt (sonst doppelter Text).
+- Sind alle Versuche verbraucht, folgt wie bisher der Fallback auf Non-Streaming.
+- Abbruch von außen läuft unverändert durch.
+"""
+from __future__ import annotations
+
+import asyncio
+
+import httpx
+import pytest
+
+from hydrahive.runner import _call
+from hydrahive.runner._codex_provider import CodexStreamError, CodexStreamStall
+
+MODEL = ["openai-codex/gpt-5.6-luna"]
+STALL = CodexStreamStall("Codex-Stream steht: Antwortkopf nach 30 s noch nicht da")
+GOOD = [{"type": "message_start"}, {"type": "text_delta", "text": "Hallo"},
+        {"type": "message_stop", "blocks": [{"type": "text", "text": "Hallo"}], "stop_reason": "end_turn",
+         "input_tokens": 3, "output_tokens": 1}]
+
+
+class Fake:
+    def __init__(self, script: list) -> None:
+        self.script = list(script)            # je Stream-Versuch: Liste von Ereignissen, Exception-Instanz oder ("text-dann-fehler", exc)
+        self.stream_calls = 0
+        self.fallback_calls = 0
+        self.fallback_result = ([{"type": "text", "text": "FB"}], "end_turn", {"input_tokens": 1, "output_tokens": 1})
+        self.fallback_error: Exception | None = None
+
+    async def stream(self, **kw):
+        self.stream_calls += 1
+        item = self.script.pop(0) if self.script else STALL
+        if isinstance(item, Exception):
+            raise item
+        if isinstance(item, tuple):               # ("text-dann-fehler", exc): erst Text, dann Fehler
+            yield {"type": "message_start"}
+            yield {"type": "text_delta", "text": "Hal"}
+            raise item[1]
+        for ev in item:
+            yield ev
+
+    async def call(self, **kw):
+        self.fallback_calls += 1
+        if self.fallback_error:
+            raise self.fallback_error
+        return self.fallback_result
+
+
+@pytest.fixture
+def fake(monkeypatch):
+    async def no_sleep(_s):
+        return None
+    monkeypatch.setattr(_call.asyncio, "sleep", no_sleep)
+
+    def make(*script):
+        f = Fake(script)
+        monkeypatch.setattr(_call, "stream_with_tools", f.stream)
+        monkeypatch.setattr(_call, "call_with_tools", f.call)
+        return f
+    return make
+
+
+def run(models=MODEL):
+    async def go():
+        out = []
+        async for ev in _call.call_with_stream_or_fallback(models=models, system_prompt="s", messages=[], tools=[],
+                                                           temperature=0.0, max_tokens=10):
+            out.append(ev)
+        return out
+    return asyncio.run(go())
+
+
+def result(events):
+    return [e for e in events if isinstance(e, _call.CallResult)][-1]
+
+
+def test_standardwert():
+    assert _call.STALL_ATTEMPTS == 5
+
+
+def test_ein_stall_dann_erfolg_ohne_fallback(fake):
+    f = fake(STALL, GOOD)
+    assert result(run()).blocks == [{"type": "text", "text": "Hallo"}]
+    assert f.stream_calls == 2 and f.fallback_calls == 0
+
+
+def test_drei_staelle_dann_erfolg_ohne_fallback(fake):
+    """Der Fall aus Lauf 43: bisher scheiterte er hier (2 Streams + 1 Fallback)."""
+    f = fake(STALL, STALL, STALL, GOOD)
+    assert result(run()).blocks == [{"type": "text", "text": "Hallo"}]
+    assert f.stream_calls == 4 and f.fallback_calls == 0
+
+
+def test_genau_fuenf_stream_versuche_danach_fallback(fake):
+    f = fake(STALL, STALL, STALL, STALL, STALL)
+    assert result(run()).blocks == [{"type": "text", "text": "FB"}]
+    assert f.stream_calls == 5 and f.fallback_calls == 1
+
+
+def test_fallback_scheitert_ebenfalls_fehler_kommt_an(fake):
+    f = fake(*[STALL] * 5)
+    f.fallback_error = STALL
+    with pytest.raises(CodexStreamStall):
+        run()
+    assert f.stream_calls == 5 and f.fallback_calls == _call.STALL_ATTEMPTS      # Fallback wiederholt ebenfalls (5×)
+
+
+def test_anderer_fehler_nur_eine_wiederholung_wie_bisher(fake):
+    f = fake(RuntimeError("Verbindung getrennt"), RuntimeError("Verbindung getrennt"), GOOD)
+    assert result(run()).blocks == [{"type": "text", "text": "FB"}]
+    assert f.stream_calls == 2 and f.fallback_calls == 1
+
+
+def test_stall_dann_anderer_fehler_bekommt_seine_eine_wiederholung(fake):
+    """Stall (Versuch 1) → sonstiger Fehler (Versuch 2) → seine EINE Wiederholung steht nicht mehr an, weil der Stall
+    den ersten Platz belegt hat? Nein: `_attempt == 0` gilt nur für den ersten Versuch – danach Fallback."""
+    f = fake(STALL, RuntimeError("kaputt"), GOOD)
+    run()
+    assert f.stream_calls == 2 and f.fallback_calls == 1
+
+
+def test_anderer_fehler_dann_stall_wird_noch_wiederholt(fake):
+    f = fake(RuntimeError("kaputt"), STALL, GOOD)
+    assert result(run()).blocks == [{"type": "text", "text": "Hallo"}]
+    assert f.stream_calls == 3 and f.fallback_calls == 0
+
+
+def test_nach_text_wird_nicht_wiederholt(fake):
+    f = fake(("text-dann-fehler", STALL), GOOD)
+    run()
+    assert f.stream_calls == 1 and f.fallback_calls == 1
+
+
+def test_stall_ist_ein_stream_fehler_typ(fake):
+    assert isinstance(STALL, CodexStreamError)
+
+
+def test_pause_zwischen_stall_versuchen_ist_kurz(monkeypatch):
+    waits: list[float] = []
+
+    async def spy(s):
+        waits.append(s)
+    monkeypatch.setattr(_call.asyncio, "sleep", spy)
+    f = Fake([STALL, STALL, STALL, GOOD])
+    monkeypatch.setattr(_call, "stream_with_tools", f.stream)
+    monkeypatch.setattr(_call, "call_with_tools", f.call)
+    run()
+    assert len(waits) == 3 and all(w <= 1.5 for w in waits)
+
+
+def test_abbruch_von_aussen_wird_nicht_wiederholt(monkeypatch):
+    async def cancelled(**kw):
+        raise asyncio.CancelledError()
+        yield
+    monkeypatch.setattr(_call, "stream_with_tools", cancelled)
+    with pytest.raises(asyncio.CancelledError):
+        run()
+
+
+def test_modell_ohne_erlaubnis_wird_nicht_wiederholt(monkeypatch, fake):
+    from hydrahive.runner._codex_provider import CodexModelNotAllowed
+    f = fake(CodexModelNotAllowed("nicht verfügbar"), GOOD)
+    with pytest.raises(CodexModelNotAllowed):
+        run()
+    assert f.stream_calls == 1
+
+
+def test_erfolg_beim_ersten_mal_unveraendert(fake):
+    f = fake(GOOD)
+    assert result(run()).blocks == [{"type": "text", "text": "Hallo"}]
+    assert f.stream_calls == 1 and f.fallback_calls == 0
+
+
+def test_streaming_nicht_unterstuetzt_geht_direkt_in_den_fallback(fake):
+    from hydrahive.runner.llm_bridge_stream import StreamingNotSupported
+    f = fake(StreamingNotSupported("kein Streaming"))
+    assert result(run()).blocks == [{"type": "text", "text": "FB"}]
+    assert f.stream_calls == 1 and f.fallback_calls == 1
+
+
+# --- Verbindungsfehler von httpx zählen wie ein Stall (Messung hydratest 5.11., 60 Anfragen: 2 von 60 waren
+# ReadError/ConnectError mit LEERER Meldung; Lauf 75 scheiterte an Stall → ReadError → Fallback) ---------------------
+
+CONN_ERRORS = [httpx.ReadError(""), httpx.ConnectError(""), httpx.RemoteProtocolError("Server disconnected"),
+               httpx.ReadTimeout(""), httpx.ConnectTimeout(""), httpx.WriteError("")]
+
+
+@pytest.mark.parametrize("exc", CONN_ERRORS, ids=lambda e: type(e).__name__)
+def test_verbindungsfehler_wird_wie_ein_stall_mehrfach_wiederholt(fake, exc):
+    f = fake(exc, exc, exc, GOOD)
+    assert result(run()).blocks == [{"type": "text", "text": "Hallo"}]
+    assert f.stream_calls == 4 and f.fallback_calls == 0
+
+
+def test_lauf_75_stall_dann_readerror_dann_erfolg(fake):
+    """Genau die Folge, die in der echten Messung scheiterte."""
+    f = fake(STALL, httpx.ReadError(""), GOOD)
+    assert result(run()).blocks == [{"type": "text", "text": "Hallo"}]
+    assert f.stream_calls == 3 and f.fallback_calls == 0
+
+
+def test_verbindungsfehler_nach_text_wird_nicht_wiederholt(fake):
+    f = fake(("text-dann-fehler", httpx.ReadError("")), GOOD)
+    run()
+    assert f.stream_calls == 1 and f.fallback_calls == 1
+
+
+def test_verbindungsfehler_fuenf_mal_dann_fallback(fake):
+    f = fake(*[httpx.ReadError("")] * 5)
+    assert result(run()).blocks == [{"type": "text", "text": "FB"}]
+    assert f.stream_calls == 5 and f.fallback_calls == 1
+
+
+def test_http_statusfehler_ist_kein_verbindungsfehler(fake):
+    """Ein 4xx/5xx-Status ist eine Antwort des Servers: nicht 5× wiederholen, sondern wie bisher (1 Wiederholung)."""
+    req = httpx.Request("POST", "https://x")
+    err = httpx.HTTPStatusError("429", request=req, response=httpx.Response(429, request=req))
+    f = fake(err, err, GOOD)
+    run()
+    assert f.stream_calls == 2 and f.fallback_calls == 1
+
+
+def test_runtime_error_mit_codex_api_status_bleibt_beim_alten_verhalten(fake):
+    f = fake(RuntimeError("Codex API 500: boom"), RuntimeError("Codex API 500: boom"), GOOD)
+    run()
+    assert f.stream_calls == 2 and f.fallback_calls == 1
+
+
+def test_isinstance_ist_exakt_nicht_ueber_den_text(fake):
+    """Eine Meldung, die „Timeout“ enthält, ist noch kein Verbindungsfehler."""
+    f = fake(RuntimeError("Timeout bei der Auswertung"), RuntimeError("Timeout bei der Auswertung"), GOOD)
+    run()
+    assert f.stream_calls == 2
+
+
+def test_log_zeigt_den_typ_wenn_die_meldung_leer_ist(fake, caplog):
+    import logging
+    fake(httpx.ReadError(""), GOOD)
+    with caplog.at_level(logging.WARNING, logger="hydrahive.runner._call"):
+        run()
+    assert any("ReadError" in r.getMessage() for r in caplog.records)
+
+
+@pytest.mark.parametrize("exc", [httpx.UnsupportedProtocol("kein Schema"), httpx.ProxyError("Proxy"),
+                                 httpx.LocalProtocolError("lokal falsch"), httpx.PoolTimeout("Pool voll")],
+                         ids=lambda e: type(e).__name__)
+def test_dauerhafte_fehler_werden_nicht_fuenfmal_wiederholt(fake, exc):
+    """Falsche URL, Proxy-Fehler, eigener Protokollfehler, voller Pool: Wiederholen ändert nichts → altes Verhalten."""
+    f = fake(exc, exc, GOOD)
+    run()
+    assert f.stream_calls == 2 and f.fallback_calls == 1
+
+
+# --- Der Fallback (Non-Streaming) wiederholt Verbindungs-Aussetzer ebenfalls ----------------------------------------
+# Messung hydratest 5.11., 150 Läufe: Lauf 127 scheiterte nach „Stream-Fehler → Fallback" – der Fallback war ein
+# einzelner Versuch und lief selbst in einen Stall.
+
+class FlakyFallback(Fake):
+    """Fallback, der zuerst die angegebenen Fehler wirft und dann das Ergebnis liefert."""
+
+    def __init__(self, script, fallback_errors) -> None:
+        super().__init__(script)
+        self.fallback_errors = list(fallback_errors)
+
+    async def call(self, **kw):
+        self.fallback_calls += 1
+        if self.fallback_errors:
+            raise self.fallback_errors.pop(0)
+        return self.fallback_result
+
+
+@pytest.fixture
+def flaky(monkeypatch):
+    async def no_sleep(_s):
+        return None
+    monkeypatch.setattr(_call.asyncio, "sleep", no_sleep)
+
+    def make(script, fallback_errors):
+        f = FlakyFallback(script, fallback_errors)
+        monkeypatch.setattr(_call, "stream_with_tools", f.stream)
+        monkeypatch.setattr(_call, "call_with_tools", f.call)
+        return f
+    return make
+
+
+def test_lauf_127_stream_scheitert_fallback_stall_dann_erfolg(flaky):
+    f = flaky([STALL] * 5, [STALL])
+    assert result(run()).blocks == [{"type": "text", "text": "FB"}]
+    assert f.fallback_calls == 2
+
+
+def test_fallback_wiederholt_bis_zu_fuenfmal(flaky):
+    f = flaky([STALL] * 5, [STALL] * 4)
+    assert result(run()).blocks == [{"type": "text", "text": "FB"}]
+    assert f.fallback_calls == 5
+
+
+def test_fallback_nach_fuenf_staelle_scheitert_mit_dem_fehler(flaky):
+    f = flaky([STALL] * 5, [STALL] * 5)
+    with pytest.raises(CodexStreamStall):
+        run()
+    assert f.fallback_calls == 5
+
+
+@pytest.mark.parametrize("exc", [httpx.ReadError(""), httpx.ConnectError(""), httpx.RemoteProtocolError("weg")],
+                         ids=lambda e: type(e).__name__)
+def test_fallback_wiederholt_auch_verbindungsfehler(flaky, exc):
+    f = flaky([STALL] * 5, [exc, exc])
+    assert result(run()).blocks == [{"type": "text", "text": "FB"}]
+    assert f.fallback_calls == 3
+
+
+def test_fallback_anderer_fehler_wird_nicht_wiederholt(flaky):
+    f = flaky([STALL] * 5, [RuntimeError("Codex API 500: boom")])
+    with pytest.raises(RuntimeError):
+        run()
+    assert f.fallback_calls == 1
+
+
+def test_fallback_http_statusfehler_wird_nicht_wiederholt(flaky):
+    req = httpx.Request("POST", "https://x")
+    err = httpx.HTTPStatusError("500", request=req, response=httpx.Response(500, request=req))
+    f = flaky([STALL] * 5, [err])
+    with pytest.raises(httpx.HTTPStatusError):
+        run()
+    assert f.fallback_calls == 1
+
+
+def test_fallback_failover_auf_naechstes_modell_bleibt_bei_quota(flaky, monkeypatch):
+    """Bestehendes Verhalten: Quota/Rate-Limit → nächstes Modell, nicht wiederholen."""
+    calls: list[str] = []
+
+    async def call(**kw):
+        calls.append(kw["model"])
+        if kw["model"] == "m1":
+            raise RuntimeError("429 rate limit")
+        return ([{"type": "text", "text": "zweites"}], "end_turn", {"input_tokens": 1, "output_tokens": 1})
+    monkeypatch.setattr(_call, "call_with_tools", call)
+
+    async def no_stream(**kw):
+        raise _call.StreamingNotSupported("kein Streaming")
+        yield
+    monkeypatch.setattr(_call, "stream_with_tools", no_stream)
+    out = run(models=["m1", "m2"])
+    assert result(out).blocks == [{"type": "text", "text": "zweites"}] and calls == ["m1", "m2"]
+
+
+def test_fallback_pause_zwischen_versuchen_ist_kurz(monkeypatch):
+    waits: list[float] = []
+
+    async def spy(s):
+        waits.append(s)
+    monkeypatch.setattr(_call.asyncio, "sleep", spy)
+    f = FlakyFallback([STALL] * 5, [STALL, STALL])
+    monkeypatch.setattr(_call, "stream_with_tools", f.stream)
+    monkeypatch.setattr(_call, "call_with_tools", f.call)
+    run()
+    fb_waits = waits[4:]                                         # die ersten 4 gehören zu den Stream-Versuchen
+    assert len(fb_waits) == 2 and all(w <= 1.5 for w in fb_waits)
+
+
+def test_fallback_abbruch_von_aussen_laeuft_durch(monkeypatch):
+    async def cancelled(**kw):
+        raise asyncio.CancelledError()
+    monkeypatch.setattr(_call, "call_with_tools", cancelled)
+
+    async def no_stream(**kw):
+        raise _call.StreamingNotSupported("kein Streaming")
+        yield
+    monkeypatch.setattr(_call, "stream_with_tools", no_stream)
+    with pytest.raises(asyncio.CancelledError):
+        run()
+
+
+def test_abbruch_waehrend_der_fallback_wiederholung_wird_nicht_verschluckt(monkeypatch):
+    """Stall im ersten Fallback-Versuch, dann Stopp durch den Nutzer: CancelledError muss ankommen, nicht erneut
+    wiederholt oder in einen Stall umgedeutet werden."""
+    seq = [STALL, asyncio.CancelledError()]
+    calls = {"n": 0}
+
+    async def call(**kw):
+        calls["n"] += 1
+        raise seq.pop(0)
+    monkeypatch.setattr(_call, "call_with_tools", call)
+
+    async def no_sleep(_s):
+        return None
+    monkeypatch.setattr(_call.asyncio, "sleep", no_sleep)
+
+    async def no_stream(**kw):
+        raise _call.StreamingNotSupported("kein Streaming")
+        yield
+    monkeypatch.setattr(_call, "stream_with_tools", no_stream)
+    with pytest.raises(asyncio.CancelledError):
+        run()
+    assert calls["n"] == 2
