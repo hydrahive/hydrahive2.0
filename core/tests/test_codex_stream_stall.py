@@ -44,6 +44,7 @@ class _Slow(httpx.AsyncByteStream):
 @pytest.fixture
 def slow(monkeypatch):
     state: dict = {"closed": False}
+    real = httpx.AsyncClient                             # einmal sichern: `run` darf mehrfach je Test aufgerufen werden
     monkeypatch.setattr(cp, "_FIRST_EVENT_TIMEOUT", 0.3)
     monkeypatch.setattr(cp, "_GAP_TIMEOUT", 0.5)
 
@@ -53,7 +54,6 @@ def slow(monkeypatch):
         def handler(request: httpx.Request) -> httpx.Response:
             return httpx.Response(200, stream=_Slow(plan, state), headers={"content-type": "text/event-stream"})
 
-        real = httpx.AsyncClient
 
         def fake_client(*a, **kw):
             kw["transport"] = httpx.MockTransport(handler)
@@ -126,7 +126,7 @@ def test_normaler_lauf_unveraendert(slow):
 
 
 def test_fehlerereignis_bleibt_ein_fehler_und_kein_stall(slow):
-    _, exc, _ = slow([(0.0, _line({"type": "error", "code": "rate_limit_exceeded", "message": "Zu viele"}))])
+    _, exc, _ = slow([(0.0, _line({"type": "error", "error": {"code": "rate_limit_exceeded", "message": "Zu viele"}}))])
     assert isinstance(exc, cp.CodexStreamError) and not isinstance(exc, cp.CodexStreamStall)
     assert "rate_limit_exceeded" in str(exc)
 
@@ -134,10 +134,10 @@ def test_fehlerereignis_bleibt_ein_fehler_und_kein_stall(slow):
 def test_abbruch_von_aussen_wird_nicht_verschluckt(slow, monkeypatch):
     """Stoppt der Nutzer den Lauf (Task.cancel), muss CancelledError ankommen – nicht in einen Stall umgedeutet."""
     monkeypatch.setattr(cp, "_FIRST_EVENT_TIMEOUT", 30.0)
+    real = httpx.AsyncClient
 
     def handler(request):
         return httpx.Response(200, stream=_Slow([(10.0, _line(DONE))], slow.state), headers={"content-type": "text/event-stream"})
-    real = httpx.AsyncClient
     monkeypatch.setattr(cp.httpx, "AsyncClient", lambda *a, **kw: real(*a, **{**kw, "transport": httpx.MockTransport(handler)}))
 
     async def go():

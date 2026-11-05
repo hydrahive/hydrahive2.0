@@ -27,6 +27,11 @@ class CodexStreamError(RuntimeError):
     """Codex meldet im Stream einen Fehler oder bricht ohne Abschluss ab."""
 
 
+class CodexStreamStall(CodexStreamError):
+    """Die Verbindung steht: innerhalb der Frist kam kein (weiteres) Ereignis. Ein Stream-Fehler, damit der Aufrufer
+    (`runner/_call.py`) ihn wie jeden anderen wiederholt bzw. auf Non-Streaming ausweicht."""
+
+
 def _stream_error_text(event_type: str, ev: dict) -> str:
     resp = ev.get("response") or {}
     err = ev.get("error") or resp.get("error") or {}
