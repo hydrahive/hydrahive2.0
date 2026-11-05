@@ -6,7 +6,7 @@
 
 **Zielprodukt:** installierbares HydraHive-Modul `game-studio` plus Workstation-Game-Runner und kuratiertes Agenten-/Skill-Paket
 
-**HydraHive-Basis:** `origin/main` bei `8e1be23a`
+**HydraHive-Basis:** `origin/main` bei `05fe97a9`
 
 **Upstream-Inspiration:** [Donchitos/Claude-Code-Game-Studios](https://github.com/Donchitos/Claude-Code-Game-Studios), geprüft bei `05ad7c8`, MIT-Lizenz
 

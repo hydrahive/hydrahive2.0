@@ -53,7 +53,7 @@ PR 1–3 sind die separat reviewbaren Core-Vorarbeiten. PR 4 darf erst nach dere
 
 - `docs/specs/game-studio-module-v0.1.md` — Referenz auf den freigegebenen Nachweis ergänzen.
 - `docs/audit/game-studio-linux-microvm-proof.md` — reproduzierbarer Nachweis mit Toolchain-Versionen, Isolation, Limits und Testergebnissen.
-- `node-agent/tests/test_game_runtime_microvm_smoke.py` — automatisierbarer Integrationstest, der eine frische Linux-MicroVM über die dafür vorgesehene Node-Testfixture startet.
+- `node-agent/tests/test_game_runtime_microvm_smoke.py` — explizit aktivierbarer Integrationstest, der eine frische Linux-MicroVM über eine in PR 0 anzulegende, fail-closed Node-Testfixture startet; ohne KVM-/VM-Zugriff wird der Nachweis nicht als bestanden gewertet.
 
 ### TDD-Aufgaben
 
@@ -79,7 +79,7 @@ PR 1–3 sind die separat reviewbaren Core-Vorarbeiten. PR 4 darf erst nach dere
 
 ### Dateien
 
-- `core/src/hydrahive/db/migrations/056_compute_game_workspaces.sql` — additive Tabelle `compute_game_workspaces`.
+- `core/src/hydrahive/db/migrations/057_compute_game_workspaces.sql` — additive Tabelle `compute_game_workspaces`; `056` ist auf der aktuellen Basis bereits durch den Sessionlisten-Index belegt.
 - `core/src/hydrahive/compute/game_resources.py` — Ressourcenmodell, Bindungsprüfung und Generationen.
 - `core/src/hydrahive/compute/models.py` — typisierte Core-Modelle.
 - `core/src/hydrahive/api/routes/compute_jobs.py` — ausschließlich rollenautorisierte Bindungs-/Leserouten.
@@ -145,7 +145,7 @@ PR 1–3 sind die separat reviewbaren Core-Vorarbeiten. PR 4 darf erst nach dere
 - `core/src/hydrahive/compute/jobs.py` — Phasenereignisse und Zustandsübergänge.
 - `core/src/hydrahive/compute/artifacts.py` — Offer, Einmal-Uploadrecht, Hash-/Quota-Prüfung und atomare Veröffentlichung.
 - `core/src/hydrahive/api/routes/compute_jobs.py` — Event- und Artifact-Routen.
-- `core/src/hydrahive/db/migrations/057_compute_job_artifacts.sql` — additive Metadaten-/Uploadtabellen.
+- `core/src/hydrahive/db/migrations/058_compute_job_artifacts.sql` — additive Metadaten-/Uploadtabellen.
 - `core/tests/test_compute_game_artifacts.py` — Upload- und Inhaltsklassenprüfungen.
 
 ### TDD-Aufgaben
