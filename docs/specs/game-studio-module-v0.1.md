@@ -2,7 +2,7 @@
 
 **Stand:** 2026-11-05
 
-**Status:** Design zur Freigabe, noch nicht implementiert
+**Status:** Fachlich freigegeben; noch nicht implementiert. Ausführende Godot-Jobs bleiben an den Linux-MicroVM-Nachweis und die separate Core-Vorarbeit gebunden; Unreal bleibt in V0.1 `inventory_only`.
 
 **Zielprodukt:** installierbares HydraHive-Modul `game-studio` plus Workstation-Game-Runner und kuratiertes Agenten-/Skill-Paket
 
@@ -15,6 +15,21 @@
 ---
 
 ## 1. Entscheidung
+
+### 1.1 Freigabebeschluss
+
+Folgende Produkt- und Sicherheitsentscheidungen sind fachlich freigegeben:
+
+- Game Studio bleibt ein Projekt-, Workflow- und Evidenz-Cockpit; Godot und Unreal bleiben lokale Editoren.
+- Die drei getrennten Einstiege „Neues Spiel“, „Bestehendes Projekt übernehmen“ und „Archiv untersuchen“ gehören zu V0.1.
+- Der geführte Fünf-Schritte-Weg, die Werkbank und der Grundsatz „Evidenz statt Behauptung“ gehören zu V0.1.
+- Es gibt keine freie Remote-Shell, keine Host-Ausführung und keinen Fallback bei fehlender Isolation.
+- `inventory_only` und `sandboxed` bleiben getrennte Trust Modes; eine Hochstufung erfolgt nie automatisch.
+- Workstations werden über opake Handles gebunden; absolute lokale Pfade bleiben lokal.
+- Die Core-Erweiterungen für projektgebundene Compute-Jobs und sichere Artefaktuploads werden als separate Vorarbeit umgesetzt.
+- Der Linux-MicroVM-Nachweis für Godot ist eine verbindliche Voraussetzung für ausführende Godot-Jobs.
+- **Gestufter Engine-Scope:** V0.1 unterstützt Godot vollständig bis Build, Test, Beobachtung und Export. Unreal bleibt in V0.1 auf statische Erkennung, Inventarisierung, Planung und sichtbare Capability-/Sicherheitsbegründungen beschränkt. Ausführende Unreal-Jobs werden erst in einer Folgeversion nach einem nachgewiesenen Windows-VM-Sandbox-Runner freigegeben.
+- Der zweiphasige, hash- und quotageprüfte Artefaktvertrag ist verbindlich.
 
 Game Studio wird als **hybrides HydraHive-Modul** gebaut:
 
@@ -632,13 +647,11 @@ Statische Erkennung:
 - Build-, Test-, Cook- und Packaging-Konfigurationen;
 - Marketplace-/Drittanbieter-Pluginhinweise.
 
-Typisierte Ausführung:
+V0.1-Ausführung:
 
-- Projektvalidierung;
-- Build eines inventarisierten Targets;
-- Automation-/Functional-Test-Suite;
-- Cook/Package eines bestätigten Profils;
-- Start eines verpackten Builds für Beobachtung.
+- Unreal bleibt in V0.1 im Trust Mode `inventory_only`.
+- Build, Test, Cook/Package und Beobachtung sind sichtbar, aber mit einer Erklärung zur fehlenden administrativ bestätigten Windows-VM deaktiviert.
+- Diese Aktionen werden erst in einer Folgeversion nach einem nachgewiesenen Windows-VM-Sandbox-Runner freigegeben.
 
 Sicherheitsregeln:
 
@@ -1145,8 +1158,8 @@ Es werden keine freien Shellkommandos geloggt, weil V0.1 keine annimmt.
 - Linux-MicroVM-/Windows-VM-Lifecycle, Copy-on-write-Staging, Limits, Cancel und Cleanup.
 - administrativ bestätigte Isolation Profile und Policy-Digests.
 - statische Inventarisierung und sicherer Archivscanner.
-- Godot-Adapter.
-- Unreal-Adapter mit Windows-Sandbox-Gate.
+- Godot-Adapter mit vollständiger Ausführung über den nachgewiesenen Linux-MicroVM-Runner.
+- Unreal-Erkennung und Inventarisierung im `inventory_only`-Modus; ausführender Unreal-Adapter erst nach nachgewiesenem Windows-Sandbox-Gate in einer Folgeversion.
 
 ### Etappe E — Agenten- und Skillpaket
 
@@ -1159,8 +1172,8 @@ Es werden keine freien Shellkommandos geloggt, weil V0.1 keine annimmt.
 
 - frisches kleines Godot-Projekt;
 - bestehendes Godot-Projekt;
-- frisches kleines Unreal-Projekt;
-- bestehendes Unreal-Projekt;
+- frisches kleines Unreal-Projekt im `inventory_only`-Modus;
+- bestehendes Unreal-Projekt im `inventory_only`-Modus;
 - sicher präpariertes Archiv mit Traversal/Symlink/Bombenindikatoren;
 - später Tills offline archivierte Projekte als zusätzliche Brownfield-Fälle.
 
@@ -1296,7 +1309,7 @@ V0.1 ist abgenommen, wenn:
 9. Der Master nur administrativ bestätigte Isolation Profile, Runnerstände und Policy-Digests akzeptiert.
 10. Jeder ausführende Job an einen unveränderlichen Commit/Snapshot und passenden Inventory Snapshot gebunden ist.
 11. Godot-Validierung, Test, Export und Screenshot mit einem kleinen Referenzprojekt funktionieren.
-12. Unreal-Build/Test/Package nur bei nachgewiesener Windows-VM freigeschaltet werden.
+12. Unreal-Projekte in V0.1 statisch inventarisiert werden; Build/Test/Package bleiben bis zum nachgewiesenen Windows-VM-Runner sichtbar begründet deaktiviert.
 13. Jobs signiert, projektgebunden, dedupliziert, abbrechbar und nach Reconnect nachvollziehbar sind.
 14. Fortschritt als echte Phase und nur bei vorhandenem Nenner als Prozent erscheint.
 15. Berichte, Logs, Screenshots und Artefakte mit Hash, Größe, Herkunft und Run verknüpft sind.
@@ -1331,6 +1344,8 @@ Diese Punkte sind nicht Teil der V0.1-Abnahme und dürfen deren Umfang nicht erw
 Die Umsetzung wird in der Reihenfolge **Core-Sicherheit → Modulgrundlage → UI → Runner → Engineadapter → Agentenpaket → reale Brownfield-Abnahme** geplant. Der erste Produktivcode darf erst beginnen, wenn:
 
 - diese Spezifikation fachlich freigegeben ist;
-- die Sandboxstrategie für Godot/Linux und Unreal/Windows konkret nachgewiesen ist;
-- projektgebundene Compute-Jobs und Artifact Uploads als Core-Vertrag beschlossen sind;
+- die Sandboxstrategie für Godot/Linux konkret nachgewiesen ist;
+- projektgebundene Compute-Jobs und Artifact Uploads als Core-Vertrag beschlossen und als separate Vorarbeit eingeplant sind;
 - ein atomarer TDD-Implementierungsplan mit getrennten PRs vorliegt.
+
+Unreal-Ausführung ist kein V0.1-Blocker: Sie bleibt bis zum separat nachgewiesenen Windows-VM-Sandbox-Runner im `inventory_only`-Modus.
