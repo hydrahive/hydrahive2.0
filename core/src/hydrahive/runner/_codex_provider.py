@@ -8,6 +8,7 @@ from __future__ import annotations
 import asyncio
 import json
 import logging
+from contextlib import AsyncExitStack, asynccontextmanager
 from typing import AsyncIterator
 
 import httpx
@@ -32,6 +33,20 @@ _TIMEOUT = 300.0
 # Die Fristen gelten je Leseschritt, nicht für die Gesamtdauer – wer stetig liefert, wird nie abgebrochen.
 _FIRST_EVENT_TIMEOUT = 30.0
 _GAP_TIMEOUT = 90.0
+
+
+@asynccontextmanager
+async def _open_stream(client: httpx.AsyncClient, **kwargs) -> AsyncIterator[httpx.Response]:
+    """`client.stream(...)` mit Frist bis zum Antwortkopf. Gemessen (hydratest 5.11., 30 echte Anfragen): 4 von 5
+    Aussetzern standen VOR dem Kopf – dort greift keine Zeilenfrist. Gilt die erste Frist; Abbruch von außen läuft
+    unverändert durch. `AsyncExitStack` räumt die Antwort in jedem Fall auf (Normalende, Fehler, Abbruch)."""
+    async with AsyncExitStack() as stack:
+        try:
+            resp = await asyncio.wait_for(stack.enter_async_context(client.stream("POST", **kwargs)), _FIRST_EVENT_TIMEOUT)
+        except asyncio.TimeoutError:
+            raise CodexStreamStall(
+                f"Codex-Stream steht: Antwortkopf nach {_FIRST_EVENT_TIMEOUT:g} s noch nicht da") from None
+        yield resp
 
 
 async def _timed_lines(resp: httpx.Response) -> AsyncIterator[str]:
@@ -77,8 +92,8 @@ async def codex_stream(
     yield {"type": "message_start"}
 
     async with httpx.AsyncClient(timeout=_TIMEOUT) as client:
-        async with client.stream(
-            "POST", CODEX_URL,
+        async with _open_stream(
+            client, url=CODEX_URL,
             headers=_headers(access_token=access_token, account_id=account_id),
             json=payload,
         ) as resp:

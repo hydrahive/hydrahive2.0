@@ -206,3 +206,112 @@ def test_kopf_frist_ist_die_erste_frist_nicht_die_pausenfrist(slow_header):
     """Kopf nach 0,4 s: länger als die erste Frist (0,3), kürzer als die Pausenfrist (0,5) → muss abbrechen."""
     _, exc, _ = slow_header(0.4)
     assert isinstance(exc, cp.CodexStreamStall)
+
+
+def test_verbindung_wird_auch_beim_abbruch_vor_dem_kopf_freigegeben(monkeypatch):
+    """Kein Leck: Die Frist vor dem Kopf schließt den Client (async with … `AsyncClient`) sauber."""
+    closed = {"n": 0}
+    real = httpx.AsyncClient
+    monkeypatch.setattr(cp, "_FIRST_EVENT_TIMEOUT", 0.2)
+
+    class Spy(real):
+        async def __aexit__(self, *a):
+            closed["n"] += 1
+            return await super().__aexit__(*a)
+
+    async def handler(request):
+        await asyncio.sleep(5)
+        return httpx.Response(200, content=b"")
+    monkeypatch.setattr(cp.httpx, "AsyncClient", lambda *a, **kw: Spy(*a, **{**kw, "transport": httpx.MockTransport(handler)}))
+
+    async def go():
+        with pytest.raises(cp.CodexStreamStall):
+            async for _ in cp.codex_stream(access_token="t", account_id="a", model="m", system_prompt="s",
+                                           messages=[{"role": "user", "content": "hi"}], tools=[]):
+                pass
+    asyncio.run(go())
+    assert closed["n"] == 1
+
+
+def test_abbruch_von_aussen_vor_dem_kopf_wird_nicht_verschluckt(monkeypatch):
+    monkeypatch.setattr(cp, "_FIRST_EVENT_TIMEOUT", 30.0)
+    real = httpx.AsyncClient
+
+    async def handler(request):
+        await asyncio.sleep(10)
+        return httpx.Response(200, content=b"")
+    monkeypatch.setattr(cp.httpx, "AsyncClient", lambda *a, **kw: real(*a, **{**kw, "transport": httpx.MockTransport(handler)}))
+
+    async def go():
+        async def consume():
+            async for _ in cp.codex_stream(access_token="t", account_id="a", model="m", system_prompt="s",
+                                           messages=[{"role": "user", "content": "hi"}], tools=[]):
+                pass
+        task = asyncio.create_task(consume())
+        await asyncio.sleep(0.2)
+        task.cancel()
+        with pytest.raises(asyncio.CancelledError):
+            await task
+    asyncio.run(go())
+
+
+def test_fehlerstatus_vor_dem_kopf_bleibt_unveraendert(monkeypatch):
+    """HTTP-Fehler (hier 429) laufen weiter wie bisher als RuntimeError – die Frist fängt sie nicht ab."""
+    real = httpx.AsyncClient
+    monkeypatch.setattr(cp.httpx, "AsyncClient", lambda *a, **kw: real(*a, **{
+        **kw, "transport": httpx.MockTransport(lambda r: httpx.Response(429, content=b"zu viele"))}))
+
+    async def go():
+        with pytest.raises(RuntimeError) as e:
+            async for _ in cp.codex_stream(access_token="t", account_id="a", model="m", system_prompt="s",
+                                           messages=[{"role": "user", "content": "hi"}], tools=[]):
+                pass
+        assert not isinstance(e.value, cp.CodexStreamStall) and "429" in str(e.value)
+    asyncio.run(go())
+
+
+# --- Freigabe der Antwort (Leck-Schutz) ------------------------------------------------------------------------
+
+class _TrackedResponse(httpx.AsyncByteStream):
+    def __init__(self, chunks: list[bytes], state: dict) -> None:
+        self.chunks, self.state = chunks, state
+
+    async def __aiter__(self):
+        for c in self.chunks:
+            yield c
+
+    async def aclose(self) -> None:
+        self.state["closed"] = self.state.get("closed", 0) + 1
+
+
+def _run_tracked(monkeypatch, chunks: list[bytes], *, consume_all: bool = True):
+    state: dict = {}
+    real = httpx.AsyncClient
+    monkeypatch.setattr(cp.httpx, "AsyncClient", lambda *a, **kw: real(*a, **{**kw, "transport": httpx.MockTransport(
+        lambda r: httpx.Response(200, stream=_TrackedResponse(chunks, state), headers={"content-type": "text/event-stream"}))}))
+
+    async def go():
+        err = None
+        try:
+            async for _ in cp.codex_stream(access_token="t", account_id="a", model="m", system_prompt="s",
+                                           messages=[{"role": "user", "content": "hi"}], tools=[]):
+                pass
+        except Exception as exc:                         # noqa: BLE001
+            err = exc
+        return err
+    return asyncio.run(go()), state
+
+
+def test_antwort_wird_nach_normalem_ende_geschlossen(monkeypatch):
+    err, state = _run_tracked(monkeypatch, [_line({"type": "response.output_text.delta", "delta": "x"}), _line(DONE)])
+    assert err is None and state.get("closed") == 1
+
+
+def test_antwort_wird_bei_fehlerereignis_geschlossen(monkeypatch):
+    err, state = _run_tracked(monkeypatch, [_line({"type": "error", "error": {"code": "x", "message": "kaputt"}})])
+    assert isinstance(err, cp.CodexStreamError) and state.get("closed") == 1
+
+
+def test_antwort_wird_bei_stream_ohne_abschluss_geschlossen(monkeypatch):
+    err, state = _run_tracked(monkeypatch, [_line({"type": "response.output_text.delta", "delta": "x"})])
+    assert isinstance(err, cp.CodexStreamError) and "ohne Abschluss" in str(err) and state.get("closed") == 1
