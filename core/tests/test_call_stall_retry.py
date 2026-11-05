@@ -111,7 +111,7 @@ def test_fallback_scheitert_ebenfalls_fehler_kommt_an(fake):
     f.fallback_error = STALL
     with pytest.raises(CodexStreamStall):
         run()
-    assert f.stream_calls == 5 and f.fallback_calls == 1
+    assert f.stream_calls == 5 and f.fallback_calls == _call.STALL_ATTEMPTS      # Fallback wiederholt ebenfalls (5×)
 
 
 def test_anderer_fehler_nur_eine_wiederholung_wie_bisher(fake):
@@ -379,3 +379,27 @@ def test_fallback_abbruch_von_aussen_laeuft_durch(monkeypatch):
     monkeypatch.setattr(_call, "stream_with_tools", no_stream)
     with pytest.raises(asyncio.CancelledError):
         run()
+
+
+def test_abbruch_waehrend_der_fallback_wiederholung_wird_nicht_verschluckt(monkeypatch):
+    """Stall im ersten Fallback-Versuch, dann Stopp durch den Nutzer: CancelledError muss ankommen, nicht erneut
+    wiederholt oder in einen Stall umgedeutet werden."""
+    seq = [STALL, asyncio.CancelledError()]
+    calls = {"n": 0}
+
+    async def call(**kw):
+        calls["n"] += 1
+        raise seq.pop(0)
+    monkeypatch.setattr(_call, "call_with_tools", call)
+
+    async def no_sleep(_s):
+        return None
+    monkeypatch.setattr(_call.asyncio, "sleep", no_sleep)
+
+    async def no_stream(**kw):
+        raise _call.StreamingNotSupported("kein Streaming")
+        yield
+    monkeypatch.setattr(_call, "stream_with_tools", no_stream)
+    with pytest.raises(asyncio.CancelledError):
+        run()
+    assert calls["n"] == 2

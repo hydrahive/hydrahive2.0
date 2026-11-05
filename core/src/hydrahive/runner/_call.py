@@ -98,6 +98,22 @@ def _tools_for(model: str, tools: list[dict]) -> list[dict]:
     return []
 
 
+async def _call_with_connection_retry(**kwargs):
+    """Non-Streaming-Aufruf, der Verbindungs-Aussetzer (siehe `_CONNECTION_ERRORS`) bis zu STALL_ATTEMPTS-mal auf
+    frischer Verbindung wiederholt. Messung hydratest 5.11., 150 Läufe: Lauf 127 scheiterte, weil der Fallback ein
+    einzelner Versuch war und selbst in einen Stall lief. Alle anderen Fehler laufen unverändert durch (Failover,
+    Statusfehler, Abbruch von außen)."""
+    for attempt in range(STALL_ATTEMPTS):
+        try:
+            return await call_with_tools(**kwargs)
+        except _CONNECTION_ERRORS as e:
+            if attempt == STALL_ATTEMPTS - 1:
+                raise
+            logger.warning("Fallback-Aufruf (Versuch %d) — retry in %gs: %s: %s",
+                           attempt + 1, _STALL_PAUSE, type(e).__name__, e)
+            await asyncio.sleep(_STALL_PAUSE)
+
+
 async def call_with_stream_or_fallback(
     *,
     models: list[str],
@@ -181,7 +197,7 @@ async def call_with_stream_or_fallback(
     for i, model in enumerate(models):
         is_last = i == len(models) - 1
         try:
-            fallback_blocks, fallback_stop, fallback_usage = await call_with_tools(
+            fallback_blocks, fallback_stop, fallback_usage = await _call_with_connection_retry(
                 model=model, system_prompt=system_prompt, volatile_system=volatile_system,
                 summary_system=summary_system,
                 cache_ttl=cache_ttl, messages=messages, tools=_tools_for(model, tools),
