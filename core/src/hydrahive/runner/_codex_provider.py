@@ -30,9 +30,10 @@ logger = logging.getLogger(__name__)
 _TIMEOUT = 300.0
 # Fristen gegen stehende Verbindungen (Befund hydratest 5.11.2026: 2 von 12 Anfragen blieben ohne Daten stehen und
 # warteten das volle 300-s-Lesezeitlimit ab). Normal: erstes Ereignis ~1 s, größte Lücke bei reasoning_effort=high 4,3 s.
+# Pausenfrist 45 s (zuerst 90 s): Ein Aussetzer MITTEN im Stream kostete in der echten Probe sonst 90 s allein.
 # Die Fristen gelten je Leseschritt, nicht für die Gesamtdauer – wer stetig liefert, wird nie abgebrochen.
 _FIRST_EVENT_TIMEOUT = 30.0
-_GAP_TIMEOUT = 90.0
+_GAP_TIMEOUT = 45.0
 
 
 @asynccontextmanager
