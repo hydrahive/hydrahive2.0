@@ -21,9 +21,13 @@ interface Props {
   activeSession?: Session | null
   activeAgent?: AgentBrief | null
   onSessionChanged?: (session: Session) => void
+  total: number
+  hasMore: boolean
+  loadingMore: boolean
+  onLoadMore: () => void
 }
 
-export function SessionList({ sessions, activeId, knownAgentIds, buddyAgentIds, projects, onSelect, onDelete, onNew, activeSession, activeAgent, onSessionChanged }: Props) {
+export function SessionList({ sessions, activeId, knownAgentIds, buddyAgentIds, projects, onSelect, onDelete, onNew, activeSession, activeAgent, onSessionChanged, total, hasMore, loadingMore, onLoadMore }: Props) {
   const { t } = useTranslation("chat")
   const { t: tCommon } = useTranslation("common")
   const [tab, setTab] = useState<Tab>("direct")
@@ -99,6 +103,20 @@ export function SessionList({ sessions, activeId, knownAgentIds, buddyAgentIds, 
             ))}
           </div>
         ))}
+      </div>
+
+      <div className="border-t border-white/[6%] p-2 text-center">
+        <p className="mb-2 text-xs text-zinc-500">{t("session.total", { count: total })}</p>
+        {hasMore && (
+          <button
+            type="button"
+            onClick={onLoadMore}
+            disabled={loadingMore}
+            className="w-full rounded-lg px-3 py-2 text-xs text-zinc-300 hover:bg-white/5 hover:text-zinc-100 disabled:cursor-not-allowed disabled:opacity-50"
+          >
+            {loadingMore ? t("session.loading_more") : t("session.load_more")}
+          </button>
+        )}
       </div>
 
       {activeSession && activeAgent && onSessionChanged && (

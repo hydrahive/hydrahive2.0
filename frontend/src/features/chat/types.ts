@@ -10,6 +10,14 @@ export interface Session {
   metadata: Record<string, unknown>
 }
 
+export interface SessionPage {
+  items: Session[]
+  total: number
+  limit: number
+  offset: number
+  has_more: boolean
+}
+
 export type ImageSource =
   | { type: "base64"; media_type: string; data: string }
   | { type: "url"; url: string }

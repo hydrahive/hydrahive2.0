@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, status
+from fastapi import APIRouter, Depends, Query, status
 
 from hydrahive.agents import config as agent_config
 from hydrahive.api.middleware.auth import require_auth
@@ -19,7 +19,7 @@ from hydrahive.api.routes._sessions_helpers import (
 )
 from hydrahive.api.routes.sessions_delegations import delegations_router
 from hydrahive.api.routes.sessions_messages import messages_router
-from hydrahive.db import sessions as sessions_db
+from hydrahive.db import session_pages, sessions as sessions_db
 from hydrahive.runner import tool_confirmation
 from pydantic import BaseModel
 
@@ -36,6 +36,35 @@ router.include_router(delegations_router)
 def list_sessions(auth: Annotated[tuple[str, str], Depends(require_auth)]) -> list[dict]:
     username, _ = auth
     return [serialize_session(s) for s in sessions_db.list_for_user(username)]
+
+
+@router.get("/page")
+def list_session_page(
+    auth: Annotated[tuple[str, str], Depends(require_auth)],
+    limit: Annotated[int, Query(ge=1, le=200)] = 50,
+    offset: Annotated[int, Query(ge=0, le=session_pages.MAX_SESSION_PAGE_OFFSET)] = 0,
+    project_id: Annotated[str | None, Query(min_length=1, max_length=64)] = None,
+    unassigned: bool = False,
+    include_internal: bool = False,
+) -> dict:
+    if project_id is not None and unassigned:
+        raise coded(status.HTTP_400_BAD_REQUEST, "session_scope_conflict")
+    username, _ = auth
+    items, total = session_pages.list_page_for_user(
+        username,
+        limit=limit,
+        offset=offset,
+        project_id=project_id,
+        unassigned=unassigned,
+        include_internal=include_internal,
+    )
+    return {
+        "items": [serialize_session(item) for item in items],
+        "total": total,
+        "limit": limit,
+        "offset": offset,
+        "has_more": offset + len(items) < total,
+    }
 
 
 @router.post("", status_code=status.HTTP_201_CREATED)
