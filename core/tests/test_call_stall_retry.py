@@ -119,11 +119,18 @@ def test_anderer_fehler_nur_eine_wiederholung_wie_bisher(fake):
     assert f.stream_calls == 2 and f.fallback_calls == 1
 
 
-def test_gemischt_stall_dann_anderer_fehler_dann_fallback(fake):
-    """Ein Stall verlängert nicht beliebig: nach einem anderen Fehler gilt dessen Regel (Wiederholung nur wenn noch keine)."""
+def test_stall_dann_anderer_fehler_bekommt_seine_eine_wiederholung(fake):
+    """Stall (Versuch 1) → sonstiger Fehler (Versuch 2) → seine EINE Wiederholung steht nicht mehr an, weil der Stall
+    den ersten Platz belegt hat? Nein: `_attempt == 0` gilt nur für den ersten Versuch – danach Fallback."""
     f = fake(STALL, RuntimeError("kaputt"), GOOD)
     run()
-    assert f.stream_calls in (2, 3) and f.stream_calls < 5
+    assert f.stream_calls == 2 and f.fallback_calls == 1
+
+
+def test_anderer_fehler_dann_stall_wird_noch_wiederholt(fake):
+    f = fake(RuntimeError("kaputt"), STALL, GOOD)
+    assert result(run()).blocks == [{"type": "text", "text": "Hallo"}]
+    assert f.stream_calls == 3 and f.fallback_calls == 0
 
 
 def test_nach_text_wird_nicht_wiederholt(fake):
