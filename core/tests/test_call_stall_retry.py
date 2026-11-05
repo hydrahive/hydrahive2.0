@@ -248,3 +248,13 @@ def test_log_zeigt_den_typ_wenn_die_meldung_leer_ist(fake, caplog):
     with caplog.at_level(logging.WARNING, logger="hydrahive.runner._call"):
         run()
     assert any("ReadError" in r.getMessage() for r in caplog.records)
+
+
+@pytest.mark.parametrize("exc", [httpx.UnsupportedProtocol("kein Schema"), httpx.ProxyError("Proxy"),
+                                 httpx.LocalProtocolError("lokal falsch"), httpx.PoolTimeout("Pool voll")],
+                         ids=lambda e: type(e).__name__)
+def test_dauerhafte_fehler_werden_nicht_fuenfmal_wiederholt(fake, exc):
+    """Falsche URL, Proxy-Fehler, eigener Protokollfehler, voller Pool: Wiederholen ändert nichts → altes Verhalten."""
+    f = fake(exc, exc, GOOD)
+    run()
+    assert f.stream_calls == 2 and f.fallback_calls == 1
