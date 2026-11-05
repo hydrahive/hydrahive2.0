@@ -156,3 +156,53 @@ def test_abbruch_von_aussen_wird_nicht_verschluckt(slow, monkeypatch):
 def test_standardwerte_sind_die_vereinbarten():
     assert cp._FIRST_EVENT_TIMEOUT == 30.0
     assert cp._GAP_TIMEOUT == 90.0
+
+
+# --- Phase VOR dem Antwortkopf (Messung hydratest 5.11., 30 echte Anfragen: 4 von 5 Aussetzern standen hier) --------
+
+@pytest.fixture
+def slow_header(monkeypatch):
+    """Server, der den Antwortkopf erst nach `delay` Sekunden schickt."""
+    real = httpx.AsyncClient
+    monkeypatch.setattr(cp, "_FIRST_EVENT_TIMEOUT", 0.3)
+    monkeypatch.setattr(cp, "_GAP_TIMEOUT", 0.5)
+
+    def run(delay: float):
+        async def handler(request: httpx.Request) -> httpx.Response:
+            await asyncio.sleep(delay)
+            return httpx.Response(200, content=_line({"type": "response.output_text.delta", "delta": "ok"}) + _line(DONE),
+                                  headers={"content-type": "text/event-stream"})
+        monkeypatch.setattr(cp.httpx, "AsyncClient",
+                            lambda *a, **kw: real(*a, **{**kw, "transport": httpx.MockTransport(handler)}))
+
+        async def go():
+            t = time.monotonic()
+            try:
+                evs = [e async for e in cp.codex_stream(access_token="t", account_id="a", model="m", system_prompt="s",
+                                                        messages=[{"role": "user", "content": "hi"}], tools=[])]
+                return evs, None, time.monotonic() - t
+            except Exception as exc:                     # noqa: BLE001
+                return None, exc, time.monotonic() - t
+        return asyncio.run(go())
+    return run
+
+
+def test_kopf_kommt_nicht_in_der_frist_bricht_ab(slow_header):
+    evs, exc, dt = slow_header(5.0)
+    assert isinstance(exc, cp.CodexStreamStall) and dt < 1.5
+
+
+def test_meldung_nennt_antwortkopf(slow_header):
+    _, exc, _ = slow_header(5.0)
+    assert "Antwortkopf" in str(exc) and "0.3" in str(exc)
+
+
+def test_kopf_rechtzeitig_normaler_lauf(slow_header):
+    evs, exc, _ = slow_header(0.1)
+    assert exc is None and evs[-1]["blocks"] == [{"type": "text", "text": "ok"}]
+
+
+def test_kopf_frist_ist_die_erste_frist_nicht_die_pausenfrist(slow_header):
+    """Kopf nach 0,4 s: länger als die erste Frist (0,3), kürzer als die Pausenfrist (0,5) → muss abbrechen."""
+    _, exc, _ = slow_header(0.4)
+    assert isinstance(exc, cp.CodexStreamStall)
