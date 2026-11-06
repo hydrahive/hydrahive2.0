@@ -88,8 +88,9 @@ PR 1–3 sind die separat reviewbaren Core-Vorarbeiten. PR 4 darf erst nach dere
 - `core/src/hydrahive/db/migrations/057_compute_game_workspaces.sql` — additive Tabelle `compute_game_workspaces`; `056` ist auf der aktuellen Basis bereits durch den Sessionlisten-Index belegt.
 - `core/src/hydrahive/compute/game_resources.py` — Ressourcenmodell, Bindungsprüfung, Generationen und administrative Isolation-Freigaben.
 - `core/src/hydrahive/compute/models.py` — typisierte Core-Modelle.
-- `core/src/hydrahive/api/routes/compute_jobs.py` — ausschließlich rollenautorisierte Binding-/Freigabe-/Leserouten.
-- `core/tests/test_compute_game_resources.py` — Migration, Projektgrenzen, Rollen, Generationen und Freigabewiderruf.
+- `core/src/hydrahive/api/routes/compute_game_resources.py` — eigener Router für rollenautorisierte Binding-, Freigabe- und Leserouten; der bestehende Jobrouter bleibt bis PR 2 unverändert.
+- `core/tests/test_compute_game_resources.py` — Migration, Persistenz, Generationen, Pfadvalidierung und Freigabewiderruf.
+- `core/tests/test_compute_game_resources_api.py` — Projektrollen-, System-Admin- und Cross-Project-Grenzen.
 
 ### TDD-Aufgaben
 
@@ -97,18 +98,20 @@ PR 1–3 sind die separat reviewbaren Core-Vorarbeiten. PR 4 darf erst nach dere
 2. **GREEN:** Additive Ressourcen- und Freigabetabellen implementieren; absolute Pfade und Secrets dürfen kein Feld sein.
 3. **RED:** Freigabematrix für `node_id + isolation_profile_id + runner_version + policy_digest + proof_digest`: selbst gemeldet, unbekannt, verändert, widerrufen oder ohne Adminbestätigung muss scheitern.
 4. **GREEN:** Auditierte Freigabe mit `approved_by/at`, Widerruf und exakter Bindungsprüfung implementieren; keine automatische Übernahme aus NodeCapabilities.
-5. **RED:** Parametrisierte Rollenmatrix: Nichtmitglied erhält 404, `read` nur lesen, `write` keine Binding-Änderung, Projekt-`admin` darf binden/rotieren; Isolation-Freigaben bleiben System-Admin-only.
-6. **GREEN:** Einzigen Core-Projektguard und separaten System-Admin-Guard für alle Routen verwenden.
-7. **RED:** Cross-Project-, Node-, Generation-, Freigabe- und gelöschte-Projekt-Konflikte testen.
-8. **GREEN:** Fail-closed-Validierung und Orphan-/Revoke-Verhalten implementieren.
+5. **RED:** Eine über die Benutzer-API angelegte Bindung bleibt `pending`; ein frei eingesandter opaque Handle darf niemals als lokal bestätigt oder ausführbar gelten.
+6. **GREEN:** Ressourcenanlage und zentrale Ausführungsvalidierung fail-closed implementieren; die authentifizierte lokale Handle-Bestätigung und deren Jobintegration folgen mit dem Workstation-/Jobvertrag.
+7. **RED:** Parametrisierte Rollenmatrix nach bestehendem Core-Vertrag: Nichtmitglied und zu schwache Rolle erhalten 403 `project_no_access`, `read` darf lesen, Projekt-`admin` darf binden/rotieren; Isolation-Freigaben bleiben System-Admin-only.
+8. **GREEN:** Einzigen Core-Projektguard und separaten System-Admin-Guard für alle Routen verwenden.
+9. **RED:** Cross-Project-, Node-, Generation-, Freigabe-, Node-Revoke- und gelöschte-Projekt-Konflikte testen.
+10. **GREEN:** Fail-closed-Validierung und Orphan-/Revoke-Verhalten implementieren.
 9. **Commit:** `feat(compute): add project-bound game workspace resources`.
 
 ### Abnahmekriterien
 
-- [ ] Keine Workspace-Ressource kann projektübergreifend gelesen oder geändert werden.
-- [ ] Nur opaque Handles werden gespeichert/ausgegeben.
-- [ ] Generationwechsel invalidiert alte Bindungen.
-- [ ] Ohne exakt passende, aktive und auditierte Isolation-Freigabe gibt es weder Lease noch Start.
+- [x] Keine Workspace-Ressource kann projektübergreifend gelesen oder geändert werden.
+- [x] Nur opaque Handles werden gespeichert/ausgegeben.
+- [x] Generationwechsel invalidiert alte Bindungen.
+- [x] Die zentrale Ausführungsvalidierung lehnt jede nicht exakt passende, aktive und auditierte Isolation-Freigabe ab; Queue, Lease und Start werden in PR 2 verpflichtend daran angebunden.
 
 ---
 

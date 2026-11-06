@@ -366,7 +366,7 @@ revoked_at TEXT
 
 Core verantwortet Projektberechtigung, Node-Zuordnung, Workspace-Handle, Generation, Widerruf und Providerkompatibilität. Das Modul speichert nur `active_game_resource_id` als fachliche Referenz. V0.1 erlaubt genau eine aktive, nicht widerrufene Game-Ressource pro Projekt; ein Rebind widerruft die alte Ressource, erhöht die Generation und invalidiert alle noch nicht gestarteten Jobs sowie aktiven Leases der alten Generation.
 
-`workspace_handle` ist eine lokal erzeugte, opake ID. `engine_project_relpath` wird als normalisierter relativer Pfad ohne leere Segmente, `.` oder `..` validiert. Core nimmt keine absoluten Nutzerpfade entgegen und sendet keine Hostpfade in Jobs.
+`workspace_handle` ist eine lokal erzeugte, opake ID. `engine_project_relpath='.'` bezeichnet ausschließlich die Workspace-Wurzel; jeder andere Wert wird als normalisierter relativer Pfad ohne leere Segmente, `.` oder `..` validiert. Core nimmt keine absoluten Nutzerpfade entgegen und sendet keine Hostpfade in Jobs. Eine über die Benutzer-API angelegte Bindung bleibt `pending`; der Core behandelt einen frei eingesandten Handle nie als lokal bestätigt oder ausführbar.
 
 #### 11.2.1 Core-Freigabe `compute_game_isolation_approvals`
 
@@ -1074,7 +1074,7 @@ V0.1 nimmt an, dass ein Projekt enthalten kann:
 15. Pfade werden nicht durch `resolve()` plus späteren zweiten Zugriff abgesichert, sondern über sichere Descriptor-/Handle-basierte Operationen oder einen isolierten Staging-Root.
 16. Der bestehende globale Samba-Account ist kein Transport für Game-Studio-Projekte.
 17. Jede REST-Route und jedes Agententool verwendet denselben Core-Projektguard.
-18. Nichtmitglieder erhalten 404, zu schwache Mitglieder 403.
+18. Core-Ressourcenrouten folgen dem bestehenden Guard und antworten bei fehlender oder zu schwacher Projektrolle mit 403 `project_no_access`. Spätere Modulrouten verbergen projektfremde Kindobjekt-IDs weiterhin mit 404 gemäß Abschnitt 20.
 19. Kindobjekte und Jobreferenzen werden durchgängig auf dasselbe Projekt, dieselbe Game-Ressource und relevante Generation beschränkt.
 20. Absolute Workstation-Pfade und Secrets erscheinen weder in UI, Events, Logs noch Agentenkontext.
 21. Node-gelieferte Namen, Medientypen, Logs und Reports gelten als aktive Angreifereingaben und dürfen im authentifizierten HydraHive-Origin keine ausführbaren Inhalte erzeugen.
