@@ -29,10 +29,16 @@ async def _checked(*args: str, timeout: float = 60.0) -> str:
 
 
 async def _network_matches(name: str, desired: dict[str, str]) -> bool:
-    output = await _checked("config", "show", name, "--expanded", "--format=json", timeout=30.0)
+    # Incus 6.x exposes expanded devices as JSON through `list`; `config show`
+    # is YAML-only and rejects the previously used, mocked `--format=json` flag.
+    output = await _checked("list", name, "--format=json", timeout=30.0)
     try:
-        eth0 = json.loads(output).get("devices", {}).get("eth0", {})
-    except (ValueError, AttributeError) as exc:
+        instances = json.loads(output)
+        matches = [item for item in instances if isinstance(item, dict) and item.get("name") == name]
+        if len(matches) != 1:
+            raise IncusJobError("incus_inspect_invalid")
+        eth0 = matches[0].get("expanded_devices", {}).get("eth0", {})
+    except (ValueError, AttributeError, TypeError) as exc:
         raise IncusJobError("incus_inspect_invalid") from exc
     return isinstance(eth0, dict) and all(eth0.get(key) == value for key, value in desired.items())
 
