@@ -149,8 +149,10 @@ def delete_node(node_id: str) -> None:
             """SELECT
                    EXISTS(SELECT 1 FROM containers WHERE node_id = ?)
                    OR EXISTS(SELECT 1 FROM vms WHERE node_id = ?)
-                   OR EXISTS(SELECT 1 FROM compute_jobs WHERE node_id = ?)""",
-            (node_id, node_id, node_id),
+                   OR EXISTS(SELECT 1 FROM compute_jobs WHERE node_id = ?)
+                   OR EXISTS(SELECT 1 FROM compute_game_workspaces WHERE node_id = ?)
+                   OR EXISTS(SELECT 1 FROM compute_game_isolation_approvals WHERE node_id = ?)""",
+            (node_id, node_id, node_id, node_id, node_id),
         ).fetchone()[0]
         if in_use:
             raise ValueError("compute node is still in use")
