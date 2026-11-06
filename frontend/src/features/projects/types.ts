@@ -25,6 +25,7 @@ export interface Project {
   updated_at: string
   created_by: string
   git_initialized: boolean
+  execution_mode?: "host" | "container" | "unavailable"
 }
 
 export interface ProjectCreate {

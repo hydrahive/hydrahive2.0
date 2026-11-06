@@ -3,22 +3,27 @@ import { GitBranch } from "lucide-react"
 import { CockpitButton } from "../CockpitButton"
 import { CockpitPanel, CockpitSectionLabel } from "../CockpitPanel"
 import { projectsApi } from "@/features/projects/api"
-import type { ProjectGitRepo } from "@/features/projects/types"
+import type { Project, ProjectGitRepo } from "@/features/projects/types"
+import { ContainerGitNotice } from "./ContainerGitNotice"
 
 interface Props {
   projectId: string | null
+  executionMode?: Project["execution_mode"]
 }
 
-export function ProjectGitTreePanel({ projectId }: Props) {
+export function ProjectGitTreePanel({ projectId, executionMode }: Props) {
   const [repos, setRepos] = useState<ProjectGitRepo[]>([])
   const [selectedRepo, setSelectedRepo] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const containerProject = executionMode === "container"
 
   const reload = useCallback(async () => {
-    if (!projectId) {
+    if (!projectId || containerProject) {
       setRepos([])
       setSelectedRepo(null)
+      setLoading(false)
+      setError(null)
       return
     }
     setLoading(true)
@@ -34,13 +39,25 @@ export function ProjectGitTreePanel({ projectId }: Props) {
     } finally {
       setLoading(false)
     }
-  }, [projectId])
+  }, [projectId, containerProject])
 
   useEffect(() => { void reload() }, [reload])
 
   const activeRepo = repos.find((repo) => repo.name === selectedRepo) ?? repos[0] ?? null
   const status = activeRepo?.status ?? null
   const commits = status?.commits ?? []
+
+  if (containerProject) {
+    return (
+      <CockpitPanel flush bodyClassName="flex flex-col p-3">
+        <div className="mb-3 min-w-0">
+          <CockpitSectionLabel>Git Tree</CockpitSectionLabel>
+          <h2 className="truncate text-sm font-bold text-[#e8eef8]">Container-Repository</h2>
+        </div>
+        <ContainerGitNotice />
+      </CockpitPanel>
+    )
+  }
 
   return (
     <CockpitPanel flush bodyClassName="flex flex-col p-3">

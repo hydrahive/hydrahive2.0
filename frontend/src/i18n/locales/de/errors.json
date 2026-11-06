@@ -162,5 +162,6 @@
   "delete_in_progress": "Dafür läuft schon ein Auftrag.",
   "module_operation_busy": "Gerade läuft schon eine Modul-Änderung ({{module}}). Bitte kurz warten und dann noch einmal versuchen.",
   "module_update_all_failed": "Kein Modul konnte aktualisiert werden: {{detail}}",
-  "agent_managed": "Dieser Agent wird von einem Modul verwaltet. Werkzeuge, Prompt und Soul lassen sich hier nicht ändern."
+  "agent_managed": "Dieser Agent wird von einem Modul verwaltet. Werkzeuge, Prompt und Soul lassen sich hier nicht ändern.",
+  "git_container_project": "Git läuft für dieses Projekt im Container und nicht auf dem HydraHive-Server."
 }

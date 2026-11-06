@@ -76,6 +76,14 @@ def test_schreiben_als_nutzer_nicht_als_root(ct, host_ws):
     assert w and all(c[c.index("--user") + 1] == "1000" for c in w)
 
 
+def test_schreiben_haelt_datei_fuer_workspace_gruppe_bearbeitbar(ct, host_ws):
+    _run(file_write, {"path": "x.txt", "content": "a"}, _ctx(host_ws))
+    w = [c for c in ct.calls if c[1] == "exec" and 'mv -f "$t" "$1"' in " ".join(c)]
+    assert w
+    command = " ".join(w[0])
+    assert "chmod g+rwX" in command and "chmod 0664" in command
+
+
 @pytest.mark.parametrize("path", ["/etc/cron.d/x", "../x", "raus/shadow", "/tmp/x", "pw"])
 def test_schreiben_ausserhalb_abgelehnt(ct, host_ws, path):
     before = dict(ct.files)

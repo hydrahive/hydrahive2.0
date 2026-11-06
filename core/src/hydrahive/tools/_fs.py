@@ -17,8 +17,8 @@ from hydrahive.tools._path import PathOutsideWorkspace
 MAX_READ_BYTES = 10 * 1024 * 1024
 _INCUS = shutil.which("incus") or "incus"
 # Elternordner anlegen und Datei atomar ersetzen; Ziel kommt als $1, Daten auf stdin.
-_WRITE = 'd=$(dirname "$1") && mkdir -p "$d" && t=$(mktemp "$d/.hh-write.XXXXXX") && cat > "$t" && ' \
-         'chmod 0644 "$t" && mv -f "$t" "$1"'
+_WRITE = 'd=$(dirname "$1") && mkdir -p "$d" && chmod g+rwX "$d" && ' \
+         't=$(mktemp "$d/.hh-write.XXXXXX") && cat > "$t" && chmod 0664 "$t" && mv -f "$t" "$1"'
 
 
 class ContainerFsError(RuntimeError):

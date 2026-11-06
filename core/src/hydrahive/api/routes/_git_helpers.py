@@ -1,5 +1,8 @@
 """Shared helpers + Pydantic models für Git-Routes."""
+
 from __future__ import annotations
+
+from pathlib import Path
 
 from fastapi import status
 from pydantic import BaseModel
@@ -33,20 +36,50 @@ class GitCommit(BaseModel):
 def project_or_404(project_id: str, username: str, role: str, required: str = "read") -> dict:
     """Projekt laden und Mindestrolle prüfen (read < write < admin, docs/specs/project-member-roles.md)."""
     from hydrahive.api.routes._project_route_helpers import check_project_access
+
     p = project_config.get(project_id)
     if not p:
         raise coded(status.HTTP_404_NOT_FOUND, "project_not_found")
     check_project_access(p, username, role, required)
+    from hydrahive.projects import execution
+
+    if execution.of(p)["mode"] == "container":
+        raise coded(status.HTTP_409_CONFLICT, "git_container_project")
     return p
 
 
-def repo_path_or_404(project_id: str, repo_name: str):
+def _inside(root: Path, path: Path) -> bool:
+    return path == root or root in path.parents
+
+
+def _resolved_git_dir(repo: Path) -> Path | None:
+    marker = repo / ".git"
+    if marker.is_dir():
+        return marker.resolve()
+    if marker.is_symlink() or not marker.is_file():
+        return None
+    try:
+        if marker.stat().st_size > 4096:
+            return None
+        value = marker.read_text(encoding="utf-8").strip()
+    except OSError:
+        return None
+    if "\n" in value or not value.startswith("gitdir: "):
+        return None
+    target = Path(value.removeprefix("gitdir: "))
+    return (target if target.is_absolute() else repo / target).resolve()
+
+
+def repo_path_or_404(project_id: str, repo_name: str) -> Path:
     if not is_valid_name(repo_name):
         raise coded(status.HTTP_400_BAD_REQUEST, "git_invalid_repo_name", name=repo_name)
-    rp = repo_path_for(workspace_path(project_id), repo_name)
-    if rp is None or not (rp / ".git").exists():
+    workspace = workspace_path(project_id).resolve()
+    rp = repo_path_for(workspace, repo_name)
+    resolved = rp.resolve() if rp is not None else None
+    git_dir = _resolved_git_dir(resolved) if resolved is not None and _inside(workspace, resolved) else None
+    if git_dir is None or not git_dir.is_dir() or not _inside(workspace, git_dir):
         raise coded(status.HTTP_404_NOT_FOUND, "git_repo_not_found", name=repo_name)
-    return rp
+    return resolved
 
 
 def err_to_code(err: str) -> tuple[int, str]:

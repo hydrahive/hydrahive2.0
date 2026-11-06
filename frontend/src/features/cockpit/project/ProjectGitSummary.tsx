@@ -1,15 +1,17 @@
 import { useCallback, useEffect, useState } from "react"
 import { CockpitButton } from "../CockpitButton"
 import { projectsApi } from "@/features/projects/api"
-import type { ProjectGiteaStatus, ProjectGitRepo } from "@/features/projects/types"
+import type { Project, ProjectGiteaStatus, ProjectGitRepo } from "@/features/projects/types"
+import { ContainerGitNotice } from "./ContainerGitNotice"
 
 type GitAction = "pull" | "push" | "gitea-create" | "gitea-push" | "gitea-pull"
 
 interface Props {
   projectId: string | null
+  executionMode?: Project["execution_mode"]
 }
 
-export function ProjectGitSummary({ projectId }: Props) {
+export function ProjectGitSummary({ projectId, executionMode }: Props) {
   const [repos, setRepos] = useState<ProjectGitRepo[]>([])
   const [selectedRepo, setSelectedRepo] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
@@ -17,11 +19,14 @@ export function ProjectGitSummary({ projectId }: Props) {
   const [giteaStatus, setGiteaStatus] = useState<ProjectGiteaStatus | null>(null)
   const [message, setMessage] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
+  const containerProject = executionMode === "container"
 
   const reload = useCallback(async () => {
-    if (!projectId) {
+    if (!projectId || containerProject) {
       setRepos([])
       setSelectedRepo(null)
+      setLoading(false)
+      setError(null)
       return
     }
     setLoading(true)
@@ -37,22 +42,22 @@ export function ProjectGitSummary({ projectId }: Props) {
     } finally {
       setLoading(false)
     }
-  }, [projectId])
+  }, [projectId, containerProject])
 
   useEffect(() => { void reload() }, [reload])
 
   useEffect(() => {
     let alive = true
     setGiteaStatus(null)
-    if (!projectId || !selectedRepo) return
+    if (!projectId || !selectedRepo || containerProject) return
     projectsApi.getGiteaStatus(projectId, selectedRepo)
       .then((status) => { if (alive) setGiteaStatus(status) })
       .catch(() => { if (alive) setGiteaStatus(null) })
     return () => { alive = false }
-  }, [projectId, selectedRepo])
+  }, [projectId, selectedRepo, containerProject])
 
   async function runAction(action: GitAction) {
-    if (!projectId || !selectedRepo) return
+    if (!projectId || !selectedRepo || containerProject) return
     setBusyAction(action)
     setMessage(null)
     setError(null)
@@ -94,6 +99,8 @@ export function ProjectGitSummary({ projectId }: Props) {
   const canPush = Boolean(projectId && activeRepo?.status.initialized && (status?.ahead ?? 0) > 0 && activeRepo?.has_token)
   const canCreateGitea = Boolean(projectId && activeRepo?.status.initialized && giteaStatus?.configured && !giteaStatus.remote_present)
   const canUseGitea = Boolean(projectId && activeRepo?.status.initialized && giteaStatus?.configured && giteaStatus.remote_present)
+
+  if (containerProject) return <ContainerGitNotice compact />
 
   return (
     <div>
