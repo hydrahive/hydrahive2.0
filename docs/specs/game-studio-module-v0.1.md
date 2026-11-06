@@ -2,7 +2,7 @@
 
 **Stand:** 2026-11-05
 
-**Status:** Fachlich freigegeben; noch nicht implementiert. Ausführende Godot-Jobs bleiben an den Linux-MicroVM-Nachweis und die separate Core-Vorarbeit gebunden; Unreal bleibt in V0.1 `inventory_only`.
+**Status:** Fachlich freigegeben; noch nicht implementiert. Der Linux-MicroVM-Nachweis für Godot ist mit `docs/audit/game-studio-linux-microvm-proof.md` bestanden. Ausführende Godot-Jobs bleiben bis zur separaten Core-/Runner-Vorarbeit PR 1–4 deaktiviert; Unreal bleibt in V0.1 `inventory_only`.
 
 **Zielprodukt:** installierbares HydraHive-Modul `game-studio` plus Workstation-Game-Runner und kuratiertes Agenten-/Skill-Paket
 
@@ -11,6 +11,8 @@
 **Upstream-Inspiration:** [Donchitos/Claude-Code-Game-Studios](https://github.com/Donchitos/Claude-Code-Game-Studios), geprüft bei `05ad7c8`, MIT-Lizenz
 
 **Verwandte Spezifikationen:** `workstation-client.md`, `compute-cluster-v1.md`, `project-member-roles.md`, `ui-standard.md`
+
+**Isolationsnachweis:** `docs/audit/game-studio-linux-microvm-proof.md`
 
 ---
 
@@ -27,14 +29,14 @@ Folgende Produkt- und Sicherheitsentscheidungen sind fachlich freigegeben:
 - `inventory_only` und `sandboxed` bleiben getrennte Trust Modes; eine Hochstufung erfolgt nie automatisch.
 - Workstations werden über opake Handles gebunden; absolute lokale Pfade bleiben lokal.
 - Die Core-Erweiterungen für projektgebundene Compute-Jobs und sichere Artefaktuploads werden als separate Vorarbeit umgesetzt.
-- Der Linux-MicroVM-Nachweis für Godot ist eine verbindliche Voraussetzung für ausführende Godot-Jobs.
+- Der Linux-MicroVM-Nachweis für Godot ist als verbindliche Voraussetzung erbracht; Fingerprints, Limits, Negativproben und Cleanup stehen in `docs/audit/game-studio-linux-microvm-proof.md`.
 - **Gestufter Engine-Scope:** V0.1 unterstützt Godot vollständig bis Build, Test, Beobachtung und Export. Unreal bleibt in V0.1 auf statische Erkennung, Inventarisierung, Planung und sichtbare Capability-/Sicherheitsbegründungen beschränkt. Ausführende Unreal-Jobs werden erst in einer Folgeversion nach einem nachgewiesenen Windows-VM-Sandbox-Runner freigegeben.
 - Der zweiphasige, hash- und quotageprüfte Artefaktvertrag ist verbindlich.
 
 Game Studio wird als **hybrides HydraHive-Modul** gebaut:
 
 1. Das **HydraHive-Modul** ist Projektübersicht, Workflow- und gemeinsame Arbeitsoberfläche.
-2. Der **bestehende Core-Projektagent der projektbesitzenden HydraHive-Instanz** bearbeitet Quellcode und Projektdokumente im kanonischen Git-Repository.
+2. Ein **Game-Studio-verwaltetes, projektgebundenes Core-Agentenprofil der projektbesitzenden HydraHive-Instanz** bearbeitet Quellcode und Projektdokumente im kanonischen Git-Repository; der normale Standard-Projektagent ist dafür nicht zulässig.
 3. Ein **deterministischer Game-Runner auf der Workstation** führt ausschließlich typisierte, signierte und allowlistete Engine-Aufträge aus.
 4. **Godot und Unreal bleiben lokale Engines.** Das Modul ersetzt weder Editor noch SDK.
 5. Ein HydraHive-Projekt repräsentiert genau **ein Spielprojekt mit einer primären Engine**.
@@ -158,16 +160,19 @@ Das Backend:
 
 ### 7.3 Projektagent
 
-V0.1 verwendet den bestehenden Core-Projektagenten der HydraHive-Instanz, die das Projekt besitzt. Der Projektagent:
+V0.1 verwendet ein **Game-Studio-verwaltetes Projektagentenprofil** auf der HydraHive-Instanz, die das Projekt besitzt. Der automatisch angelegte normale Core-Projektagent erfüllt diesen Sicherheitsvertrag nicht, weil seine Standardwerkzeuge aktuell `shell_exec` enthalten; er darf deshalb weder als Game-Studio-Agent ausgewählt werden noch Engine-, Build- oder Inventarjobs starten.
 
-- arbeitet in einem Projekt-Worktree des kanonischen Git-Repositorys;
+Das verwaltete Profil:
+
+- ist im Core mit `managed_by="game-studio"`, Projektbindung und unveränderlicher Profilversion registriert;
+- arbeitet ausschließlich in einem technisch auf das kanonische Projekt-Worktree begrenzten Dateibereich;
+- verwendet eine feste Tool-Allowlist ohne `shell_exec`, freie MCP-/Plugin-Werkzeuge, Docker/Incus oder frei adressierbares Netzwerk;
+- erhält keine SSH-, GitHub-/Gitea-, Cloud-, LLM-, HydraHive- oder sonstigen Host-Credentials im Toolkontext;
 - verwendet das kuratierte Game-Studio-Skillpaket;
-- liefert Änderungen über Branch/Commit/PR statt über einen geteilten Netz-Worktree;
-- besitzt standardmäßig keine freie Host-Shell;
-- erhält Dateiwerkzeuge, die technisch auf den zugewiesenen Worktree begrenzt sind, sowie allowlistete Git-Aktionen;
+- liefert Änderungen über eng allowlistete Git-Aktionen und Branch/Commit/PR statt über einen geteilten Netz-Worktree;
 - startet Build, Import, Test, Paketmanager-Hooks und Projektcode ausschließlich über signierte Game-Runner-Jobs.
 
-Repository-, Archiv-, Dokument-, Log- und Assetinhalte gelten gegenüber dem Agenten als nicht vertrauenswürdige Daten und niemals als Autorisierungs- oder Tool-Instruktionen. Sie können weder Toolrechte erweitern noch Nutzerbestätigungen ersetzen. Der Standard-Agentenpack erhält keinen Zugriff auf Home-Verzeichnisse, SSH-, Git-, Cloud- oder HydraHive-Credentials, Docker/Incus, andere Workspaces oder frei adressierbares Netzwerk. Eine separat vom Projektadmin gewährte Core-Shellfreigabe liegt außerhalb des sicheren Game-Studio-V0.1-Vertrags und darf nicht zum Bestehen seiner Abnahme verwendet werden.
+Repository-, Archiv-, Dokument-, Log- und Assetinhalte gelten gegenüber dem Agenten als nicht vertrauenswürdige Daten und niemals als Autorisierungs- oder Tool-Instruktionen. Sie können weder Toolrechte erweitern noch Nutzerbestätigungen ersetzen. Änderungen an Toolliste, Projektbindung, Profilversion oder Systemprompt des verwalteten Agenten benötigen einen autorisierten Game-Studio-Adminpfad und werden auditiert. Eine separat gewährte Core-Shellfreigabe liegt außerhalb des sicheren Game-Studio-V0.1-Vertrags und darf nicht zum Bestehen seiner Abnahme verwendet werden.
 
 Die spätere Zusammenarbeit eines Workstation-Agenten an einem servereigenen Projekt benötigt einen eigenen `workstation-agent/v1`-Vertrag für Delegation, Benutzeridentität, kurzlebige Git-Berechtigung, Branch-Locking und Provenienz. Dieser Vertrag ist nicht Teil von V0.1.
 
@@ -347,6 +352,7 @@ engine_version TEXT
 engine_project_relpath TEXT NOT NULL DEFAULT '.'
 trust_mode TEXT NOT NULL CHECK (trust_mode IN ('inventory_only','sandboxed'))
 status TEXT NOT NULL CHECK (status IN ('pending','ready','offline','incompatible','revoked','error'))
+isolation_approval_id TEXT NOT NULL REFERENCES compute_game_isolation_approvals(approval_id)
 isolation_profile_id TEXT NOT NULL
 runner_version TEXT NOT NULL
 policy_digest TEXT NOT NULL
@@ -361,6 +367,27 @@ revoked_at TEXT
 Core verantwortet Projektberechtigung, Node-Zuordnung, Workspace-Handle, Generation, Widerruf und Providerkompatibilität. Das Modul speichert nur `active_game_resource_id` als fachliche Referenz. V0.1 erlaubt genau eine aktive, nicht widerrufene Game-Ressource pro Projekt; ein Rebind widerruft die alte Ressource, erhöht die Generation und invalidiert alle noch nicht gestarteten Jobs sowie aktiven Leases der alten Generation.
 
 `workspace_handle` ist eine lokal erzeugte, opake ID. `engine_project_relpath` wird als normalisierter relativer Pfad ohne leere Segmente, `.` oder `..` validiert. Core nimmt keine absoluten Nutzerpfade entgegen und sendet keine Hostpfade in Jobs.
+
+#### 11.2.1 Core-Freigabe `compute_game_isolation_approvals`
+
+Eine Node-Capability ist nur eine Selbstauskunft. Ausführende Jobs benötigen zusätzlich eine vom System-Admin angelegte, auditierte Core-Freigabe:
+
+```text
+approval_id TEXT PRIMARY KEY
+node_id TEXT NOT NULL REFERENCES compute_nodes(node_id)
+isolation_profile_id TEXT NOT NULL
+runner_version TEXT NOT NULL
+policy_digest TEXT NOT NULL
+proof_digest TEXT NOT NULL
+status TEXT NOT NULL CHECK (status IN ('active','revoked'))
+approved_by TEXT NOT NULL
+approved_at TEXT NOT NULL
+revoked_by TEXT
+revoked_at TEXT
+UNIQUE(node_id, isolation_profile_id, runner_version, policy_digest, proof_digest)
+```
+
+Die Freigabe wird nie automatisch aus NodeCapabilities erzeugt. Vor Queue, Lease und unmittelbar vor Start müssen Node, Profil, Runnerstand, Policy- und Proof-Digest exakt mit einer aktiven Freigabe übereinstimmen. Änderung, unbekannter Wert oder Widerruf führt zu `job_rejected`, invalidiert neue Leases und beendet nach dem Cancel-Vertrag bereits laufende Game-Jobs.
 
 ### 11.3 `module_game_studio_documents`
 
@@ -712,8 +739,8 @@ Absolute Rootpfade, Benutzernamen, Secrets und lokale Tool-Kommandos werden nich
 
 Die bestehende Compute-Queue unterstützt nur Container/VM/Node und Eigentümersicht nach `created_by`. Vor Game Studio müssen additiv ergänzt werden:
 
-- projektgebundene Jobs mit `project_id`;
-- `resource_kind='game_workspace'`;
+- eine additive Job-Schemamigration für persistiertes `project_id`, `resource_kind='game_workspace'`, `provider`, `game_resource_id`, Workspace-Generation und Quellstandsbindungen;
+- projektgebundene Jobs mit `project_id` und denselben Bindungen in Queue, Lease, Signatur und Ergebnis;
 - projektrollenbasierte Sicht und Cancel-Berechtigung;
 - typisierte Game-Operationen im Master und Runner;
 - strukturierte Phasenereignisse zusätzlich zum numerischen Fortschritt;
@@ -786,13 +813,14 @@ V0.1 kennt nur das fest definierte Beobachtungsszenario `boot_smoke`: verpacktes
 
 ### 16.5 Zustände und Ereignisse
 
-Run-Zustände:
+Der fachliche Modul-Run beginnt in `created`. Sobald der zugehörige Core-Compute-Job atomar angelegt ist, folgt die Projektion dessen bestehendem Zustandsautomaten; der Core-Constraint wird nicht um einen künstlichen `created`-Jobzustand erweitert:
 
 ```text
-created → queued → leased → running → succeeded
-                               ├────→ failed
-                               ├────→ cancelled
-                               └────→ expired
+Modul-Run: created → queued → leased → running → succeeded
+                                           ├────→ failed
+                                           ├────→ cancelled
+                                           └────→ expired
+Core-Job:              queued → leased → running → succeeded|failed|cancelled|expired
 ```
 
 Phasenereignisse verwenden stabile Codes, zum Beispiel:
@@ -1224,11 +1252,14 @@ Betroffen sind mindestens:
 ```text
 core/src/hydrahive/compute/models.py
 core/src/hydrahive/compute/jobs.py
+core/src/hydrahive/compute/job_protocol.py
 core/src/hydrahive/compute/game_resources.py
 core/src/hydrahive/compute/providers/game_runtime_v1.py
 core/src/hydrahive/api/routes/compute_jobs.py
-core/src/hydrahive/db/migrations/              # zwei neue additive, fortlaufend nummerierte Migrationen
+core/src/hydrahive/db/migrations/              # mindestens drei neue additive, fortlaufend nummerierte Migrationen
 node-agent/src/hydrahive_node/jobs.py
+node-agent/src/hydrahive_node/runtime.py
+node-agent/src/hydrahive_node/job_runtime.py
 node-agent/src/hydrahive_node/game_runtime/
 frontend/src/features/cockpit/admin/                 # nur Runner-/Node-Capabilities
 ```

@@ -57,19 +57,25 @@ PR 1–3 sind die separat reviewbaren Core-Vorarbeiten. PR 4 darf erst nach dere
 
 ### TDD-Aufgaben
 
-1. **RED:** Test schreiben, der einen Game-Sandbox-Start ohne Netzwerk, ohne Hostgeräte und mit harten CPU/RAM/Disk/PID-Limits verlangt.
-2. **GREEN:** Bestehende oder minimal ergänzte Node-Runner-Konfiguration so ausführen, dass der Test eine frische Linux-MicroVM mit diesen Eigenschaften bestätigt.
-3. **RED:** Test schreiben, der Cancel/Timeout mit einem Kindprozess prüft.
-4. **GREEN:** Prozessbaum abbrechen und erfolgreiche Bereinigung nachweisen.
-5. **Nachweis:** Ein minimales, versioniertes Godot-Referenzprojekt in der VM inventarisieren, validieren, exportieren, als Export starten und einen Screenshot erfassen.
-6. **Commit:** `test(node): prove isolated game microvm baseline` und `docs(game-studio): record godot linux microvm proof`.
+1. **RED:** Test schreiben, der KVM und eine frische Incus-VM mit eigenem Gastkernel verlangt; fehlende Capability, Shared-Kernel-Container und Hostfallback müssen hart scheitern.
+2. **GREEN:** Bestehenden Node-Incus-VM-Adapter so ausführen, dass Typ, Gastkernel, Hypervisor-/Image-/Policy-Digests und frischer Lifecycle bestätigt sind.
+3. **RED:** Gast-Gegenproben für Netzwerk/Routen/DNS/Metadaten, Host-/Home-/Credential-Mounts, Docker-/Incus-Sockets, Hostgeräte und Umgebungsvariablen schreiben; echte Cross-Project-Autorisierung folgt in PR 1/4.
+4. **GREEN:** Nur Loopback im Gast, feste Environment-Positivliste sowie ausschließlich erlaubte VM-Geräte/Mounts nachweisen.
+5. **RED:** Harte CPU/RAM/Disk/Inode/PID/Dateianzahl/Laufzeit/Outputgrenzen und separate Cancel-/Timeout-Fälle mit Kindprozess verlangen.
+6. **GREEN:** Begrenzte Gast-Outputfläche und VM-Teardown-Primitiv ausführen; Cancel und Timeout müssen VM und Prozessbaum innerhalb der dokumentierten Frist beseitigen.
+7. **Nachweis:** Ein minimales, versioniertes Godot-Referenzprojekt ausschließlich in der VM inventarisieren, validieren, exportieren, als Export starten und eine echte Viewport-PNG erfassen.
+8. **Audit:** Kein Skip, Mock oder Unit-Test gilt als positiver Nachweis; Bericht pinnt Host/Incus/QEMU, Gastimage-Fingerprint, Gastkernel, Godot, Policy-Digest und Artefakthashes.
+9. **Commit:** `test(node): prove isolated game microvm baseline` und `docs(game-studio): record godot linux microvm proof`.
 
 ### Abnahmekriterien
 
-- [ ] Keine Ausführung auf dem Host.
-- [ ] Netzwerk, Hostgeräte und Host-Secrets sind nicht verfügbar.
-- [ ] Cancel beendet Kindprozesse.
-- [ ] Das Referenzprojekt liefert Screenshot-Evidenz.
+- [x] Kein nicht vertrauenswürdiger Projekt- oder Godot-Prozess läuft direkt auf dem Host; dort laufen nur Incus und Hypervisor.
+- [x] Eigener Gastkernel ist belegt; Container-, Mock-, Skip- und Hostfallback werden nicht als Nachweis akzeptiert.
+- [x] Kein externes Netzwerk, keine Route/DNS/Metadatenverbindung, keine Hostgeräte, Hostmounts, Host-Sockets oder Host-Secrets sind verfügbar.
+- [x] Environment ist positiv gelistet; CPU, RAM, Disk, Inodes, PIDs, Dateianzahl, Laufzeit und Output sind hart begrenzt.
+- [x] Cancel und Timeout beenden VM und Kindprozesse innerhalb der festgelegten Frist.
+- [x] Das exportierte Referenzprojekt startet in der VM und liefert gehashte Screenshot-Evidenz.
+- [x] Audit enthält reproduzierbare Versionen, Image-/Kernel-/Policy-Digests und Artefakthashes.
 
 ---
 
@@ -80,26 +86,29 @@ PR 1–3 sind die separat reviewbaren Core-Vorarbeiten. PR 4 darf erst nach dere
 ### Dateien
 
 - `core/src/hydrahive/db/migrations/057_compute_game_workspaces.sql` — additive Tabelle `compute_game_workspaces`; `056` ist auf der aktuellen Basis bereits durch den Sessionlisten-Index belegt.
-- `core/src/hydrahive/compute/game_resources.py` — Ressourcenmodell, Bindungsprüfung und Generationen.
+- `core/src/hydrahive/compute/game_resources.py` — Ressourcenmodell, Bindungsprüfung, Generationen und administrative Isolation-Freigaben.
 - `core/src/hydrahive/compute/models.py` — typisierte Core-Modelle.
-- `core/src/hydrahive/api/routes/compute_jobs.py` — ausschließlich rollenautorisierte Bindungs-/Leserouten.
-- `core/tests/test_compute_game_resources.py` — Migration, Projektgrenzen, Rollen und Generationen.
+- `core/src/hydrahive/api/routes/compute_jobs.py` — ausschließlich rollenautorisierte Binding-/Freigabe-/Leserouten.
+- `core/tests/test_compute_game_resources.py` — Migration, Projektgrenzen, Rollen, Generationen und Freigabewiderruf.
 
 ### TDD-Aufgaben
 
-1. **RED:** Migrationstest für eine Game-Resource mit `project_id`, `node_id`, opaque `workspace_handle`, `workspace_generation`, Engineprofil, Runner- und Isolation-Referenz.
-2. **GREEN:** Additive Migration und Store implementieren; absolute Pfade und Secrets dürfen kein Feld sein.
-3. **RED:** Parametrisierte Rollenmatrix: Nichtmitglied erhält 404, `read` nur lesen, `write` keine Binding-Änderung, `admin` darf binden/rotieren.
-4. **GREEN:** Einzigen Core-Projektguard für alle Routen verwenden.
-5. **RED:** Cross-Project-, Node-, Generation- und gelöschte-Projekt-Konflikte testen.
-6. **GREEN:** Fail-closed-Validierung und Orphan-/Revoke-Verhalten implementieren.
-7. **Commit:** `feat(compute): add project-bound game workspace resources`.
+1. **RED:** Migrationstest für eine Game-Resource mit `project_id`, `node_id`, opaque `workspace_handle`, `workspace_generation`, Engineprofil und Referenz auf eine administrative Isolation-Freigabe.
+2. **GREEN:** Additive Ressourcen- und Freigabetabellen implementieren; absolute Pfade und Secrets dürfen kein Feld sein.
+3. **RED:** Freigabematrix für `node_id + isolation_profile_id + runner_version + policy_digest + proof_digest`: selbst gemeldet, unbekannt, verändert, widerrufen oder ohne Adminbestätigung muss scheitern.
+4. **GREEN:** Auditierte Freigabe mit `approved_by/at`, Widerruf und exakter Bindungsprüfung implementieren; keine automatische Übernahme aus NodeCapabilities.
+5. **RED:** Parametrisierte Rollenmatrix: Nichtmitglied erhält 404, `read` nur lesen, `write` keine Binding-Änderung, Projekt-`admin` darf binden/rotieren; Isolation-Freigaben bleiben System-Admin-only.
+6. **GREEN:** Einzigen Core-Projektguard und separaten System-Admin-Guard für alle Routen verwenden.
+7. **RED:** Cross-Project-, Node-, Generation-, Freigabe- und gelöschte-Projekt-Konflikte testen.
+8. **GREEN:** Fail-closed-Validierung und Orphan-/Revoke-Verhalten implementieren.
+9. **Commit:** `feat(compute): add project-bound game workspace resources`.
 
 ### Abnahmekriterien
 
 - [ ] Keine Workspace-Ressource kann projektübergreifend gelesen oder geändert werden.
 - [ ] Nur opaque Handles werden gespeichert/ausgegeben.
 - [ ] Generationwechsel invalidiert alte Bindungen.
+- [ ] Ohne exakt passende, aktive und auditierte Isolation-Freigabe gibt es weder Lease noch Start.
 
 ---
 
@@ -109,30 +118,38 @@ PR 1–3 sind die separat reviewbaren Core-Vorarbeiten. PR 4 darf erst nach dere
 
 ### Dateien
 
+- `core/src/hydrahive/db/migrations/058_compute_game_jobs.sql` — persistente Projekt-, Provider-, Game-Ressourcen-, Generation- und Quellstandsbindungen für Core-Jobs; erweitert bestehende Constraints additiv.
 - `core/src/hydrahive/compute/models.py` — Game-Job-Envelope und Operationstypen.
 - `core/src/hydrahive/compute/jobs.py` — Signierung, Lease, Projekt-/Ressourcenbindung und Cancel.
+- `core/src/hydrahive/compute/job_protocol.py` — kanonischer signierter Envelope und authentifizierte Cancel-Control-Plane.
 - `core/src/hydrahive/compute/providers/game_runtime_v1.py` — Providerregistrierung und Payload-Validierung.
 - `core/src/hydrahive/api/routes/compute_jobs.py` — Start-/Status-/Cancel-Routen.
 - `node-agent/src/hydrahive_node/jobs.py` — Annahme und Weiterleitung ausschließlich gültiger Game-Jobs.
-- `core/tests/test_compute_game_jobs.py` und `node-agent/tests/test_game_job_protocol.py` — Master- und Runner-Vertrag.
+- `node-agent/src/hydrahive_node/runtime.py` und `job_runtime.py` — Providerdispatch, Cancel-Signal, Frist und terminale Bestätigung.
+- `core/tests/test_compute_game_jobs.py` und `node-agent/tests/test_game_job_protocol.py` — Master-, Persistenz-, Dispatch- und Cancel-Vertrag.
 
 ### TDD-Aufgaben
 
-1. **RED:** Testfälle für jede erlaubte Operation ausführen: `inspect`, `inventory`, `validate`, `build`, `test`, `run_observe`, `export`.
-2. **GREEN:** String-Literale durch geschlossene Typen/Enums und versionierte Payload-Schemas ersetzen.
-3. **RED:** Unbekannte Payload-Felder, Shell, Hostpfade, Umgebungsvariablen, Mounts und Secrets müssen abgelehnt werden.
-4. **GREEN:** Strict-Schema-Decoder auf Master und Node implementieren.
-5. **RED:** Signatur-, Provider-, Node-, Projekt-, Resource-, Generation-, Lease-, Snapshot- und Source-Commit-Mismatch testen.
-6. **GREEN:** Jede Bindung vor Lease und unmittelbar vor Start prüfen.
-7. **RED:** `read` darf Status lesen, `write` starten, `admin` bindungsbezogen verwalten; Cancel nur mit korrekter Projektrolle.
-8. **GREEN:** Projektrollen statt bisheriger `created_by`-Sicht für Game-Jobs durchsetzen.
-9. **Commit:** `feat(compute): add signed game runtime job protocol`.
+1. **RED:** Migrationstest: `game_workspace`, `project_id`, Provider-, Game-Ressourcen-, Generation- und Quellstandsbindungen müssen persistierbar sein; bestehende Container-/VM-/Node-Jobs bleiben gültig.
+2. **GREEN:** Additive Jobmigration und rückwärtskompatible Modelle implementieren; Core-Jobs behalten den Automaten ab `queued`, fachliches `created` bleibt Modul-Run-Zustand.
+3. **RED:** Testfälle für jede erlaubte Operation ausführen: `inspect`, `inventory`, `validate`, `build`, `test`, `run_observe`, `export`.
+4. **GREEN:** String-Literale durch geschlossene Typen/Enums und versionierte Payload-Schemas ersetzen.
+5. **RED:** Unbekannte Payload-Felder, Shell, Hostpfade, Umgebungsvariablen, Mounts und Secrets müssen abgelehnt werden.
+6. **GREEN:** Strict-Schema-Decoder auf Master und Node implementieren.
+7. **RED:** Signatur-, Provider-, Node-, Projekt-, Resource-, Generation-, Freigabe-, Lease-, Snapshot- und Source-Commit-Mismatch testen.
+8. **GREEN:** Jede Bindung vor Queue, Lease und unmittelbar vor Start prüfen.
+9. **RED:** `read` darf Status lesen, `write` starten, `admin` bindungsbezogen verwalten; Cancel nur mit korrekter Projektrolle.
+10. **GREEN:** Projektrollen statt bisheriger `created_by`-Sicht für Game-Jobs durchsetzen.
+11. **RED:** REST-Cancel muss den authentifizierten Node erreichen, den Game-Handler samt VM innerhalb einer festen Frist beenden, unvollständige Artefakte verwerfen und terminal bestätigen; Reconnect darf nicht neu starten.
+12. **GREEN:** Cancel-Nachricht, Node-Dispatch und persistente terminale Bestätigung implementieren.
+13. **Commit:** `feat(compute): add signed game runtime job protocol`.
 
 ### Abnahmekriterien
 
 - [ ] Keine freie Kommandozeile kann in einen Game-Job gelangen.
 - [ ] Alle unbekannten Felder führen zu `job_rejected`.
 - [ ] Jobzugriffe folgen ausschließlich Projektrollen.
+- [ ] Cancel erreicht einen laufenden Node innerhalb der festgelegten Frist, beseitigt VM/Prozessbaum und verhindert Wiederaufnahme nach Reconnect.
 
 ---
 
@@ -145,13 +162,13 @@ PR 1–3 sind die separat reviewbaren Core-Vorarbeiten. PR 4 darf erst nach dere
 - `core/src/hydrahive/compute/jobs.py` — Phasenereignisse und Zustandsübergänge.
 - `core/src/hydrahive/compute/artifacts.py` — Offer, Einmal-Uploadrecht, Hash-/Quota-Prüfung und atomare Veröffentlichung.
 - `core/src/hydrahive/api/routes/compute_jobs.py` — Event- und Artifact-Routen.
-- `core/src/hydrahive/db/migrations/058_compute_job_artifacts.sql` — additive Metadaten-/Uploadtabellen.
+- `core/src/hydrahive/db/migrations/059_compute_job_artifacts.sql` — additive Metadaten-/Uploadtabellen.
 - `core/tests/test_compute_game_artifacts.py` — Upload- und Inhaltsklassenprüfungen.
 
 ### TDD-Aufgaben
 
-1. **RED:** Zustandsautomat für `created → queued → leased → running → succeeded|failed|cancelled|expired` testen.
-2. **GREEN:** Nur erlaubte Übergänge und stabile Phasencodes implementieren.
+1. **RED:** Projektion testen: Modul-Run `created` wird beim atomaren Anlegen des Core-Jobs zu `queued`; der bestehende Core-Automat bleibt `queued → leased → running → succeeded|failed|cancelled|expired`.
+2. **GREEN:** Nur erlaubte Core-Übergänge, Run-Projektionen und stabile Phasencodes implementieren.
 3. **RED:** Zweiphasigen Upload testen: Offer ohne gültigen Job, falsches Projekt, abgelaufene oder wiederverwendete Session, falsche Größe und falscher Hash müssen scheitern.
 4. **GREEN:** Kurzlebige Einmalrechte, serverseitigen Zielpfad und atomare Veröffentlichung implementieren.
 5. **RED:** HTML, SVG, XML, JavaScript, unbekannte Medientypen, manipulierte Namen und Logs auf sichere Auslieferung testen.
@@ -177,7 +194,9 @@ PR 1–3 sind die separat reviewbaren Core-Vorarbeiten. PR 4 darf erst nach dere
 - `node-agent/src/hydrahive_node/game_runtime/staging.py` — Read-only-Quelle, Copy-on-write-Overlay, getrennte Scratch-/Cache-/Outputbereiche.
 - `node-agent/src/hydrahive_node/game_runtime/godot.py` — Godot-Erkennung und typisierte Aktionen.
 - `node-agent/src/hydrahive_node/game_runtime/artifacts.py` — allowlistete Output-Sammlung.
-- `node-agent/tests/test_game_runtime_godot.py` — Adaptervertrag und negative Sicherheitstests.
+- `node-agent/src/hydrahive_node/runtime.py` — fester Providerdispatch statt der heutigen ausschließlichen Verdrahtung auf `incus.execute`.
+- `node-agent/src/hydrahive_node/job_runtime.py` — Game-Handler-Cancel/Timeout, VM-Teardown und terminale Ergebnisbestätigung.
+- `node-agent/tests/test_game_runtime_godot.py` — Adaptervertrag, Cancel-/Timeout- und negative Sicherheitstests.
 
 ### TDD-Aufgaben
 
@@ -189,7 +208,9 @@ PR 1–3 sind die separat reviewbaren Core-Vorarbeiten. PR 4 darf erst nach dere
 6. **GREEN:** Godot-Adapter mit fester Operationstabelle und `boot_smoke`-Szenario implementieren.
 7. **RED:** Dirty Worktree, fremdes Artefakt, falscher Artefakthash, Netzwerkzugriff und nicht allowlistete Outputs testen.
 8. **GREEN:** Fail-closed-Checks, Artefaktprovenienzprüfung und Output-Allowlist implementieren.
-9. **Commit:** `feat(node): add isolated godot game runtime`.
+9. **RED:** Authentifiziertes Cancel und harter Timeout müssen VM und vollständigen Gastprozessbaum innerhalb der festgelegten Frist beenden; Reconnect darf keinen abgebrochenen Versuch wiederaufnehmen.
+10. **GREEN:** Providerdispatch, Teardown und persistente terminale Ergebnisbestätigung implementieren.
+11. **Commit:** `feat(node): add isolated godot game runtime`.
 
 ### Abnahmekriterien
 
@@ -339,17 +360,22 @@ PR 1–3 sind die separat reviewbaren Core-Vorarbeiten. PR 4 darf erst nach dere
 - `game-studio/skills/` — neun schlanke Game-Workflows.
 - `game-studio/UPSTREAM.md` — Upstream-Herkunft, MIT-Hinweise und Anpassungen.
 - `game-studio/backend/tools.py` — rollen- und projektgebundene Agententools.
-- `game-studio/tests/test_game_studio_tools.py` — Toolgrenzen und Provenienz.
+- `game-studio/backend/agent_profile.py` — Core-verwaltetes Projektagentenprofil mit fester Tool-/Credential-Grenze und `managed_by="game-studio"`.
+- `game-studio/tests/test_game_studio_tools.py` und `test_game_studio_agent_profile.py` — Tool-, Profil-, Projektbindungs- und Provenienzgrenzen.
 
 ### TDD-Aufgaben
 
-1. **RED:** Tests schreiben, dass Agententools weder freie Shell, Credentials, absolute Pfade noch projektfremde Ressourcen sehen.
-2. **GREEN:** Tooloberfläche auf dokumentierte Projektdateien, Aufgaben, Runstart und sichere Ergebnislesung begrenzen.
-3. **RED:** Test schreiben, dass ein Adopt-Workflow bestehende Artefakte nur referenziert und nie still regeneriert/überschreibt.
-4. **GREEN:** Ergänzungsplan- und explizite-Bestätigungslogik implementieren.
-5. **RED:** Lizenz-/Herkunftstest für jede substantielle Upstream-Übernahme schreiben.
-6. **GREEN:** `UPSTREAM.md` und nachvollziehbare Anpassungsnachweise ergänzen.
-7. **Commit:** `feat(game-studio): add curated agent workflows and provenance`.
+1. **RED:** Gegen den realen Core-Agentenvertrag testen: der normale automatische Projektagent mit `shell_exec` darf nicht als Game-Studio-Agent gelten oder Game-Jobs starten.
+2. **GREEN:** Game-Studio-verwaltetes Agentenprofil mit Projektbindung, Profilversion und fester Tool-Allowlist ohne `shell_exec`, freie MCP-/Plugins und Credential-Injektion registrieren.
+3. **RED:** Änderungen an Toolliste, Projektbindung, Systemprompt oder `managed_by` außerhalb des autorisierten Adminpfads müssen scheitern und auditiert werden.
+4. **GREEN:** Profilintegrität und Admin-Updatepfad implementieren.
+5. **RED:** Tests schreiben, dass Agententools weder freie Shell, Credentials, absolute Pfade noch projektfremde Ressourcen sehen.
+6. **GREEN:** Tooloberfläche auf dokumentierte Projektdateien, Aufgaben, Runstart und sichere Ergebnislesung begrenzen.
+7. **RED:** Test schreiben, dass ein Adopt-Workflow bestehende Artefakte nur referenziert und nie still regeneriert/überschreibt.
+8. **GREEN:** Ergänzungsplan- und explizite-Bestätigungslogik implementieren.
+9. **RED:** Lizenz-/Herkunftstest für jede substantielle Upstream-Übernahme schreiben.
+10. **GREEN:** `UPSTREAM.md` und nachvollziehbare Anpassungsnachweise ergänzen.
+11. **Commit:** `feat(game-studio): add curated agent workflows and provenance`.
 
 ---
 

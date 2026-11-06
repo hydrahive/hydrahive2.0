@@ -9,7 +9,25 @@ from hydrahive_node import incus
 
 
 def _show(network: dict[str, str]) -> tuple[int, str, str]:
-    return (0, json.dumps({"devices": {"eth0": network}}), "")
+    return (0, json.dumps([{"name": "demo", "expanded_devices": {"eth0": network}}]), "")
+
+
+@pytest.mark.parametrize("instances", [
+    [],
+    [{"name": "demo-other", "expanded_devices": {"eth0": {"type": "none"}}}],
+    [
+        {"name": "demo", "expanded_devices": {"eth0": {"type": "none"}}},
+        {"name": "demo", "expanded_devices": {"eth0": {"type": "none"}}},
+    ],
+])
+def test_network_postcondition_requires_one_exact_instance(monkeypatch, instances) -> None:
+    async def run(*args: str, timeout: float = 60.0):
+        assert args == ("list", "demo", "--format=json")
+        return (0, json.dumps(instances), "")
+
+    monkeypatch.setattr(incus, "_run", run)
+    with pytest.raises(incus.IncusJobError, match="inspect_invalid"):
+        asyncio.run(incus._network_matches("demo", {"type": "none"}))
 
 
 def test_network_configuration_uses_set_for_existing_local_device(monkeypatch) -> None:
@@ -17,7 +35,7 @@ def test_network_configuration_uses_set_for_existing_local_device(monkeypatch) -
     actions: list[str] = []
 
     async def run(*args: str, timeout: float = 60.0):
-        if args[:2] == ("config", "show"):
+        if args[:2] == ("list", "demo"):
             return _show(network)
         action = args[2]
         actions.append(action)
@@ -40,7 +58,7 @@ def test_network_configuration_uses_add_when_device_is_missing(monkeypatch) -> N
     actions: list[str] = []
 
     async def run(*args: str, timeout: float = 60.0):
-        if args[:2] == ("config", "show"):
+        if args[:2] == ("list", "demo"):
             return _show(network)
         action = args[2]
         actions.append(action)
@@ -62,7 +80,7 @@ def test_network_timeout_is_reconciled_against_expanded_config(monkeypatch) -> N
 
     async def run(*args: str, timeout: float = 60.0):
         nonlocal calls
-        if args[:2] == ("config", "show"):
+        if args[:2] == ("list", "demo"):
             return _show(network)
         calls += 1
         network.clear()
@@ -76,7 +94,7 @@ def test_network_timeout_is_reconciled_against_expanded_config(monkeypatch) -> N
 
 def test_network_configuration_fails_if_postcondition_is_not_met(monkeypatch) -> None:
     async def run(*args: str, timeout: float = 60.0):
-        if args[:2] == ("config", "show"):
+        if args[:2] == ("list", "demo"):
             return _show({"type": "nic", "nictype": "p2p"})
         return (0, "", "")
 

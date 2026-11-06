@@ -71,14 +71,12 @@ def test_vm_create_uses_vm_flag_fixed_argv_and_starts(monkeypatch) -> None:
         nonlocal status
         calls.append(args)
         if args[0] == "list":
-            instances = [{"name": "demo", "status": status, "type": "virtual-machine"}] if status is not None else []
+            instances = [{"name": "demo", "status": status, "type": "virtual-machine", "expanded_devices": {"eth0": network}}] if status is not None else []
             return (0, json.dumps(instances), "")
         if args[:2] == ("config", "get"):
             return (0, f"{RESOURCE_ID}\n", "")
         if args[:3] == ("config", "device", "override"):
             network.update(item.split("=", 1) for item in args[5:])
-        if args[:2] == ("config", "show"):
-            return (0, json.dumps({"devices": {"eth0": network}}), "")
         if args[0] == "init":
             status = "Stopped"
         elif args[0] == "start":
@@ -113,11 +111,9 @@ def test_vm_create_is_idempotent_for_owned_instance(monkeypatch) -> None:
     async def existing(*args: str, timeout: float = 60.0):
         calls.append(args)
         if args[0] == "list":
-            return (0, json.dumps([{"name": "demo", "status": "Running", "type": "virtual-machine"}]), "")
+            return (0, json.dumps([{"name": "demo", "status": "Running", "type": "virtual-machine", "expanded_devices": {"eth0": network}}]), "")
         if args[:2] == ("config", "get"):
             return (0, f"{RESOURCE_ID}\n", "")
-        if args[:2] == ("config", "show"):
-            return (0, json.dumps({"devices": {"eth0": network}}), "")
         return (0, "", "")
 
     monkeypatch.setattr(incus, "_run", existing)
