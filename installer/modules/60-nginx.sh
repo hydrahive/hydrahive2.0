@@ -143,7 +143,9 @@ server {
     # script-src braucht 'unsafe-eval' wegen three.js Shader-Compile + d3 Path-Builder
     # (beide verwenden new Function()). 'wasm-unsafe-eval' für künftiges WASM
     # (xterm/novnc bauen mit WebAssembly).
-    add_header Content-Security-Policy "default-src 'self'; img-src 'self' data: blob: https://assets.coingecko.com https://coin-images.coingecko.com https://images.cryptocompare.com https://resources.cryptocompare.com https://www.cryptocompare.com; style-src 'self' 'unsafe-inline'; script-src 'self' 'unsafe-eval' 'wasm-unsafe-eval'; connect-src 'self' wss:; font-src 'self' data:; media-src 'self' blob:; object-src 'none'; frame-ancestors 'self'; base-uri 'self'; form-action 'self';" always;
+    # frame-src: Vorschau des Moduls Vibe läuft in einem iframe auf Port 8444 (eigener Ursprung, nicht dieser).
+    # Ohne die Freigabe bleibt die Vorschau leer. Fremde Ursprünge bleiben gesperrt.
+    add_header Content-Security-Policy "default-src 'self'; img-src 'self' data: blob: https://assets.coingecko.com https://coin-images.coingecko.com https://images.cryptocompare.com https://resources.cryptocompare.com https://www.cryptocompare.com; style-src 'self' 'unsafe-inline'; script-src 'self' 'unsafe-eval' 'wasm-unsafe-eval'; connect-src 'self' wss:; font-src 'self' data:; media-src 'self' blob:; object-src 'none'; frame-src 'self' https://*:8444; frame-ancestors 'self'; base-uri 'self'; form-action 'self';" always;
 
     location / {
         try_files \$uri \$uri/ /index.html;

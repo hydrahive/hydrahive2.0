@@ -2,11 +2,20 @@
 
 from __future__ import annotations
 
+from datetime import UTC, datetime, timedelta
+
 from hydrahive.compute import job_signing, jobs
+from hydrahive.compute._job_cancel import pending_game_cancel
 from hydrahive.compute.models import ComputeJob, JSONObject
+from hydrahive.compute.providers.game_runtime_v1 import validate_game_offer
 from hydrahive.db.connection import db
 
-JOB_MESSAGE_TYPES = frozenset({"job_poll", "job_started", "job_renew", "job_progress", "job_succeeded", "job_failed"})
+JOB_MESSAGE_TYPES = frozenset(
+    {
+        "job_poll", "job_control_poll", "job_started", "job_renew", "job_progress",
+        "job_succeeded", "job_failed", "job_cancelled",
+    }
+)
 
 
 class JobProtocolError(ValueError):
@@ -44,28 +53,56 @@ def _offer(job: ComputeJob) -> dict:
         "lease_id": job.lease_id,
         "lease_until": job.lease_until,
     }
+    if job.resource_kind == "game_workspace":
+        body.update(
+            attempt_id=job.lease_id,
+            provider=job.provider,
+            project_id=job.project_id,
+            game_resource_id=job.game_resource_id,
+            workspace_generation=job.workspace_generation,
+            source_commit_sha=job.source_commit_sha,
+            source_snapshot_digest=job.source_snapshot_digest,
+        )
+        validate_game_offer(body)
     return {"type": "job_offer", "job": body, "signature": job_signing.sign_offer(body)}
 
 
 def handle_message(node_id: str, message_type: str, payload: dict[str, object]) -> dict:
     if message_type not in JOB_MESSAGE_TYPES:
         raise JobProtocolError("unknown job message type")
-    if message_type == "job_poll":
+    if message_type in {"job_poll", "job_control_poll"}:
         if payload:
             raise JobProtocolError("job poll payload must be empty")
-        claimed = jobs.claim_next_job(node_id, lease_seconds=300)
-        return _offer(claimed) if claimed is not None else {"type": "no_job"}
+        if message_type == "job_poll":
+            claimed = jobs.claim_next_job(node_id, lease_seconds=300)
+            return _offer(claimed) if claimed is not None else {"type": "no_job"}
+        cancelled = pending_game_cancel(node_id)
+        if cancelled is None:
+            return {"type": "no_control"}
+        body = {
+            "job_id": cancelled.job_id,
+            "node_id": cancelled.node_id,
+            "lease_id": cancelled.lease_id,
+            "cancel_deadline": (datetime.now(UTC) + timedelta(seconds=30)).isoformat().replace("+00:00", "Z"),
+        }
+        return {"type": "job_cancel", **body, "signature": job_signing.sign_offer(body)}
 
     job, lease_id = _job_for_node(node_id, payload)
     try:
         if message_type == "job_started":
             if set(payload) != {"job_id", "lease_id"}:
                 raise JobProtocolError("job started payload is invalid")
-            jobs.start_job(job.job_id, lease_id)
+            started = jobs.start_job(job.job_id, lease_id)
+            if started.status == "failed" and started.error_code == "job_rejected":
+                return {"type": "job_rejected", "reason": "execution_binding_invalid"}
         elif message_type == "job_renew":
             if set(payload) != {"job_id", "lease_id"}:
                 raise JobProtocolError("job renewal payload is invalid")
             jobs.renew_job_lease(job.job_id, lease_id)
+        elif message_type == "job_cancelled":
+            if set(payload) != {"job_id", "lease_id"}:
+                raise JobProtocolError("job cancellation payload is invalid")
+            jobs.confirm_game_job_cancelled(job.job_id, lease_id, node_id=node_id)
         elif message_type == "job_progress":
             if set(payload) != {"job_id", "lease_id", "progress", "data"}:
                 raise JobProtocolError("job progress payload is invalid")

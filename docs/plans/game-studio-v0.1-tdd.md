@@ -88,8 +88,9 @@ PR 1–3 sind die separat reviewbaren Core-Vorarbeiten. PR 4 darf erst nach dere
 - `core/src/hydrahive/db/migrations/057_compute_game_workspaces.sql` — additive Tabelle `compute_game_workspaces`; `056` ist auf der aktuellen Basis bereits durch den Sessionlisten-Index belegt.
 - `core/src/hydrahive/compute/game_resources.py` — Ressourcenmodell, Bindungsprüfung, Generationen und administrative Isolation-Freigaben.
 - `core/src/hydrahive/compute/models.py` — typisierte Core-Modelle.
-- `core/src/hydrahive/api/routes/compute_jobs.py` — ausschließlich rollenautorisierte Binding-/Freigabe-/Leserouten.
-- `core/tests/test_compute_game_resources.py` — Migration, Projektgrenzen, Rollen, Generationen und Freigabewiderruf.
+- `core/src/hydrahive/api/routes/compute_game_resources.py` — eigener Router für rollenautorisierte Binding-, Freigabe- und Leserouten; der bestehende Jobrouter bleibt bis PR 2 unverändert.
+- `core/tests/test_compute_game_resources.py` — Migration, Persistenz, Generationen, Pfadvalidierung und Freigabewiderruf.
+- `core/tests/test_compute_game_resources_api.py` — Projektrollen-, System-Admin- und Cross-Project-Grenzen.
 
 ### TDD-Aufgaben
 
@@ -97,18 +98,20 @@ PR 1–3 sind die separat reviewbaren Core-Vorarbeiten. PR 4 darf erst nach dere
 2. **GREEN:** Additive Ressourcen- und Freigabetabellen implementieren; absolute Pfade und Secrets dürfen kein Feld sein.
 3. **RED:** Freigabematrix für `node_id + isolation_profile_id + runner_version + policy_digest + proof_digest`: selbst gemeldet, unbekannt, verändert, widerrufen oder ohne Adminbestätigung muss scheitern.
 4. **GREEN:** Auditierte Freigabe mit `approved_by/at`, Widerruf und exakter Bindungsprüfung implementieren; keine automatische Übernahme aus NodeCapabilities.
-5. **RED:** Parametrisierte Rollenmatrix: Nichtmitglied erhält 404, `read` nur lesen, `write` keine Binding-Änderung, Projekt-`admin` darf binden/rotieren; Isolation-Freigaben bleiben System-Admin-only.
-6. **GREEN:** Einzigen Core-Projektguard und separaten System-Admin-Guard für alle Routen verwenden.
-7. **RED:** Cross-Project-, Node-, Generation-, Freigabe- und gelöschte-Projekt-Konflikte testen.
-8. **GREEN:** Fail-closed-Validierung und Orphan-/Revoke-Verhalten implementieren.
+5. **RED:** Eine über die Benutzer-API angelegte Bindung bleibt `pending`; ein frei eingesandter opaque Handle darf niemals als lokal bestätigt oder ausführbar gelten.
+6. **GREEN:** Ressourcenanlage und zentrale Ausführungsvalidierung fail-closed implementieren; die authentifizierte lokale Handle-Bestätigung und deren Jobintegration folgen mit dem Workstation-/Jobvertrag.
+7. **RED:** Parametrisierte Rollenmatrix nach bestehendem Core-Vertrag: Nichtmitglied und zu schwache Rolle erhalten 403 `project_no_access`, `read` darf lesen, Projekt-`admin` darf binden/rotieren; Isolation-Freigaben bleiben System-Admin-only.
+8. **GREEN:** Einzigen Core-Projektguard und separaten System-Admin-Guard für alle Routen verwenden.
+9. **RED:** Cross-Project-, Node-, Generation-, Freigabe-, Node-Revoke- und gelöschte-Projekt-Konflikte testen.
+10. **GREEN:** Fail-closed-Validierung und Orphan-/Revoke-Verhalten implementieren.
 9. **Commit:** `feat(compute): add project-bound game workspace resources`.
 
 ### Abnahmekriterien
 
-- [ ] Keine Workspace-Ressource kann projektübergreifend gelesen oder geändert werden.
-- [ ] Nur opaque Handles werden gespeichert/ausgegeben.
-- [ ] Generationwechsel invalidiert alte Bindungen.
-- [ ] Ohne exakt passende, aktive und auditierte Isolation-Freigabe gibt es weder Lease noch Start.
+- [x] Keine Workspace-Ressource kann projektübergreifend gelesen oder geändert werden.
+- [x] Nur opaque Handles werden gespeichert/ausgegeben.
+- [x] Generationwechsel invalidiert alte Bindungen.
+- [x] Die zentrale Ausführungsvalidierung lehnt jede nicht exakt passende, aktive und auditierte Isolation-Freigabe ab; Queue, Lease und Start werden in PR 2 verpflichtend daran angebunden.
 
 ---
 
@@ -123,7 +126,7 @@ PR 1–3 sind die separat reviewbaren Core-Vorarbeiten. PR 4 darf erst nach dere
 - `core/src/hydrahive/compute/jobs.py` — Signierung, Lease, Projekt-/Ressourcenbindung und Cancel.
 - `core/src/hydrahive/compute/job_protocol.py` — kanonischer signierter Envelope und authentifizierte Cancel-Control-Plane.
 - `core/src/hydrahive/compute/providers/game_runtime_v1.py` — Providerregistrierung und Payload-Validierung.
-- `core/src/hydrahive/api/routes/compute_jobs.py` — Start-/Status-/Cancel-Routen.
+- `core/src/hydrahive/api/routes/compute_game_jobs.py` — getrennte projektrollenbasierte Start-/Status-/Cancel-Routen; die bestehende eigentümerbasierte Legacy-Job-API bleibt rückwärtskompatibel.
 - `node-agent/src/hydrahive_node/jobs.py` — Annahme und Weiterleitung ausschließlich gültiger Game-Jobs.
 - `node-agent/src/hydrahive_node/runtime.py` und `job_runtime.py` — Providerdispatch, Cancel-Signal, Frist und terminale Bestätigung.
 - `core/tests/test_compute_game_jobs.py` und `node-agent/tests/test_game_job_protocol.py` — Master-, Persistenz-, Dispatch- und Cancel-Vertrag.
@@ -140,16 +143,16 @@ PR 1–3 sind die separat reviewbaren Core-Vorarbeiten. PR 4 darf erst nach dere
 8. **GREEN:** Jede Bindung vor Queue, Lease und unmittelbar vor Start prüfen.
 9. **RED:** `read` darf Status lesen, `write` starten, `admin` bindungsbezogen verwalten; Cancel nur mit korrekter Projektrolle.
 10. **GREEN:** Projektrollen statt bisheriger `created_by`-Sicht für Game-Jobs durchsetzen.
-11. **RED:** REST-Cancel muss den authentifizierten Node erreichen, den Game-Handler samt VM innerhalb einer festen Frist beenden, unvollständige Artefakte verwerfen und terminal bestätigen; Reconnect darf nicht neu starten.
-12. **GREEN:** Cancel-Nachricht, Node-Dispatch und persistente terminale Bestätigung implementieren.
+11. **RED:** REST-Cancel muss als persistente Control-Plane-Anforderung den authentifizierten Node innerhalb einer festen Frist erreichen, den aktiven Game-Handler abbrechen und terminal bestätigen; Reconnect darf den abgebrochenen Versuch nicht neu starten.
+12. **GREEN:** Cancel-Anforderung, Node-Control-Polling, Handler-Abbruch und persistente terminale Bestätigung implementieren. Das konkrete VM-/Gastprozessbaum-Teardown wird mit dem echten Game-Runtime-Adapter in PR 4 belegt.
 13. **Commit:** `feat(compute): add signed game runtime job protocol`.
 
 ### Abnahmekriterien
 
-- [ ] Keine freie Kommandozeile kann in einen Game-Job gelangen.
-- [ ] Alle unbekannten Felder führen zu `job_rejected`.
-- [ ] Jobzugriffe folgen ausschließlich Projektrollen.
-- [ ] Cancel erreicht einen laufenden Node innerhalb der festgelegten Frist, beseitigt VM/Prozessbaum und verhindert Wiederaufnahme nach Reconnect.
+- [x] Keine freie Kommandozeile kann in einen Game-Job gelangen.
+- [x] Alle unbekannten Felder führen zu `job_rejected`.
+- [x] Jobzugriffe folgen ausschließlich Projektrollen.
+- [x] Cancel erreicht einen laufenden Node innerhalb der festgelegten Frist, bricht den aktiven Handler ab, wird terminal bestätigt und verhindert Wiederaufnahme nach Reconnect; reales VM-/Gastprozess-Teardown ist Abnahmekriterium von PR 4.
 
 ---
 

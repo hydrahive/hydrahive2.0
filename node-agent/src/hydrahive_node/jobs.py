@@ -5,22 +5,20 @@ from __future__ import annotations
 import base64
 import json
 import re
-from collections.abc import Awaitable, Callable
 from dataclasses import dataclass
 from datetime import UTC, datetime
 
 from cryptography.exceptions import InvalidSignature
 from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PublicKey
 
-from hydrahive_node.job_state import (
-    load_job_executions,
-    load_job_results,
-    mark_job_in_progress,
-    save_job_result,
+from hydrahive_node._job_execution import MAX_JOB_BYTES
+from hydrahive_node.game_job_protocol import (
+    GameSchemaError,
+    VerifiedCancel,
+    VerifiedGameJob,
+    validate_cancel,
+    validate_game_offer,
 )
-from hydrahive_node.storage import StatePaths
-
-MAX_JOB_BYTES = 64 * 1024
 RESOURCE_ID_RE = re.compile(r"^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$")
 ALLOWED_OPERATIONS = frozenset(
     {
@@ -38,7 +36,7 @@ ALLOWED_OPERATIONS = frozenset(
         "vm.inspect",
     }
 )
-OFFER_FIELDS = {
+LEGACY_OFFER_FIELDS = {
     "job_id",
     "node_id",
     "resource_kind",
@@ -93,18 +91,53 @@ def _decode(value: str) -> bytes:
         raise JobValidationError("job signature encoding is invalid") from exc
 
 
-def verify_offer(message: dict, public_key: str, expected_node_id: str) -> VerifiedJob:
-    if set(message) != {"type", "job", "signature"} or message.get("type") != "job_offer":
+VerifiedOffer = VerifiedJob | VerifiedGameJob
+
+
+def _verify_signature(body: dict, signature: str, public_key: str) -> None:
+    try:
+        key = Ed25519PublicKey.from_public_bytes(_decode(public_key))
+        key.verify(_decode(signature), canonical_offer(body))
+    except (ValueError, InvalidSignature) as exc:
+        raise JobValidationError("job signature is invalid") from exc
+
+
+def _validate_lease(lease_until: object) -> None:
+    try:
+        parsed = datetime.fromisoformat(str(lease_until).replace("Z", "+00:00"))
+    except ValueError as exc:
+        raise JobValidationError("job lease expiry is invalid") from exc
+    if parsed.tzinfo is None or parsed.astimezone(UTC) <= datetime.now(UTC):
+        raise JobValidationError("job lease has expired")
+
+
+def _transport_fields_are_exact(message: dict, expected: set[str]) -> bool:
+    fields = set(message)
+    if "sequence" in fields:
+        sequence = message["sequence"]
+        if type(sequence) is not int or sequence < 1:
+            return False
+        fields.remove("sequence")
+    return fields == expected
+
+
+def verify_offer(message: dict, public_key: str, expected_node_id: str) -> VerifiedOffer:
+    if not _transport_fields_are_exact(message, {"type", "job", "signature"}) or message.get("type") != "job_offer":
         raise JobValidationError("job offer envelope is invalid")
     offer = message.get("job")
     signature = message.get("signature")
-    if not isinstance(offer, dict) or set(offer) != OFFER_FIELDS or not isinstance(signature, str):
+    if not isinstance(offer, dict) or not isinstance(signature, str):
         raise JobValidationError("job offer schema is invalid")
-    try:
-        key = Ed25519PublicKey.from_public_bytes(_decode(public_key))
-        key.verify(_decode(signature), canonical_offer(offer))
-    except (ValueError, InvalidSignature) as exc:
-        raise JobValidationError("job signature is invalid") from exc
+    _verify_signature(offer, signature, public_key)
+    if offer.get("resource_kind") == "game_workspace" or "provider" in offer:
+        try:
+            verified = validate_game_offer(offer, expected_node_id)
+        except GameSchemaError as exc:
+            raise JobValidationError(str(exc)) from exc
+        _validate_lease(verified.lease_until)
+        return verified
+    if set(offer) != LEGACY_OFFER_FIELDS:
+        raise JobValidationError("job offer schema is invalid")
     if offer["node_id"] != expected_node_id:
         raise JobValidationError("job belongs to a different node")
     if offer["operation"] not in ALLOWED_OPERATIONS:
@@ -113,86 +146,43 @@ def verify_offer(message: dict, public_key: str, expected_node_id: str) -> Verif
         f"{offer['resource_kind']}."
     ):
         raise JobValidationError("job resource kind is invalid")
-    if not isinstance(offer["generation"], int) or offer["generation"] < 0 or not isinstance(offer["payload"], dict):
+    if type(offer["generation"]) is not int or offer["generation"] < 0 or not isinstance(offer["payload"], dict):
         raise JobValidationError("job payload is invalid")
     for field in ("job_id", "node_id", "idempotency_key", "lease_id", "lease_until"):
         if not isinstance(offer[field], str) or not 0 < len(offer[field]) <= 255:
             raise JobValidationError(f"job {field} is invalid")
     resource_id = offer["resource_id"]
-    if offer["resource_kind"] in {"container", "vm"} and (
-        not isinstance(resource_id, str) or RESOURCE_ID_RE.fullmatch(resource_id) is None
-    ):
+    if not isinstance(resource_id, str) or RESOURCE_ID_RE.fullmatch(resource_id) is None:
         raise JobValidationError("job resource_id is invalid")
-    try:
-        lease_until = datetime.fromisoformat(str(offer["lease_until"]).replace("Z", "+00:00"))
-    except ValueError as exc:
-        raise JobValidationError("job lease expiry is invalid") from exc
-    if lease_until.tzinfo is None or lease_until.astimezone(UTC) <= datetime.now(UTC):
-        raise JobValidationError("job lease has expired")
+    _validate_lease(offer["lease_until"])
     return VerifiedJob(**offer)  # type: ignore[arg-type]
 
 
-async def execute_offer(
-    paths: StatePaths,
-    job: VerifiedJob,
-    handler: Callable[[VerifiedJob], Awaitable[dict[str, object]]],
-) -> dict[str, object]:
-    existing = load_job_results(paths).get(job.idempotency_key)
-    if existing is not None:
-        return existing
-    execution = load_job_executions(paths).get(job.idempotency_key)
-    if execution is None:
-        raise RuntimeError("job execution was not durably prepared")
-    if execution.get("state") == "in_progress" and job.operation not in {
-        "container.create",
-        "container.start",
-        "container.stop",
-        "container.delete",
-        "container.inspect",
-        "vm.create_from_image",
-        "vm.start",
-        "vm.stop",
-        "vm.delete",
-        "vm.inspect",
-    }:
-        outcome: dict[str, object] = {
-            "type": "job_failed",
-            "job_id": job.job_id,
-            "lease_id": job.lease_id,
-            "error_code": "operation_outcome_unknown",
-            "error_params": {},
-        }
-        save_job_result(paths, job.idempotency_key, outcome)
-        return outcome
-    mark_job_in_progress(paths, job.idempotency_key)
+def verify_cancel_message(
+    message: dict,
+    public_key: str,
+    *,
+    expected_node_id: str,
+    expected_job_id: str,
+    expected_lease_id: str,
+) -> VerifiedCancel:
+    expected_fields = {"type", "job_id", "node_id", "lease_id", "cancel_deadline", "signature"}
+    if not _transport_fields_are_exact(message, expected_fields):
+        raise JobValidationError("job cancel envelope is invalid")
+    if message.get("type") != "job_cancel" or not isinstance(message.get("signature"), str):
+        raise JobValidationError("job cancel envelope is invalid")
+    body = {key: message[key] for key in ("job_id", "node_id", "lease_id", "cancel_deadline")}
+    _verify_signature(body, message["signature"], public_key)
     try:
-        result = await handler(job)
-        if not isinstance(result, dict):
-            raise TypeError("handler result must be an object")
-        outcome = {
-            "type": "job_succeeded",
-            "job_id": job.job_id,
-            "lease_id": job.lease_id,
-            "result": result,
-        }
-    except Exception as exc:
-        error_code = getattr(exc, "code", "operation_failed")
-        if not isinstance(error_code, str) or not error_code.replace("_", "").isalnum() or len(error_code) > 128:
-            error_code = "operation_failed"
-        outcome = {
-            "type": "job_failed",
-            "job_id": job.job_id,
-            "lease_id": job.lease_id,
-            "error_code": error_code,
-            "error_params": {},
-        }
-    if len(json.dumps(outcome, allow_nan=False).encode("utf-8")) > MAX_JOB_BYTES:
-        outcome = {
-            "type": "job_failed",
-            "job_id": job.job_id,
-            "lease_id": job.lease_id,
-            "error_code": "result_too_large",
-            "error_params": {},
-        }
-    save_job_result(paths, job.idempotency_key, outcome)
-    return outcome
+        return validate_cancel(body, expected_node_id, expected_job_id, expected_lease_id)
+    except GameSchemaError as exc:
+        raise JobValidationError(str(exc)) from exc
+
+
+def verified_from_dict(value: dict[str, object]) -> VerifiedOffer:
+    if value.get("resource_kind") == "game_workspace":
+        return VerifiedGameJob(**value)  # type: ignore[arg-type]
+    return VerifiedJob(**value)  # type: ignore[arg-type]
+
+
+from hydrahive_node._job_execution import execute_offer  # noqa: E402,F401

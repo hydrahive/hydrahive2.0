@@ -7,14 +7,18 @@ from typing import Literal, TypeAlias
 
 NodeKind = Literal["local", "agent"]
 NodeStatus = Literal["pending", "online", "degraded", "offline", "draining", "disabled", "revoked"]
-JobResourceKind = Literal["container", "vm", "node"]
+JobResourceKind = Literal["container", "vm", "node", "game_workspace"]
 JobStatus = Literal["queued", "leased", "running", "succeeded", "failed", "cancelled", "expired"]
+GameEngine = Literal["unknown", "godot", "unreal"]
+GameTrustMode = Literal["inventory_only", "sandboxed"]
+GameWorkspaceStatus = Literal["pending", "ready", "offline", "incompatible", "revoked", "error"]
+IsolationApprovalStatus = Literal["active", "revoked"]
 JSONScalar: TypeAlias = str | int | float | bool | None
 JSONValue: TypeAlias = JSONScalar | list["JSONValue"] | dict[str, "JSONValue"]
 JSONObject: TypeAlias = dict[str, JSONValue]
 
 NODE_KINDS: frozenset[str] = frozenset({"local", "agent"})
-JOB_RESOURCE_KINDS: frozenset[str] = frozenset({"container", "vm", "node"})
+JOB_RESOURCE_KINDS: frozenset[str] = frozenset({"container", "vm", "node", "game_workspace"})
 JOB_STATUSES: frozenset[str] = frozenset({"queued", "leased", "running", "succeeded", "failed", "cancelled", "expired"})
 NODE_STATUSES: frozenset[str] = frozenset(
     {"pending", "online", "degraded", "offline", "draining", "disabled", "revoked"}
@@ -22,6 +26,12 @@ NODE_STATUSES: frozenset[str] = frozenset(
 MAX_NODE_ID_LENGTH = 128
 MAX_NODE_NAME_LENGTH = 255
 MAX_NODE_JSON_BYTES = 64 * 1024
+GAME_RUNTIME_PROVIDER = "game-runtime/v1"
+GAME_ENGINES: frozenset[str] = frozenset({"unknown", "godot", "unreal"})
+GAME_TRUST_MODES: frozenset[str] = frozenset({"inventory_only", "sandboxed"})
+GAME_WORKSPACE_STATUSES: frozenset[str] = frozenset(
+    {"pending", "ready", "offline", "incompatible", "revoked", "error"}
+)
 
 
 @dataclass(frozen=True, slots=True)
@@ -58,6 +68,61 @@ class ComputeEnrollmentToken:
 
 
 @dataclass(frozen=True, slots=True)
+class GameIsolationApproval:
+    approval_id: str
+    node_id: str
+    isolation_profile_id: str
+    runner_version: str
+    policy_digest: str
+    proof_digest: str
+    status: IsolationApprovalStatus
+    approved_by: str
+    approved_at: str
+    revoked_by: str | None = None
+    revoked_at: str | None = None
+
+
+@dataclass(frozen=True, slots=True)
+class ComputeGameWorkspace:
+    resource_id: str
+    provider: str
+    project_id: str
+    node_id: str
+    workspace_handle: str
+    engine: GameEngine
+    engine_version: str | None
+    engine_project_relpath: str
+    trust_mode: GameTrustMode
+    status: GameWorkspaceStatus
+    isolation_approval_id: str
+    isolation_profile_id: str
+    runner_version: str
+    policy_digest: str
+    generation: int
+    created_by: str
+    created_at: str
+    updated_at: str
+    last_seen_at: str | None = None
+    revoked_at: str | None = None
+
+
+@dataclass(frozen=True, slots=True)
+class ExecutionBinding:
+    """Exact, caller-supplied binding values that PR2 must validate before execution."""
+
+    project_id: str
+    resource_id: str
+    node_id: str
+    workspace_handle: str
+    workspace_generation: int
+    isolation_approval_id: str
+    isolation_profile_id: str
+    runner_version: str
+    policy_digest: str
+    proof_digest: str
+
+
+@dataclass(frozen=True, slots=True)
 class ComputeJob:
     job_id: str
     node_id: str
@@ -78,6 +143,14 @@ class ComputeJob:
     error_params: JSONObject | None = None
     started_at: str | None = None
     finished_at: str | None = None
+    project_id: str | None = None
+    provider: str | None = None
+    game_resource_id: str | None = None
+    workspace_generation: int | None = None
+    source_commit_sha: str | None = None
+    source_snapshot_digest: str | None = None
+    cancel_requested_by: str | None = None
+    cancel_requested_at: str | None = None
 
 
 @dataclass(frozen=True, slots=True)

@@ -34,6 +34,8 @@ from hydrahive.api.routes.container_console import router as container_console_r
 from hydrahive.api.routes.containers import router as containers_router
 from hydrahive.api.routes.compute_agent import router as compute_agent_router
 from hydrahive.api.routes.compute_channel import router as compute_channel_router
+from hydrahive.api.routes.compute_game_jobs import router as compute_game_jobs_router
+from hydrahive.api.routes.compute_game_resources import router as compute_game_resources_router
 from hydrahive.api.routes.compute_jobs import router as compute_jobs_router
 from hydrahive.api.routes.compute_nodes import router as compute_nodes_router
 from hydrahive.api.routes.credentials import router as credentials_router
@@ -192,6 +194,8 @@ app.include_router(vms_router, dependencies=[Depends(require_capability("core.vm
 app.include_router(containers_router, dependencies=[Depends(require_capability("core.containers"))])
 app.include_router(compute_agent_router)
 app.include_router(compute_channel_router)
+app.include_router(compute_game_jobs_router)
+app.include_router(compute_game_resources_router)
 app.include_router(compute_jobs_router)
 app.include_router(compute_nodes_router)
 app.include_router(credentials_router)

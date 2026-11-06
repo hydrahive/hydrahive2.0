@@ -103,11 +103,16 @@ def revoke_node(node_id: str, *, actor: str | None = None) -> ComputeNode | None
                WHERE node_id = ? AND status = ?""",
             ("revoked", timestamp, timestamp, node_id, current.status),
         )
-        # Revocation must invalidate all pending console tickets so no session
-        # can be opened to a node that is no longer trusted.
-        from hydrahive.compute import console_tickets
+        # Revocation must invalidate every trust path in the same transaction.
+        from hydrahive.compute import console_tickets, game_resources
 
         console_tickets.revoke_tickets_for_node(node_id, connection=conn)
+        game_resources.revoke_for_node_in_connection(
+            conn,
+            node_id=node_id,
+            actor=actor,
+            timestamp=timestamp,
+        )
         if actor is not None:
             audit.record_in_connection(
                 conn,
