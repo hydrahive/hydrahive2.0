@@ -126,7 +126,7 @@ PR 1–3 sind die separat reviewbaren Core-Vorarbeiten. PR 4 darf erst nach dere
 - `core/src/hydrahive/compute/jobs.py` — Signierung, Lease, Projekt-/Ressourcenbindung und Cancel.
 - `core/src/hydrahive/compute/job_protocol.py` — kanonischer signierter Envelope und authentifizierte Cancel-Control-Plane.
 - `core/src/hydrahive/compute/providers/game_runtime_v1.py` — Providerregistrierung und Payload-Validierung.
-- `core/src/hydrahive/api/routes/compute_jobs.py` — Start-/Status-/Cancel-Routen.
+- `core/src/hydrahive/api/routes/compute_game_jobs.py` — getrennte projektrollenbasierte Start-/Status-/Cancel-Routen; die bestehende eigentümerbasierte Legacy-Job-API bleibt rückwärtskompatibel.
 - `node-agent/src/hydrahive_node/jobs.py` — Annahme und Weiterleitung ausschließlich gültiger Game-Jobs.
 - `node-agent/src/hydrahive_node/runtime.py` und `job_runtime.py` — Providerdispatch, Cancel-Signal, Frist und terminale Bestätigung.
 - `core/tests/test_compute_game_jobs.py` und `node-agent/tests/test_game_job_protocol.py` — Master-, Persistenz-, Dispatch- und Cancel-Vertrag.
@@ -143,16 +143,16 @@ PR 1–3 sind die separat reviewbaren Core-Vorarbeiten. PR 4 darf erst nach dere
 8. **GREEN:** Jede Bindung vor Queue, Lease und unmittelbar vor Start prüfen.
 9. **RED:** `read` darf Status lesen, `write` starten, `admin` bindungsbezogen verwalten; Cancel nur mit korrekter Projektrolle.
 10. **GREEN:** Projektrollen statt bisheriger `created_by`-Sicht für Game-Jobs durchsetzen.
-11. **RED:** REST-Cancel muss den authentifizierten Node erreichen, den Game-Handler samt VM innerhalb einer festen Frist beenden, unvollständige Artefakte verwerfen und terminal bestätigen; Reconnect darf nicht neu starten.
-12. **GREEN:** Cancel-Nachricht, Node-Dispatch und persistente terminale Bestätigung implementieren.
+11. **RED:** REST-Cancel muss als persistente Control-Plane-Anforderung den authentifizierten Node innerhalb einer festen Frist erreichen, den aktiven Game-Handler abbrechen und terminal bestätigen; Reconnect darf den abgebrochenen Versuch nicht neu starten.
+12. **GREEN:** Cancel-Anforderung, Node-Control-Polling, Handler-Abbruch und persistente terminale Bestätigung implementieren. Das konkrete VM-/Gastprozessbaum-Teardown wird mit dem echten Game-Runtime-Adapter in PR 4 belegt.
 13. **Commit:** `feat(compute): add signed game runtime job protocol`.
 
 ### Abnahmekriterien
 
-- [ ] Keine freie Kommandozeile kann in einen Game-Job gelangen.
-- [ ] Alle unbekannten Felder führen zu `job_rejected`.
-- [ ] Jobzugriffe folgen ausschließlich Projektrollen.
-- [ ] Cancel erreicht einen laufenden Node innerhalb der festgelegten Frist, beseitigt VM/Prozessbaum und verhindert Wiederaufnahme nach Reconnect.
+- [x] Keine freie Kommandozeile kann in einen Game-Job gelangen.
+- [x] Alle unbekannten Felder führen zu `job_rejected`.
+- [x] Jobzugriffe folgen ausschließlich Projektrollen.
+- [x] Cancel erreicht einen laufenden Node innerhalb der festgelegten Frist, bricht den aktiven Handler ab, wird terminal bestätigt und verhindert Wiederaufnahme nach Reconnect; reales VM-/Gastprozess-Teardown ist Abnahmekriterium von PR 4.
 
 ---
 

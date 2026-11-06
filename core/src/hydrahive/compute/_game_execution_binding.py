@@ -2,6 +2,9 @@
 
 from __future__ import annotations
 
+import sqlite3
+from contextlib import nullcontext
+
 from hydrahive.compute._game_resource_common import (
     EXECUTABLE_NODE_STATUSES,
     ExecutionBindingError,
@@ -12,9 +15,13 @@ from hydrahive.db.connection import db
 from hydrahive.projects import config as project_config
 
 
-def validate_execution_binding(binding: ExecutionBinding) -> ComputeGameWorkspace:
-    """Validate every security dimension required before PR2 queue/lease/start."""
-    with db() as conn:
+def validate_execution_binding(
+    binding: ExecutionBinding,
+    *,
+    connection: sqlite3.Connection | None = None,
+) -> ComputeGameWorkspace:
+    """Validate every security dimension required before queue, lease, or start."""
+    with nullcontext(connection) if connection is not None else db() as conn:
         row = conn.execute(
             """SELECT workspace.*, approval.proof_digest AS approval_proof_digest,
                       approval.status AS approval_status,

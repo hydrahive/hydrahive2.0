@@ -7,10 +7,12 @@ from collections.abc import Awaitable, Callable
 from dataclasses import asdict
 
 from hydrahive_node import jobs
+from hydrahive_node._game_job_runtime import execute_game_with_control
 from hydrahive_node.job_state import (
     load_delivered_jobs,
     load_job_executions,
     load_job_results,
+    mark_game_cancelled_pending_confirmation,
     mark_job_result_delivered,
     prepare_job_execution,
     save_job_result,
@@ -18,16 +20,18 @@ from hydrahive_node.job_state import (
 from hydrahive_node.storage import AgentIdentity, StatePaths
 
 Exchange = Callable[[str, dict[str, object]], Awaitable[dict]]
-Handler = Callable[[jobs.VerifiedJob], Awaitable[dict[str, object]]]
+Handler = Callable[[jobs.VerifiedOffer], Awaitable[dict[str, object]]]
+CONTROL_POLL_SECONDS = 1.0
+LEASE_RENEW_SECONDS = 60.0
 
 
-async def _unsupported_handler(job: jobs.VerifiedJob) -> dict[str, object]:
+async def _unsupported_handler(job: jobs.VerifiedOffer) -> dict[str, object]:
     raise RuntimeError(f"operation is not installed: {job.operation}")
 
 
 async def _deliver(exchange: Exchange, outcome: dict[str, object]) -> None:
     message_type = outcome.get("type")
-    if message_type not in {"job_succeeded", "job_failed"}:
+    if message_type not in {"job_succeeded", "job_failed", "job_cancelled"}:
         raise RuntimeError("persisted job outcome is invalid")
     payload = {key: value for key, value in outcome.items() if key != "type"}
     response = await exchange(str(message_type), payload)
@@ -44,7 +48,15 @@ async def _flush_results(paths: StatePaths, exchange: Exchange) -> None:
         mark_job_result_delivered(paths, idempotency_key)
 
 
-async def _execute_with_renewal(
+async def _stop_execution(execution: asyncio.Task) -> None:
+    execution.cancel()
+    try:
+        await execution
+    except asyncio.CancelledError:
+        pass
+
+
+async def _execute_legacy_with_renewal(
     paths: StatePaths,
     job: jobs.VerifiedJob,
     exchange: Exchange,
@@ -52,25 +64,17 @@ async def _execute_with_renewal(
 ) -> dict[str, object]:
     execution = asyncio.create_task(jobs.execute_offer(paths, job, handler))
     while True:
-        done, _ = await asyncio.wait({execution}, timeout=60.0)
+        done, _ = await asyncio.wait({execution}, timeout=LEASE_RENEW_SECONDS)
         if done:
             return await execution
         try:
             response = await exchange("job_renew", {"job_id": job.job_id, "lease_id": job.lease_id})
         except BaseException:
-            execution.cancel()
-            try:
-                await execution
-            except asyncio.CancelledError:
-                pass
+            await _stop_execution(execution)
             raise
         if response.get("type") == "ack":
             continue
-        execution.cancel()
-        try:
-            await execution
-        except asyncio.CancelledError:
-            pass
+        await _stop_execution(execution)
         outcome: dict[str, object] = {
             "type": "job_failed",
             "job_id": job.job_id,
@@ -82,7 +86,36 @@ async def _execute_with_renewal(
         return outcome
 
 
-async def _resume_executions(paths: StatePaths, exchange: Exchange, handler: Handler) -> None:
+async def _execute_with_renewal(
+    paths: StatePaths,
+    job: jobs.VerifiedOffer,
+    exchange: Exchange,
+    handler: Handler,
+    *,
+    public_key: str | None = None,
+) -> dict[str, object]:
+    if isinstance(job, jobs.VerifiedGameJob):
+        if public_key is None:
+            raise RuntimeError("game job control requires the pinned signing key")
+        return await execute_game_with_control(
+            paths,
+            job,
+            exchange,
+            handler,
+            public_key,
+            control_poll_seconds=CONTROL_POLL_SECONDS,
+            lease_renew_seconds=LEASE_RENEW_SECONDS,
+        )
+    return await _execute_legacy_with_renewal(paths, job, exchange, handler)
+
+
+async def _resume_executions(
+    paths: StatePaths,
+    exchange: Exchange,
+    handler: Handler,
+    *,
+    public_key: str | None = None,
+) -> None:
     delivered = load_delivered_jobs(paths)
     for idempotency_key, execution in load_job_executions(paths).items():
         if idempotency_key in delivered:
@@ -91,7 +124,18 @@ async def _resume_executions(paths: StatePaths, exchange: Exchange, handler: Han
         job_data = execution.get("job")
         if not isinstance(job_data, dict):
             raise RuntimeError("persisted job execution is invalid")
-        job = jobs.VerifiedJob(**job_data)  # type: ignore[arg-type]
+        job = jobs.verified_from_dict(job_data)
+        if isinstance(job, jobs.VerifiedGameJob) and execution.get("state") == "cancel_requested":
+            outcome: dict[str, object] = {
+                "type": "job_cancelled",
+                "job_id": job.job_id,
+                "lease_id": job.lease_id,
+            }
+            save_job_result(paths, idempotency_key, outcome)
+            mark_game_cancelled_pending_confirmation(paths, idempotency_key)
+            await _deliver(exchange, outcome)
+            mark_job_result_delivered(paths, idempotency_key)
+            continue
         if execution.get("state") == "accepted":
             started = await exchange("job_started", {"job_id": job.job_id, "lease_id": job.lease_id})
             if started.get("type") == "job_rejected":
@@ -106,7 +150,7 @@ async def _resume_executions(paths: StatePaths, exchange: Exchange, handler: Han
                 continue
             if renewed.get("type") != "ack":
                 raise RuntimeError("resumed job lease was not acknowledged")
-        outcome = await _execute_with_renewal(paths, job, exchange, handler)
+        outcome = await _execute_with_renewal(paths, job, exchange, handler, public_key=public_key)
         await _deliver(exchange, outcome)
         mark_job_result_delivered(paths, idempotency_key)
 
@@ -119,7 +163,7 @@ async def run_loop(
 ) -> None:
     public_key = paths.job_signing_public_key.read_text(encoding="ascii").strip()
     await _flush_results(paths, exchange)
-    await _resume_executions(paths, exchange, handler)
+    await _resume_executions(paths, exchange, handler, public_key=public_key)
     while True:
         response = await exchange("job_poll", {})
         if response.get("type") == "no_job":
@@ -133,6 +177,6 @@ async def run_loop(
             continue
         if started.get("type") != "ack":
             raise RuntimeError("job start was not acknowledged")
-        outcome = await _execute_with_renewal(paths, verified, exchange, handler)
+        outcome = await _execute_with_renewal(paths, verified, exchange, handler, public_key=public_key)
         await _deliver(exchange, outcome)
         mark_job_result_delivered(paths, verified.idempotency_key)

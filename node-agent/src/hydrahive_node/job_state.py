@@ -76,13 +76,25 @@ def prepare_job_execution(paths: StatePaths, job: dict[str, object]) -> None:
     _save(paths.job_executions, executions)
 
 
-def mark_job_in_progress(paths: StatePaths, idempotency_key: str) -> None:
+def _set_execution_state(paths: StatePaths, idempotency_key: str, state: str) -> None:
     executions = load_job_executions(paths)
     execution = executions.get(idempotency_key)
     if execution is None:
         raise RuntimeError("job execution was not prepared")
-    execution["state"] = "in_progress"
+    execution["state"] = state
     _save(paths.job_executions, executions)
+
+
+def mark_job_in_progress(paths: StatePaths, idempotency_key: str) -> None:
+    _set_execution_state(paths, idempotency_key, "in_progress")
+
+
+def mark_game_cancel_requested(paths: StatePaths, idempotency_key: str) -> None:
+    _set_execution_state(paths, idempotency_key, "cancel_requested")
+
+
+def mark_game_cancelled_pending_confirmation(paths: StatePaths, idempotency_key: str) -> None:
+    _set_execution_state(paths, idempotency_key, "cancelled_pending_confirmation")
 
 
 def _load_delivered_list(paths: StatePaths) -> list[str]:

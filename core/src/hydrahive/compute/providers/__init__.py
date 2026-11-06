@@ -1,0 +1,1 @@
+"""Closed compute-provider contracts."""

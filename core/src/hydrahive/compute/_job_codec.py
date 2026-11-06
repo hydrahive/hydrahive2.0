@@ -65,6 +65,14 @@ def row_to_job(row: sqlite3.Row) -> ComputeJob:
         created_at=row["created_at"],
         started_at=row["started_at"],
         finished_at=row["finished_at"],
+        project_id=row["project_id"],
+        provider=row["provider"],
+        game_resource_id=row["game_resource_id"],
+        workspace_generation=row["workspace_generation"],
+        source_commit_sha=row["source_commit_sha"],
+        source_snapshot_digest=row["source_snapshot_digest"],
+        cancel_requested_by=row["cancel_requested_by"],
+        cancel_requested_at=row["cancel_requested_at"],
     )
 
 

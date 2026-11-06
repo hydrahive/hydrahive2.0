@@ -7,7 +7,7 @@ from typing import Literal, TypeAlias
 
 NodeKind = Literal["local", "agent"]
 NodeStatus = Literal["pending", "online", "degraded", "offline", "draining", "disabled", "revoked"]
-JobResourceKind = Literal["container", "vm", "node"]
+JobResourceKind = Literal["container", "vm", "node", "game_workspace"]
 JobStatus = Literal["queued", "leased", "running", "succeeded", "failed", "cancelled", "expired"]
 GameEngine = Literal["unknown", "godot", "unreal"]
 GameTrustMode = Literal["inventory_only", "sandboxed"]
@@ -18,7 +18,7 @@ JSONValue: TypeAlias = JSONScalar | list["JSONValue"] | dict[str, "JSONValue"]
 JSONObject: TypeAlias = dict[str, JSONValue]
 
 NODE_KINDS: frozenset[str] = frozenset({"local", "agent"})
-JOB_RESOURCE_KINDS: frozenset[str] = frozenset({"container", "vm", "node"})
+JOB_RESOURCE_KINDS: frozenset[str] = frozenset({"container", "vm", "node", "game_workspace"})
 JOB_STATUSES: frozenset[str] = frozenset({"queued", "leased", "running", "succeeded", "failed", "cancelled", "expired"})
 NODE_STATUSES: frozenset[str] = frozenset(
     {"pending", "online", "degraded", "offline", "draining", "disabled", "revoked"}
@@ -143,6 +143,14 @@ class ComputeJob:
     error_params: JSONObject | None = None
     started_at: str | None = None
     finished_at: str | None = None
+    project_id: str | None = None
+    provider: str | None = None
+    game_resource_id: str | None = None
+    workspace_generation: int | None = None
+    source_commit_sha: str | None = None
+    source_snapshot_digest: str | None = None
+    cancel_requested_by: str | None = None
+    cancel_requested_at: str | None = None
 
 
 @dataclass(frozen=True, slots=True)

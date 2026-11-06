@@ -15,6 +15,8 @@ router = APIRouter(prefix="/api/compute/jobs", tags=["compute"])
 
 
 def _visible(job: ComputeJob, principal: AuthPrincipal) -> bool:
+    if job.resource_kind == "game_workspace":
+        return False
     return principal.role == "admin" or job.created_by == principal.user_id
 
 
@@ -74,6 +76,7 @@ def list_compute_jobs(
             node_id=node_id,
             status=job_status,
             created_by=None if principal.role == "admin" else principal.user_id,
+            include_game=False,
             limit=limit,
         )
     except ValueError:
