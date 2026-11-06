@@ -851,7 +851,7 @@ V0.1 garantiert **At-least-once Delivery mit Deduplizierung**, nicht magische Ex
 - Ein abgelaufener Build wird bei unbekanntem Ausgang nicht automatisch erneut gestartet.
 - Ein bewusstes neues Build erhält eine neue `job_id`.
 - Workspace-Generation, Quellstand und Inputrevision verhindern Ausführung gegen veraltete Ressourcen.
-- Cancel setzt zuerst den Jobstatus, beendet dann den vollständigen Runner-Prozessbaum und markiert unvollständige Artefakte als verworfen.
+- Cancel persistiert zuerst eine Control-Plane-Anforderung. Der authentifizierte Node bricht den aktiven Handler ab, der konkrete Runtime-Adapter beendet VM und vollständigen Prozessbaum und bestätigt erst danach den terminalen Jobstatus; unvollständige Artefakte werden verworfen.
 
 ## 17. Artefaktvertrag
 

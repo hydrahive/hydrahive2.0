@@ -6,6 +6,7 @@ import sqlite3
 from contextlib import nullcontext
 from datetime import UTC, datetime, timedelta
 
+from hydrahive.compute._game_job_binding import reject_game_job_in_connection, validate_game_job_execution
 from hydrahive.compute._job_codec import (
     JobConflict,
     JobNotFound,
@@ -48,6 +49,12 @@ def start_job(job_id: str, lease_id: str) -> ComputeJob:
         if row["status"] != "leased":
             raise JobConflict("compute job is not leased")
         _lease(row, lease_id)
+        if row["resource_kind"] == "game_workspace":
+            try:
+                validate_game_job_execution(row_to_job(row), connection=conn)
+            except ValueError as exc:
+                reason = getattr(exc, "code", "game_payload_invalid")
+                return reject_game_job_in_connection(conn, row, reason=reason)
         timestamp = now_iso()
         conn.execute(
             "UPDATE compute_jobs SET status = 'running', started_at = COALESCE(started_at, ?) WHERE job_id = ?",

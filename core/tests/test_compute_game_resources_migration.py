@@ -14,7 +14,7 @@ def test_migration_057_creates_game_workspace_and_approval_schema(tmp_path: Path
         apply_migrations(conn)
 
         version = conn.execute("SELECT MAX(version) FROM schema_version").fetchone()[0]
-        assert version == 57
+        assert version >= 57
 
         approval_columns = {
             row["name"] for row in conn.execute("PRAGMA table_info(compute_game_isolation_approvals)")

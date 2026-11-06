@@ -24,11 +24,13 @@ class AgentMessage(BaseModel):
         "heartbeat",
         "capabilities",
         "job_poll",
+        "job_control_poll",
         "job_started",
         "job_renew",
         "job_progress",
         "job_succeeded",
         "job_failed",
+        "job_cancelled",
     ]
     protocol_version: Literal[1]
     node_id: str = Field(min_length=1, max_length=128)

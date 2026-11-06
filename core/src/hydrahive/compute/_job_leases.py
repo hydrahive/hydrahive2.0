@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from datetime import UTC, datetime, timedelta
 
+from hydrahive.compute._game_job_binding import reject_game_job_in_connection, validate_game_job_execution
 from hydrahive.compute._job_codec import row_to_job
 from hydrahive.compute._job_events import append_event
 from hydrahive.compute.models import ComputeJob
@@ -19,17 +20,27 @@ def claim_next_job(node_id: str, *, lease_seconds: int = 60) -> ComputeJob | Non
         node = conn.execute("SELECT status FROM compute_nodes WHERE node_id = ?", (node_id,)).fetchone()
         if node is None or node["status"] not in {"online", "draining"}:
             return None
-        row = conn.execute(
-            """SELECT * FROM compute_jobs
-               WHERE node_id = ? AND status = 'queued'
-                 AND (? != 'draining' OR operation IN
-                      ('container.stop', 'container.delete', 'container.inspect',
-                       'vm.stop', 'vm.delete', 'vm.inspect'))
-               ORDER BY created_at, job_id LIMIT 1""",
-            (node_id, node["status"]),
-        ).fetchone()
-        if row is None:
-            return None
+        while True:
+            row = conn.execute(
+                """SELECT * FROM compute_jobs
+                   WHERE node_id = ? AND status = 'queued'
+                     AND (? != 'draining' OR operation IN
+                          ('container.stop', 'container.delete', 'container.inspect',
+                           'vm.stop', 'vm.delete', 'vm.inspect'))
+                   ORDER BY created_at, job_id LIMIT 1""",
+                (node_id, node["status"]),
+            ).fetchone()
+            if row is None:
+                return None
+            if row["resource_kind"] != "game_workspace":
+                break
+            try:
+                validate_game_job_execution(row_to_job(row), connection=conn)
+            except ValueError as exc:
+                reason = getattr(exc, "code", "game_payload_invalid")
+                reject_game_job_in_connection(conn, row, reason=reason)
+                continue
+            break
         lease_id = uuid7()
         conn.execute(
             """UPDATE compute_jobs
