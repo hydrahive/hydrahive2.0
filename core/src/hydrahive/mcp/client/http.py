@@ -16,7 +16,7 @@ except ImportError:  # neuere mcp
         streamable_http_client as streamablehttp_client,
     )
 
-from hydrahive.mcp.client.base import McpTool, McpToolResult, render_tool_content
+from hydrahive.mcp.client.base import McpTool, McpToolResult, result_from_sdk, tool_from_sdk
 
 logger = logging.getLogger(__name__)
 
@@ -59,26 +59,18 @@ class HttpMcpClient:
         if not self._session:
             raise RuntimeError(f"MCP-Client '{self.server_id}' nicht verbunden")
         resp = await self._session.list_tools()
-        return [
-            McpTool(name=t.name, description=t.description or "",
-                    schema=getattr(t, "inputSchema", {}) or {})
-            for t in resp.tools
-        ]
+        return [tool_from_sdk(tool) for tool in resp.tools]
 
     async def call_tool(self, name: str, arguments: dict) -> McpToolResult:
         if not self._session:
             raise RuntimeError(f"MCP-Client '{self.server_id}' nicht verbunden")
         try:
-            resp = await self._session.call_tool(name, arguments)
+            response = await self._session.call_tool(name, arguments)
         except Exception as e:
-            return McpToolResult(success=False, error=f"MCP-Call fehlgeschlagen: {e}")
-        text = render_tool_content(resp.content or [])
-        is_error = bool(getattr(resp, "isError", False))
-        return McpToolResult(
-            success=not is_error,
-            content=[{"type": "text", "text": text}],
-            error=text if is_error else None,
-        )
+            return McpToolResult(
+                success=False, error=f"MCP-Call fehlgeschlagen: {e}", is_error=True,
+            )
+        return result_from_sdk(response)
 
     async def close(self) -> None:
         if self._stack:
