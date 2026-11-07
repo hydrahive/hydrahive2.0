@@ -11,13 +11,14 @@ interface Props {
   onServers: () => void
   onMounts: () => void
   onGit: () => void
+  gitDisabled?: boolean
   onIntegrations: () => void
   onSkills: () => void
   onInsight: (view: ProjectInsightView) => void
   onGraph: () => void
 }
 
-export function ProjectActionGroups({ disabled, onCreate, onEdit, onAccess, onServers, onMounts, onGit, onIntegrations, onSkills, onInsight, onGraph }: Props) {
+export function ProjectActionGroups({ disabled, onCreate, onEdit, onAccess, onServers, onMounts, onGit, gitDisabled = false, onIntegrations, onSkills, onInsight, onGraph }: Props) {
   const [open, setOpen] = useState<"verwalten" | "auswerten" | null>(null)
   const toggle = (g: "verwalten" | "auswerten") => setOpen((cur) => (cur === g ? null : g))
   // Zwei Gruppen nebeneinander, aufgeklappt über die volle Breite (Plan projekt-cockpit-kompakt).
@@ -32,7 +33,11 @@ export function ProjectActionGroups({ disabled, onCreate, onEdit, onAccess, onSe
       <ActionButton onClick={onAccess} disabled={disabled}>Zugriff</ActionButton>
       <ActionButton onClick={onServers} disabled={disabled}>Server</ActionButton>
       <ActionButton onClick={onMounts} disabled={disabled}>Externe Mounts</ActionButton>
-      <ActionButton onClick={onGit} disabled={disabled}>Git</ActionButton>
+      <ActionButton
+        onClick={onGit}
+        disabled={disabled || gitDisabled}
+        title={gitDisabled ? "Git läuft für dieses Projekt im Container." : undefined}
+      >Git</ActionButton>
       <ActionButton onClick={onIntegrations} disabled={disabled}>Samba &amp; Integrationen</ActionButton>
       <ActionButton onClick={onSkills} disabled={disabled}>Skills</ActionButton>
     </ActionGroup>}

@@ -7,21 +7,42 @@ jedes Mitglied, auch an die Rolle "read" (Task 3223371d).
 Allowlist statt Denylist: ein künftig neues Secret-Feld taucht nicht still in
 der API auf, sondern muss hier bewusst freigegeben werden.
 """
+
 from __future__ import annotations
 
 from typing import Any
 
 PUBLIC_FIELDS = (
-    "id", "name", "description", "members", "agent_id", "status",
-    "created_at", "updated_at", "created_by", "git_initialized",
-    "samba_enabled", "notes", "tags", "metadata",
-    "mcp_server_ids", "allowed_plugins", "allowed_specialists", "linked_projects",
+    "id",
+    "name",
+    "description",
+    "members",
+    "agent_id",
+    "status",
+    "created_at",
+    "updated_at",
+    "created_by",
+    "git_initialized",
+    "samba_enabled",
+    "notes",
+    "tags",
+    "metadata",
+    "mcp_server_ids",
+    "allowed_plugins",
+    "allowed_specialists",
+    "linked_projects",
 )
 
 
 def public_view(cfg: dict[str, Any]) -> dict[str, Any]:
     """Kopie ohne Secrets; statt der Werte nur has_*-Flags."""
+    from hydrahive.projects import execution
+
     out = {k: cfg[k] for k in PUBLIC_FIELDS if k in cfg}
+    try:
+        out["execution_mode"] = execution.of(cfg)["mode"]
+    except execution.ExecutionError:
+        out["execution_mode"] = "unavailable"
     out["has_webhook_secret"] = bool(cfg.get("webhook_secret"))
     # Pro Repo nur, ob ein Token hinterlegt ist. Remote-URLs stehen in git selbst
     # (GET .../git/repos) und können Zugangsdaten enthalten — hier nicht.

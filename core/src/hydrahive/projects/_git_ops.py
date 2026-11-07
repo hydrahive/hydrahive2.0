@@ -12,8 +12,12 @@ logger = logging.getLogger(__name__)
 def _runx(cwd: Path, *args: str, env: dict | None = None, timeout: int = 60) -> tuple[bool, str, str]:
     try:
         r = subprocess.run(
-            ["git"] + list(args), cwd=str(cwd),
-            capture_output=True, text=True, timeout=timeout, env=env,
+            ["git", "-c", "core.hooksPath=/dev/null", "-c", "core.fsmonitor=false", *args],
+            cwd=str(cwd),
+            capture_output=True,
+            text=True,
+            timeout=timeout,
+            env=env,
         )
         return r.returncode == 0, r.stdout.strip(), r.stderr.strip()
     except subprocess.TimeoutExpired:
@@ -40,8 +44,9 @@ def _author_env(repo_path: Path, author_name: str, author_email: str) -> dict:
     }
 
 
-def clone_into(workspace: Path, repo_name: str, url: str, branch: str | None = None,
-               token: str | None = None) -> tuple[bool, str]:
+def clone_into(
+    workspace: Path, repo_name: str, url: str, branch: str | None = None, token: str | None = None
+) -> tuple[bool, str]:
     """Klonen in `workspace/<repo_name>/`. Workspace muss existieren, Subdir
     darf noch nicht existieren."""
     target = workspace / repo_name
@@ -100,7 +105,9 @@ def _remote_url(repo_path: Path, remote_name: str = "origin") -> str:
     return out if ok else ""
 
 
-def push(repo_path: Path, branch: str | None = None, token: str | None = None, remote_name: str = "origin") -> tuple[bool, str]:
+def push(
+    repo_path: Path, branch: str | None = None, token: str | None = None, remote_name: str = "origin"
+) -> tuple[bool, str]:
     remote_url = _remote_url(repo_path, remote_name)
     if not remote_url:
         return False, "no_remote"
@@ -112,7 +119,9 @@ def push(repo_path: Path, branch: str | None = None, token: str | None = None, r
     return ok, err
 
 
-def pull(repo_path: Path, branch: str | None = None, token: str | None = None, remote_name: str = "origin") -> tuple[bool, str]:
+def pull(
+    repo_path: Path, branch: str | None = None, token: str | None = None, remote_name: str = "origin"
+) -> tuple[bool, str]:
     remote_url = _remote_url(repo_path, remote_name)
     if not remote_url:
         return False, "no_remote"

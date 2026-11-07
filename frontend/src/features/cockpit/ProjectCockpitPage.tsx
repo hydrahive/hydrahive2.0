@@ -170,6 +170,7 @@ export function ProjectCockpitPage() {
               onServers={() => setServersOpen(true)}
               onMounts={() => setMountsOpen(true)}
               onGit={() => setGitOpen(true)}
+              gitDisabled={activeProject?.execution_mode === "container"}
               onIntegrations={() => setIntegrationsOpen(true)}
               onSkills={() => setSkillsOpen(true)}
               onInsight={setInsightView}
@@ -214,7 +215,11 @@ export function ProjectCockpitPage() {
             collapsed={leftPanelCollapsed.git}
             onToggle={() => setLeftPanelCollapsed("git", !leftPanelCollapsed.git)}
           >
-            <ProjectGitSummary key={`${activeProjectId}:${gitRevision}`} projectId={activeProjectId} />
+            <ProjectGitSummary
+              key={`${activeProjectId}:${gitRevision}`}
+              projectId={activeProjectId}
+              executionMode={activeProject?.execution_mode}
+            />
           </CollapsibleCockpitPanel>
 
           <CollapsibleCockpitPanel
@@ -275,7 +280,7 @@ export function ProjectCockpitPage() {
 
         <aside id="project-pane-files" role="tabpanel" aria-labelledby="project-tab-files"
           className={`grid min-h-0 auto-rows-[minmax(320px,auto)] gap-[10px] overflow-y-auto xl:auto-rows-auto xl:grid-rows-[28fr_50fr_22fr] xl:overflow-hidden ${paneClass("files", mobileTab, "grid")}`}>
-          <ProjectGitTreePanel projectId={activeProjectId} />
+          <ProjectGitTreePanel projectId={activeProjectId} executionMode={activeProject?.execution_mode} />
           <ProjectWorkspacePanel projectId={activeProjectId} onOpenFile={(path, kind) => setWsFile({ path, kind })} />
           <ProjectTasksPanel projectId={activeProjectId} />
         </aside>
@@ -285,7 +290,7 @@ export function ProjectCockpitPage() {
       )}
       {integrationsOpen && activeProject && <ProjectIntegrationsOverlay project={activeProject} onClose={() => setIntegrationsOpen(false)} onSaved={(updated) => setProjects((current) => current.map((project) => project.id === updated.id ? updated : project))} />}
       {skillsOpen && activeProject && <ProjectSkillsOverlay project={activeProject} onClose={() => setSkillsOpen(false)} />}
-      {gitOpen && activeProject && <ProjectGitOverlay project={activeProject} onClose={() => setGitOpen(false)} onChanged={() => setGitRevision((revision) => revision + 1)} />}
+      {gitOpen && activeProject && activeProject.execution_mode !== "container" && <ProjectGitOverlay project={activeProject} onClose={() => setGitOpen(false)} onChanged={() => setGitRevision((revision) => revision + 1)} />}
       {insightView && activeProject && (
         <ProjectInsightsOverlay
           project={activeProject}
