@@ -278,7 +278,14 @@
     "no_priorities": "Keine priorisierten Befunde in diesem Zeitraum.",
     "actual": "Ist",
     "target": "Ziel",
-    "outliers": "Agent-Ausreißer nach Tool-Schema-Größe"
+    "outliers": "Agent-Ausreißer nach Tool-Schema-Größe",
+    "error_causes": "Häufigste Tool-Fehlerursachen",
+    "error_causes_summary": "{{errors}} Fehler · {{interrupted}} unbeendet (laufen noch oder bei Neustart abgebrochen) · {{cancelled}} vom Nutzer gestoppt – die letzten beiden zählen nicht als Fehler",
+    "no_error_causes": "Keine Tool-Fehler in diesem Zeitraum.",
+    "count": "Anzahl",
+    "share": "Anteil",
+    "tool": "Werkzeug",
+    "cause": "Ursache"
   },
   "health": {
     "title": "Zustand",

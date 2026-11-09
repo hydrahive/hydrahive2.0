@@ -4,6 +4,7 @@ import { useTranslation } from "react-i18next"
 import { AdminPanel } from "./ui"
 import { harnessDoctorApi, type HarnessDoctorResult } from "./harnessDoctorApi"
 import { scoreTone } from "./harnessDoctorScore"
+import { HarnessErrorCauses } from "./HarnessErrorCauses"
 
 export function HarnessDoctorPanel() {
   const { t } = useTranslation("system")
@@ -59,6 +60,7 @@ export function HarnessDoctorPanel() {
           <p className="mt-1 text-[10px] text-[#69778c]">{finding.rule_id} · {t("harness.actual")}: {String(finding.actual)} · {t("harness.target")}: {finding.target} · {finding.source}</p>
         </div>)}
       </AdminPanel>
+      {data.error_causes && <HarnessErrorCauses causes={data.error_causes} />}
       <AdminPanel title={t("harness.outliers")} bodyClassName="overflow-x-auto">
         <table className="w-full text-xs"><thead className="text-left text-[#69778c]"><tr>
           <th className="py-1">Agent</th><th>Typ</th><th className="text-right">Tools</th><th className="text-right">Schemas</th><th className="text-right">Schema-Zeichen</th><th className="text-right">Skills</th>

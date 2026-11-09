@@ -278,7 +278,14 @@
     "no_priorities": "No prioritized findings in this window.",
     "actual": "Actual",
     "target": "Target",
-    "outliers": "Agent outliers by tool schema size"
+    "outliers": "Agent outliers by tool schema size",
+    "error_causes": "Top tool error causes",
+    "error_causes_summary": "{{errors}} errors · {{interrupted}} unfinished (still running or interrupted by restart) · {{cancelled}} stopped by user – the last two are not counted as errors",
+    "no_error_causes": "No tool errors in this period.",
+    "count": "Count",
+    "share": "Share",
+    "tool": "Tool",
+    "cause": "Cause"
   },
   "health": {
     "title": "Health",
