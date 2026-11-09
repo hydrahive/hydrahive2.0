@@ -106,6 +106,18 @@ def get_latest_summary(session_id: str) -> str | None:
     return row["content"] if row else None
 
 
+def latest_compaction_at(session_id: str) -> str | None:
+    """Zeitpunkt der jüngsten Compaction einer Session, oder None."""
+    with db() as conn:
+        row = conn.execute(
+            """SELECT created_at FROM messages
+               WHERE session_id = ? AND role = 'compaction'
+               ORDER BY created_at DESC LIMIT 1""",
+            (session_id,),
+        ).fetchone()
+    return row["created_at"] if row else None
+
+
 def update_tokens(message_id: str, token_count: int) -> None:
     with db() as conn:
         conn.execute(

@@ -6,15 +6,42 @@ from dataclasses import dataclass
 from datetime import datetime, timezone
 from typing import AsyncIterator
 
-from hydrahive.compaction import compact_session, effective_reserve_tokens, should_compact
+from hydrahive.compaction import (
+    compact_session,
+    compact_threshold_tokens,
+    effective_reserve_tokens,
+    should_compact,
+)
 from hydrahive.db import compaction_events as compaction_events_db
 from hydrahive.db import messages as messages_db
 from hydrahive.runner._call import CallResult, call_with_stream_or_fallback
+from hydrahive.runner._measured_usage import measured_history_tokens
 from hydrahive.runner.events import CompactionStart, Event
 
 logger = logging.getLogger(__name__)
 
 AUTO_COMPACTION_COOLDOWN_SECONDS = 300
+
+
+def _measured_over_threshold(
+    session_id: str, history: list, model: str, *, threshold_pct: int, reserve_tokens: int | None,
+) -> bool:
+    """Zweiter Trigger: echte Prompt-Größe laut Provider statt nur Zeichen-Schätzung (siehe _measured_usage)."""
+    if not history:
+        return False
+    measured = measured_history_tokens(
+        history, model=model, compacted_at=messages_db.latest_compaction_at(session_id),
+    )
+    if measured <= 0:
+        return False
+    threshold = compact_threshold_tokens(model, threshold_pct=threshold_pct, reserve_tokens=reserve_tokens)
+    if measured <= threshold:
+        return False
+    logger.info(
+        "Compaction-Trigger (gemessen) für Session %s: %d Tokens > Schwelle %d (%s)",
+        session_id, measured, threshold, model,
+    )
+    return True
 
 
 def _auto_compaction_cooldown_active(
@@ -78,7 +105,10 @@ async def prepare_history(
         should_kwargs["reserve_tokens"] = effective_reserve
     if compact_max_turns is not None:
         should_kwargs["max_turns"] = compact_max_turns
-    if should_compact(history, model, **should_kwargs):
+    if should_compact(history, model, **should_kwargs) or _measured_over_threshold(
+        session_id, history, model,
+        threshold_pct=compact_threshold_pct, reserve_tokens=compact_reserve,
+    ):
         if _auto_compaction_cooldown_active(session_id):
             logger.warning(
                 "Auto-Compaction für Session %s im %ss-Cooldown — fahre mit voller History fort",
