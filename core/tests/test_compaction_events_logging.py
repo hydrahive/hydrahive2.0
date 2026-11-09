@@ -180,6 +180,14 @@ def _slow_compaction_setup(monkeypatch):
     return compactor, persisted, events
 
 
+def test_standard_hat_kein_gesamtlimit():
+    """Review 09.11.2026: erfolgreiche Compactions dauerten bis 1.025 s; ein festes Limit darunter verursacht
+    Abbruch + erneutes Bezahlen. Retry-Stürme verhindert der Auto-Cooldown."""
+    from hydrahive.compaction import compactor
+
+    assert compactor.DEFAULT_COMPACTION_TIMEOUT_SECONDS is None
+
+
 def test_compact_session_timeout_loggt_fehler_ohne_pointer(monkeypatch):
     compactor, persisted, events = _slow_compaction_setup(monkeypatch)
 

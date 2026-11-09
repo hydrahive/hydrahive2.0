@@ -31,3 +31,19 @@ Ein aktueller Lauf erzeugte sieben sequenzielle Chunks. `_hard_split` legte nach
 6. Nach 900 Sekunden endet der Lauf deterministisch; kein Summary-Pointer wird halb geschrieben.
 7. Timeout/Cancellation erscheint als fehlerhaftes `compaction_events`-Ereignis.
 8. Bestehende Runner-, Compaction-, AgentLink- und Delegationstests bleiben grün.
+
+## Nachtrag Review 09.11.2026
+
+Drei Fehler der ersten Fassung wurden belegt und korrigiert:
+
+1. **Fallback griff im Hauptfall nicht.** Die Stücke wurden für das Fenster des Primärmodells geschnitten (Opus 1M).
+   Der Fallback (Luna 372k) verwarf sie mit `SummaryTooLarge`, ohne je aufgerufen zu werden. Jetzt wird pro Modell
+   komplett neu zerlegt. Die Tests nutzen echte Modell-IDs und Fenster; erfundene Namen hatten den Fehler verdeckt.
+2. **900-s-Gesamtlimit war zu knapp.** Die längste erfolgreiche Compaction dauerte 1.025 s. Ein Limit darunter
+   bricht ab und lässt den Lauf nach dem Cooldown erneut bezahlen. Standard ist jetzt kein Gesamtlimit; gegen
+   Retry-Stürme wirkt der Auto-Cooldown.
+3. **Nebenwirkung im Chat.** Die Verbindungsfehler-Regeln standen im gemeinsamen `runner/_failover.py` und ließen
+   damit auch den normalen Chat das Modell wechseln – entgegen #205. Sie liegen jetzt nur in `compaction/_llm.py`.
+
+Bekannte Grenze: Schlägt ein Modell mitten in einer langen Compaction fehl, beginnt der Fallback von vorn. Teilergebnisse
+werden nicht übernommen, weil sie für ein anderes Fenster zerlegt waren.

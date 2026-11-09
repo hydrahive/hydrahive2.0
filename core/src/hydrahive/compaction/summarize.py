@@ -3,7 +3,7 @@ from __future__ import annotations
 import logging
 
 from hydrahive.compaction._chunking import split_at_message_boundaries
-from hydrahive.compaction._llm import SummaryTooLarge, call_summary, model_chain
+from hydrahive.compaction._llm import SummaryTooLarge, call_summary, model_chain, should_switch_model
 from hydrahive.compaction._prompts import MERGE_INSTRUCTIONS as _MERGE_INSTRUCTIONS
 from hydrahive.compaction._prompts import SUMMARY_INSTRUCTIONS as _SUMMARY_INSTRUCTIONS
 from hydrahive.compaction.tokens import context_window_for, estimate_dense_text, estimate_text
@@ -11,6 +11,8 @@ from hydrahive.compaction.tokens import context_window_for, estimate_dense_text,
 logger = logging.getLogger(__name__)
 
 _USABLE_FRACTION = 0.80
+
+__all__ = ["SummaryTooLarge", "summarize"]
 
 
 async def summarize(
@@ -22,47 +24,52 @@ async def summarize(
     max_tokens: int = 4096,
     fallback_models: list[str] | None = None,
 ) -> str:
-    """Strukturierte Zusammenfassung. Bei zu großem Input wird verlustfrei
-    chunked: History wird in passende Stücke gesplittet, jeder einzeln
-    zusammengefasst, dann hierarchisch gemergt (#81 Variante B).
+    """Strukturierte Zusammenfassung mit sequenziellem Modell-Failover.
+
+    Pro Modell wird die komplette Zusammenfassung passend zu DESSEN Kontextfenster zerlegt. Ein Fallback mit
+    kleinerem Fenster bekommt also kleinere Stücke, statt an zu großen Stücken für das Primärmodell zu scheitern
+    (Review 09.11.2026). Gewechselt wird nur bei Rate-Limit/Quota/Auth/Verbindungsfehlern.
     """
     models = model_chain(model, fallback_models)
-    model = models[0]
-    window = context_window_for(model)
-    instructions_tokens = estimate_text(_SUMMARY_INSTRUCTIONS)
-    facts_str = _facts_string(facts) if facts else ""
-    facts_tokens = estimate_text(facts_str)
+    for index, current in enumerate(models):
+        is_last = index == len(models) - 1
+        try:
+            return await _summarize_with(current, serialized_history, previous_summary, facts, max_tokens)
+        except Exception as exc:
+            if is_last or not should_switch_model(exc):
+                raise
+            logger.warning("Compaction-Failover %s → %s wegen: %s", current, models[index + 1], exc)
+    raise RuntimeError("Compaction ohne Modell")
 
+
+async def _summarize_with(
+    model: str, serialized_history: str, previous_summary: str | None, facts: dict | None, max_tokens: int,
+) -> str:
+    window = context_window_for(model)
+    facts_str = _facts_string(facts) if facts else ""
     # Frühere Zusammenfassung dicht geschätzt: sie geht mit dem ersten Stück in denselben Aufruf.
     prev_tokens = estimate_dense_text(previous_summary) if previous_summary else 0
-    fixed_overhead = instructions_tokens + facts_tokens + prev_tokens + max_tokens + 1000
-    usable_for_history = int(window * _USABLE_FRACTION) - fixed_overhead
-    if usable_for_history < 10_000:
-        usable_for_history = 10_000
+    fixed_overhead = (estimate_text(_SUMMARY_INSTRUCTIONS) + estimate_text(facts_str) + prev_tokens
+                      + max_tokens + 1000)
+    usable_for_history = max(10_000, int(window * _USABLE_FRACTION) - fixed_overhead)
 
     history_tokens = estimate_dense_text(serialized_history)
     if history_tokens <= usable_for_history:
         return await _single_summarize(
-            models, _SUMMARY_INSTRUCTIONS, serialized_history,
-            previous_summary, facts_str, max_tokens,
+            model, _SUMMARY_INSTRUCTIONS, serialized_history, previous_summary, facts_str, max_tokens,
         )
 
-    logger.info(
-        "Compaction-Chunking: %d Tokens > %d nutzbar — splitte in Chunks",
-        history_tokens, usable_for_history,
-    )
+    logger.info("Compaction-Chunking (%s): %d Tokens > %d nutzbar — splitte in Chunks",
+                model, history_tokens, usable_for_history)
     chunks = split_at_message_boundaries(serialized_history, usable_for_history)
     chunk_summaries: list[str] = []
     for i, chunk in enumerate(chunks, 1):
         logger.info("Chunk %d/%d (%d chars) → summarize", i, len(chunks), len(chunk))
-        s = await _single_summarize(
-            models, _SUMMARY_INSTRUCTIONS, chunk,
-            previous_summary if i == 1 else None, facts_str if i == 1 else "",
-            max_tokens,
-        )
-        chunk_summaries.append(s)
-
-    return await _merge_summaries(models, chunk_summaries, max_tokens, usable_for_history)
+        chunk_summaries.append(await _single_summarize(
+            model, _SUMMARY_INSTRUCTIONS, chunk,
+            previous_summary if i == 1 else None, facts_str if i == 1 else "", max_tokens,
+        ))
+    return await _merge_summaries(model, chunk_summaries, max_tokens, usable_for_history)
 
 
 def _facts_string(facts: dict) -> str:
@@ -74,7 +81,7 @@ def _facts_string(facts: dict) -> str:
 
 
 async def _single_summarize(
-    model: str | list[str],
+    model: str,
     system_prompt: str,
     history_text: str,
     previous_summary: str | None,
@@ -92,18 +99,13 @@ async def _single_summarize(
     else:
         user_parts.append("KONVERSATION zum Zusammenfassen:")
     user_parts.append(history_text)
-    content = "\n".join(user_parts)
-    models = [model] if isinstance(model, str) else model
     return await call_summary(
-        models,
-        system_prompt=system_prompt,
-        content=content,
-        max_tokens=max_tokens,
+        model, system_prompt=system_prompt, content="\n".join(user_parts), max_tokens=max_tokens,
     )
 
 
 async def _merge_summaries(
-    model: str | list[str], summaries: list[str], max_tokens: int, usable_per_call: int,
+    model: str, summaries: list[str], max_tokens: int, usable_per_call: int,
 ) -> str:
     """Hierarchisches Merging: wenn alle Summaries zusammen ins Window passen,
     ein einzelner Merge. Sonst rekursiv in Gruppen mergen."""
@@ -112,12 +114,8 @@ async def _merge_summaries(
         for i, s in enumerate(summaries)
     )
     if estimate_dense_text(combined) <= usable_per_call or len(summaries) <= 1:
-        models = [model] if isinstance(model, str) else model
         return await call_summary(
-            models,
-            system_prompt=_MERGE_INSTRUCTIONS,
-            content=combined,
-            max_tokens=max_tokens,
+            model, system_prompt=_MERGE_INSTRUCTIONS, content=combined, max_tokens=max_tokens,
         )
 
     # Rekursion: Gruppen von je 4 Summaries mergen, dann nochmal
@@ -127,5 +125,3 @@ async def _merge_summaries(
     for g in groups:
         merged_groups.append(await _merge_summaries(model, g, max_tokens, usable_per_call))
     return await _merge_summaries(model, merged_groups, max_tokens, usable_per_call)
-
-

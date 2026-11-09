@@ -21,7 +21,6 @@ def _healthy() -> dict:
         "task_evidence_structured": True,
         "completion_claims": 100,
         "unverified_claims": 0,
-        "integrity_mode": "enforce",
         "ci_workflows": 2,
         "active_projects": 5,
         "mapped_project_agents": 5,
@@ -47,7 +46,6 @@ def test_known_gaps_are_deterministic_and_traceable():
         "compaction_p90_ms": 700_000,
         "completion_claims": 100,
         "unverified_claims": 8,
-        "integrity_mode": "observe",
         "delegations_terminal": 20,
         "delegations_bad": 6,
     }
@@ -70,3 +68,10 @@ def test_empty_windows_do_not_create_fake_rates():
     assert "state.compaction_errors" not in ids
     assert "verification.unverified" not in ids
     assert "lifecycle.delegations" not in ids
+
+
+def test_keine_regel_ohne_echte_datenquelle():
+    """Review 09.11.2026: eine Regel las eine nicht existierende Einstellung und zog immer 15 Punkte ab."""
+    result = evaluate(_healthy())
+    ids = {f["rule_id"] for d in result["dimensions"] for f in d["findings"]}
+    assert "verification.integrity_mode" not in ids

@@ -27,7 +27,10 @@ logger = logging.getLogger(__name__)
 
 DEFAULT_RESERVE_TOKENS = 16_384
 DEFAULT_KEEP_RECENT_TOKENS = 20_000
-DEFAULT_COMPACTION_TIMEOUT_SECONDS = 900
+# Kein Gesamtlimit per Default (Review 09.11.2026): die längste ERFOLGREICHE Compaction dauerte 1.025 s. Ein festes
+# Limit darunter bricht solche Läufe ab und lässt sie nach dem Cooldown erneut voll bezahlen. Gegen Retry-Stürme
+# schützt der Auto-Cooldown in runner/_runner_iter.py. Für Tests bleibt der Parameter erhalten.
+DEFAULT_COMPACTION_TIMEOUT_SECONDS: float | None = None
 # Token-based threshold is the correct trigger. The turn threshold is only a
 # last-resort safety net — tool-heavy sessions easily pack 200+ short messages
 # into 20K kept tokens, causing compaction to fire on every single turn if this
@@ -126,9 +129,9 @@ async def compact_session(
     fallback_models: list[str] | None = None,
     triggered_by: str = "auto",
     trigger_threshold_pct: int | None = None,
-    timeout_seconds: float = DEFAULT_COMPACTION_TIMEOUT_SECONDS,
+    timeout_seconds: float | None = DEFAULT_COMPACTION_TIMEOUT_SECONDS,
 ) -> dict:
-    """Compaction mit hartem Gesamtzeitbudget; persistiert erst nach fertiger Summary."""
+    """Compaction; optional mit Gesamtzeitbudget. Persistiert erst nach fertiger Summary."""
     async with asyncio.timeout(timeout_seconds) as timeout:
         return await _compact_session_impl(
             session_id,
