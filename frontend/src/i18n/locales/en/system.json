@@ -264,9 +264,21 @@
   },
   "tabs": {
     "ueberblick": "Overview",
+    "harness": "Harness",
     "netzwerk": "Network",
     "erweiterungen": "Extensions",
     "sicherung": "Backup"
+  },
+  "harness": {
+    "subtitle": "Read-only review of context, tools, state, verification and lifecycle.",
+    "loading": "Checking harness …",
+    "overall": "Overall",
+    "findings": "findings",
+    "priorities": "Prioritized improvements",
+    "no_priorities": "No prioritized findings in this window.",
+    "actual": "Actual",
+    "target": "Target",
+    "outliers": "Agent outliers by tool schema size"
   },
   "health": {
     "title": "Health",
