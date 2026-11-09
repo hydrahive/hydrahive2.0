@@ -22,6 +22,7 @@ import { AdminPanel, AdminStat, AdminTabs } from "./ui"
 import { parseSystemTab, systemTabs, type SystemTab } from "./systemTabs"
 import { AdminOverlay } from "./AdminOverlay"
 import { SystemSettingsOverlay } from "./SystemSettingsOverlay"
+import { HarnessDoctorPanel } from "./HarnessDoctorPanel"
 import { ADMIN_OVERLAY_THEME } from "@/shared/brand/boxThemes"
 
 const REFRESH_MS = 10_000
@@ -117,6 +118,7 @@ export function SystemOverlay({ onClose }: { onClose: () => void }) {
               )}
             </div>
           )}
+          {tab === "harness" && isAdmin && <HarnessDoctorPanel />}
           {tab === "netzwerk" && (
             <div className="space-y-6">
               <AgentLinkCard />

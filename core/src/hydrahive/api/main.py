@@ -17,6 +17,7 @@ from hydrahive.api.routes.agent_memory import router as agent_memory_router
 from hydrahive.api.routes.agent_knowledge import router as agent_knowledge_router
 from hydrahive.api.routes.workspace import router as workspace_router
 from hydrahive.api.routes.analytics import router as analytics_router
+from hydrahive.api.routes.harness_doctor import router as harness_doctor_router
 from hydrahive.api.routes.auth import router as auth_router
 from hydrahive.api.routes.backup import router as backup_router
 from hydrahive.api.routes.migration import router as migration_router
@@ -158,6 +159,7 @@ app.include_router(workspace_router)
 app.include_router(external_instances_router)
 app.include_router(agent_memory_router)
 app.include_router(analytics_router)
+app.include_router(harness_doctor_router)
 app.include_router(communication_router)
 app.include_router(communication_whatsapp_router)
 app.include_router(communication_discord_router)

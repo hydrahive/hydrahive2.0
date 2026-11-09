@@ -264,9 +264,21 @@
   },
   "tabs": {
     "ueberblick": "Überblick",
+    "harness": "Harness",
     "netzwerk": "Netzwerk",
     "erweiterungen": "Erweiterungen",
     "sicherung": "Sicherung"
+  },
+  "harness": {
+    "subtitle": "Read-only Prüfung von Kontext, Werkzeugen, Zustand, Verifikation und Lifecycle.",
+    "loading": "Harness wird geprüft …",
+    "overall": "Gesamt",
+    "findings": "Befunde",
+    "priorities": "Priorisierte Verbesserungen",
+    "no_priorities": "Keine priorisierten Befunde in diesem Zeitraum.",
+    "actual": "Ist",
+    "target": "Ziel",
+    "outliers": "Agent-Ausreißer nach Tool-Schema-Größe"
   },
   "health": {
     "title": "Zustand",

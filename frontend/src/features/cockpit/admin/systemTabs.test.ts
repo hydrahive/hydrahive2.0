@@ -9,8 +9,8 @@ const t = (k: string) => k
 const reiter = (checks: HealthCheck[], admin = true) => Object.fromEntries(systemTabs(checks, admin, t).map((r) => [r.id, r]))
 
 describe("System-Reiter", () => {
-  it("Admin: vier Reiter in fester Reihenfolge", () => {
-    expect(systemTabList(true)).toEqual(["ueberblick", "netzwerk", "erweiterungen", "sicherung"])
+  it("Admin: fünf Reiter in fester Reihenfolge", () => {
+    expect(systemTabList(true)).toEqual(["ueberblick", "harness", "netzwerk", "erweiterungen", "sicherung"])
   })
   it("Nicht-Admin: nur Überblick und Netzwerk (sonst wären die Reiter leer)", () => {
     expect(systemTabList(false)).toEqual(["ueberblick", "netzwerk"])
@@ -20,6 +20,7 @@ describe("System-Reiter", () => {
     expect(parseSystemTab(null, true)).toBe("ueberblick")
     expect(parseSystemTab("sicherung", true)).toBe("sicherung")
     expect(parseSystemTab("sicherung", false)).toBe("ueberblick")
+    expect(parseSystemTab("harness", false)).toBe("ueberblick")
     expect(parseSystemTab("netzwerk", false)).toBe("netzwerk")
   })
   it("Punkt am Überblick nur, wenn eine Gesundheitsprüfung nicht ok ist", () => {
