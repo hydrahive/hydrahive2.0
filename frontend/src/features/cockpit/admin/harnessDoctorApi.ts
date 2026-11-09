@@ -11,9 +11,14 @@ export interface HarnessAgentOutlier {
   skills: number; skill_metadata_chars: number; system_prompt_chars: number
   execution_mode: string; collection_error?: boolean
 }
+export interface HarnessErrorCluster { tool: string; cause: string; count: number; share: number }
+export interface HarnessErrorCauses {
+  errors_total: number; interrupted: number; cancelled: number; clusters: HarnessErrorCluster[]
+}
 export interface HarnessDoctorResult {
   generated_at: string; window_hours: number; overall_score: number; lowest_dimension: string
   dimensions: HarnessDimension[]; priorities: HarnessFinding[]; agent_outliers: HarnessAgentOutlier[]
+  error_causes?: HarnessErrorCauses
   snapshot: Record<string, unknown>; notes: string[]
 }
 export const harnessDoctorApi = {

@@ -16,6 +16,7 @@ from hydrahive.runner.integrity_metrics import summarize_integrity
 from hydrahive.settings import settings
 from hydrahive.skills.loader import list_for_agent
 from hydrahive.tools import schemas_for
+from hydrahive.harness_doctor.errors import cluster_errors
 from hydrahive.harness_doctor.rules import evaluate
 
 
@@ -52,7 +53,9 @@ def _telemetry(hours: int) -> dict[str, Any]:
     with db() as conn:
         tools = dict(conn.execute(
             """SELECT COUNT(*) tool_calls,
-                      SUM(CASE WHEN status != 'success' THEN 1 ELSE 0 END) tool_errors,
+                      SUM(CASE WHEN status = 'error' THEN 1 ELSE 0 END) tool_errors,
+                      SUM(CASE WHEN status = 'pending' THEN 1 ELSE 0 END) tool_interrupted,
+                      SUM(CASE WHEN status = 'cancelled' THEN 1 ELSE 0 END) tool_cancelled,
                       SUM(CASE WHEN result_truncated = 1 THEN 1 ELSE 0 END) tool_truncated
                FROM tool_calls WHERE created_at >= ?""", (since,),
         ).fetchone())
@@ -64,12 +67,19 @@ def _telemetry(hours: int) -> dict[str, Any]:
                WHERE created_at >= ? AND status != 'running' GROUP BY status""", (since,),
         ).fetchall()
         task_columns = {row["name"] for row in conn.execute("PRAGMA table_info(module_tasks)").fetchall()}
+        failed_tools = [dict(row) for row in conn.execute(
+            """SELECT tool_name, status, error_message, COUNT(*) amount FROM tool_calls
+               WHERE created_at >= ? AND status IN ('error', 'pending', 'cancelled')
+               GROUP BY tool_name, status, error_message""", (since,),
+        ).fetchall()]
     comp_durations = [int(row["duration_ms"] or 0) for row in compactions if not row["error"]]
     delegation_counts = {row["status"]: int(row["amount"]) for row in delegations}
     bad = sum(delegation_counts.get(status, 0) for status in ("error", "lost", "timeout"))
     return {
         "tool_calls": int(tools.get("tool_calls") or 0),
         "tool_errors": int(tools.get("tool_errors") or 0),
+        "tool_interrupted": int(tools.get("tool_interrupted") or 0),
+        "tool_cancelled": int(tools.get("tool_cancelled") or 0),
         "tool_truncated": int(tools.get("tool_truncated") or 0),
         "compactions": len(compactions),
         "compaction_errors": sum(1 for row in compactions if row["error"]),
@@ -78,6 +88,7 @@ def _telemetry(hours: int) -> dict[str, Any]:
         "delegations_terminal": sum(delegation_counts.values()),
         "delegations_bad": bad,
         "delegation_statuses": delegation_counts,
+        "error_causes": cluster_errors(failed_tools, limit=10),
     }
 
 
@@ -100,6 +111,7 @@ def run_doctor(hours: int) -> dict[str, Any]:
                 "collection_error": True,
             })
     telemetry = _telemetry(hours)
+    error_causes = telemetry.pop("error_causes")
     integrity = summarize_integrity(hours)
     complex_rows = [row for row in agent_rows if row.get("type") in ("master", "project")]
     shell_rows = [row for row in agent_rows if row.get("shell") and row.get("execution_mode") != "container"]
@@ -133,6 +145,7 @@ def run_doctor(hours: int) -> dict[str, Any]:
         **scores,
         "snapshot": snapshot,
         "agent_outliers": outliers,
+        "error_causes": error_causes,
         "notes": [
             "Tool-Schema-Größe umfasst lokale registrierte Schemas vor per-User Access-Filter.",
             "Scores sind deterministische Warnregeln mit festgelegten Schwellen – zum Vergleich über die Zeit, "
