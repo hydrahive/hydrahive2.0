@@ -91,6 +91,7 @@ def test_issue_node_certificate_has_client_auth_and_stable_fingerprint(pki_dir: 
         (b"x" * 20000, "CSR"),
         (_csr("Wrong Node"), "common name"),
     ],
+    ids=["not-csr", "oversized", "wrong-common-name"],
 )
 def test_issue_node_certificate_rejects_invalid_csr(pki_dir: Path, csr_pem: bytes, message: str) -> None:
     with pytest.raises(identity.IdentityError, match=message):
