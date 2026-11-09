@@ -31,8 +31,13 @@ _SCHEMA = {
         },
         "timeout": {
             "type": "integer",
-            "description": "Timeout in Sekunden (default 60).",
+            "description": (
+                "Timeout in Sekunden (default 60, maximal 600). Länger laufende Jobs im Hintergrund starten: "
+                "`befehl > log 2>&1 &` und danach das Log lesen."
+            ),
             "default": 60,
+            "minimum": 1,
+            "maximum": 600,
         },
         "description": {
             "type": "string",
@@ -182,7 +187,10 @@ async def _execute(args: dict, ctx: ToolContext) -> ToolResult:
     cmd = _rewrite_cmd(cmd)
     timeout = int(args.get("timeout", 60))
     if timeout < 1 or timeout > 600:
-        return ToolResult.fail("Timeout muss zwischen 1 und 600 Sekunden liegen")
+        return ToolResult.fail(
+            f"Timeout {timeout}s ungültig – erlaubt sind 1 bis 600 Sekunden. Nutze höchstens 600, oder starte "
+            "lange Jobs im Hintergrund mit `befehl > log 2>&1 &` und lies danach das Log."
+        )
 
     try:
         launcher = _launcher_container.launcher_for(ctx)
