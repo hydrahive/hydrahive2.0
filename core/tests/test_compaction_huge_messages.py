@@ -136,6 +136,12 @@ def test_einzeilige_riesen_nachricht_wird_mitten_in_der_zeile_geteilt():
     assert "".join(chunks).count("x") == 8_000_000           # nichts verloren
 
 
+def test_rest_einer_ueberlangen_zeile_wird_mit_folgezeile_gepackt():
+    chunks = split_at_message_boundaries("A" * 14 + "\nBBBB", 10)
+    assert chunks == ["A" * 12, "AA\nBBBB"]
+    assert max(estimate_dense_text(c) for c in chunks) <= 10
+
+
 def test_teilen_verliert_nichts_und_haelt_reihenfolge():
     lines = [f"[User]: frage {i}" if i % 3 == 0 else f"inhalt {i} " + "y" * 50 for i in range(5000)]
     text = "\n".join(lines)

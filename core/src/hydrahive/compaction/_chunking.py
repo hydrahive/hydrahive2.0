@@ -41,7 +41,13 @@ def _hard_split(chunk: str, max_tokens: int) -> list[str]:
             if current:
                 pieces.append("\n".join(current))
                 current, size = [], 0
-            pieces.extend(line[i:i + max_chars] for i in range(0, len(line), max_chars))
+            line_pieces = [line[i:i + max_chars] for i in range(0, len(line), max_chars)]
+            pieces.extend(line_pieces[:-1])
+            last = line_pieces[-1]
+            if len(last) == max_chars:
+                pieces.append(last)
+            else:
+                current, size = [last], len(last)
             continue
         add = len(line) + (1 if current else 0)
         if current and size + add > max_chars:
