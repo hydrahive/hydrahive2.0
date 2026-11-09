@@ -3,14 +3,43 @@ from __future__ import annotations
 
 import logging
 from dataclasses import dataclass
+from datetime import datetime, timezone
 from typing import AsyncIterator
 
 from hydrahive.compaction import compact_session, effective_reserve_tokens, should_compact
+from hydrahive.db import compaction_events as compaction_events_db
 from hydrahive.db import messages as messages_db
 from hydrahive.runner._call import CallResult, call_with_stream_or_fallback
 from hydrahive.runner.events import CompactionStart, Event
 
 logger = logging.getLogger(__name__)
+
+AUTO_COMPACTION_COOLDOWN_SECONDS = 300
+
+
+def _auto_compaction_cooldown_active(
+    session_id: str,
+    *,
+    now: datetime | None = None,
+) -> bool:
+    latest = compaction_events_db.latest_for_session(session_id)
+    error = str(latest.get("error") or "") if latest else ""
+    if (
+        not error
+        or latest.get("triggered_by") != "auto"
+        or error.startswith("CancelledError")
+    ):
+        return False
+    try:
+        created = datetime.fromisoformat(str(latest["created_at"]).replace("Z", "+00:00"))
+        if created.tzinfo is None:
+            created = created.replace(tzinfo=timezone.utc)
+    except (TypeError, ValueError):
+        logger.warning("Compaction-Cooldown: ungültiger Zeitstempel für Session %s", session_id)
+        return False
+    current = now or datetime.now(timezone.utc)
+    age = (current.astimezone(timezone.utc) - created.astimezone(timezone.utc)).total_seconds()
+    return 0 <= age < AUTO_COMPACTION_COOLDOWN_SECONDS
 
 
 @dataclass
@@ -29,6 +58,7 @@ async def prepare_history(
     *,
     model: str,
     compact_model: str,
+    compact_fallback_models: list[str],
     compact_tool_limit: int | None,
     compact_reserve: int | None,
     compact_threshold_pct: int,
@@ -49,17 +79,24 @@ async def prepare_history(
     if compact_max_turns is not None:
         should_kwargs["max_turns"] = compact_max_turns
     if should_compact(history, model, **should_kwargs):
-        yield CompactionStart()
-        try:
-            compact_kwargs = {} if compact_tool_limit is None else {"tool_result_limit": compact_tool_limit}
-            await compact_session(
-                session_id, model=compact_model,
-                triggered_by="auto", trigger_threshold_pct=compact_threshold_pct,
-                **compact_kwargs,
+        if _auto_compaction_cooldown_active(session_id):
+            logger.warning(
+                "Auto-Compaction für Session %s im %ss-Cooldown — fahre mit voller History fort",
+                session_id,
+                AUTO_COMPACTION_COOLDOWN_SECONDS,
             )
-            history = messages_db.list_for_llm(session_id)
-        except Exception as e:
-            logger.warning("Compaction fehlgeschlagen: %s — fahre mit voller History fort", e)
+        else:
+            yield CompactionStart()
+            try:
+                compact_kwargs = {} if compact_tool_limit is None else {"tool_result_limit": compact_tool_limit}
+                await compact_session(
+                    session_id, model=compact_model, fallback_models=compact_fallback_models,
+                    triggered_by="auto", trigger_threshold_pct=compact_threshold_pct,
+                    **compact_kwargs,
+                )
+                history = messages_db.list_for_llm(session_id)
+            except Exception as e:
+                logger.warning("Compaction fehlgeschlagen: %s — fahre mit voller History fort", e)
     yield history
 
 

@@ -19,6 +19,10 @@ _FAILOVER_PATTERNS = [
     re.compile(r"\bcredit_balance\b"),  # NICHT "credit" — matcht "credentials"
     re.compile(r"\b(?:billing|payment)\b"),
     re.compile(r"\boauth token has expired\b"),
+    re.compile(r"\bapi.?connection(?:error)?\b"),
+    re.compile(r"\bcannot connect\b"),
+    re.compile(r"\bconnect(?:ion)? (?:call failed|refused|reset)\b"),
+    re.compile(r"\btimed? ?out\b"),
 ]
 
 

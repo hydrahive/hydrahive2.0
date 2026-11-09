@@ -77,6 +77,21 @@ Wenn die alte Historie selbst zu groß für ein Summary-Call ist:
 Implementiert in `summarize._merge_summaries`. Verhindert Crashes bei
 Sessions die multi-window große Historie haben.
 
+### Zuverlässigkeitsgrenzen
+
+- Chunk-Aufrufe bleiben sequenziell, damit Compaction laufende Agenten und Provider-Limits nicht durch zusätzliche
+  Parallelität belastet.
+- Kleine Reste überlanger Zeilen werden mit folgenden Zeilen weitergepackt; volle Stücke bleiben unter dem berechneten
+  Modellfenster.
+- Compaction probiert bei retrybaren Rate-Limit-, Auth-, Kapazitäts- und Verbindungsfehlern ausschließlich die bereits
+  am Agenten konfigurierten `fallback_models`, in Reihenfolge und ohne Duplikate.
+- Ein fehlgeschlagener automatischer Lauf setzt pro Session fünf Minuten Cooldown. Manuelle Compaction bleibt möglich.
+- Ein kompletter Pass hat ein hartes Zeitbudget von 900 Sekunden. Timeout wird als `TimeoutError` telemetriert;
+  externe Cancellation bleibt `CancelledError` und propagiert weiter, damit AgentLink-/Subagent-Lifecycle unverändert
+  bleibt.
+- Der Summary-Pointer wird erst nach vollständiger Summary persistiert. Fehler, Timeout oder Cancellation lassen die
+  bisherige History unverändert.
+
 ## Secret-Redaction
 
 `compaction/redact.py` läuft vor Summary-Call und ersetzt:
@@ -119,7 +134,8 @@ der älteren Historie greift (kann aggressiver sein, z.B. 500 statt 12000).
 | `compaction/__init__.py` | Public-Facade |
 | `compaction/compactor.py` | `compact_session`, `should_compact` |
 | `compaction/cut_point.py` | Wo schneiden — Tool-Use-Paare schützen |
-| `compaction/summarize.py` | LLM-Call + hierarchisches Merging |
+| `compaction/summarize.py` | Chunking-Ablauf + hierarchisches Merging |
+| `compaction/_llm.py` | sequenzieller Summary-Call mit konfiguriertem Modell-Failover |
 | `compaction/_prompts.py` | DE-Summary-Prompts |
 | `compaction/_chunking.py` | Splitting older messages, File-Tracking |
 | `compaction/serialize.py` | Messages → Text für Summary-Input |

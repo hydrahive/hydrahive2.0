@@ -109,3 +109,16 @@ def for_session(session_id: str) -> list[dict]:
             (session_id,),
         ).fetchall()
     return [dict(r) for r in rows]
+
+
+def latest_for_session(session_id: str) -> dict | None:
+    """Neuestes Ereignis für Auto-Cooldown und Diagnose."""
+    with db() as conn:
+        row = conn.execute(
+            """SELECT * FROM compaction_events
+               WHERE session_id = ?
+               ORDER BY created_at DESC, id DESC
+               LIMIT 1""",
+            (session_id,),
+        ).fetchone()
+    return dict(row) if row else None

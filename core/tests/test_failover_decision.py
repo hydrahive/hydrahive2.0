@@ -21,13 +21,16 @@ from hydrahive.runner._failover import should_failover
     "your credit_balance is too low",
     "HTTP 529 overloaded",
     "insufficient quota",
+    "APIConnectionError: Cannot connect to host 127.0.0.1:11434",
+    "Connect call failed",
+    "connection reset by peer",
+    "request timed out",
 ])
 def test_should_failover_true(msg):
     assert should_failover(Exception(msg)) is True
 
 
 @pytest.mark.parametrize("msg", [
-    "connection reset by peer",
     "invalid credentials",          # 'credentials' != 'key' → kein Failover
     "json decode error",
     "tool not found",

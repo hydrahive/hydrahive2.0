@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import asyncio
+from types import SimpleNamespace
 
 import pytest
 
@@ -95,6 +96,26 @@ def test_skip_reason_params_als_json_persistiert(setup_test_env):
     assert _json.loads(row["skip_reason_params"]) == {"hook": "memory_flush"}
 
 
+def test_latest_for_session_liefert_neuestes_event(setup_test_env):
+    from hydrahive.db.connection import db
+
+    session_id = _make_session()
+    with db() as conn:
+        conn.execute(
+            "INSERT INTO compaction_events (id, session_id, created_at, skipped, error) VALUES (?, ?, ?, ?, ?)",
+            ("cmpe_old", session_id, "2026-11-09T10:00:00.000+00:00", 0, "RateLimitError"),
+        )
+        conn.execute(
+            "INSERT INTO compaction_events (id, session_id, created_at, skipped, error) VALUES (?, ?, ?, ?, ?)",
+            ("cmpe_new", session_id, "2026-11-09T10:05:00.000+00:00", 0, None),
+        )
+
+    latest = compaction_events_db.latest_for_session(session_id)
+    assert latest is not None
+    assert latest["id"] == "cmpe_new"
+    assert compaction_events_db.latest_for_session("unknown") is None
+
+
 def test_compact_session_loggt_too_short_skip(setup_test_env):
     """compact_session mit < 4 Messages → skipped=too_short, eine Zeile in compaction_events."""
     session_id = _make_session()
@@ -124,3 +145,75 @@ def test_compact_session_loggt_error_bei_exception(setup_test_env):
         asyncio.run(compact_session(
             "session-existiert-nicht", model="claude-sonnet-4-7",
         ))
+
+
+def _slow_compaction_setup(monkeypatch):
+    from hydrahive.compaction import compactor
+    from hydrahive.compaction.cut_point import CutPoint
+
+    messages = [SimpleNamespace(role="user", content="x", token_count=10, metadata={}) for _ in range(4)]
+    monkeypatch.setattr(
+        compactor.sessions_db,
+        "get",
+        lambda _session_id: SimpleNamespace(agent_id="agent", user_id="user", project_id=None),
+    )
+    monkeypatch.setattr(compactor.messages_db, "list_for_session", lambda _session_id: messages)
+    monkeypatch.setattr(compactor, "resolve_through_compaction", lambda history: history)
+    monkeypatch.setattr(compactor, "previous_summary_text", lambda history: None)
+    monkeypatch.setattr(compactor, "find_cut_point", lambda history, keep: CutPoint(kept_from_index=2))
+    monkeypatch.setattr(compactor, "all_hooks", lambda: [])
+
+    async def facts(_ctx):
+        return {}
+
+    async def slow_summary(**kwargs):
+        await asyncio.sleep(1)
+        return "zu spät"
+
+    monkeypatch.setattr(compactor, "collect_facts", facts)
+    monkeypatch.setattr(compactor, "serialize_for_summary", lambda messages, **kwargs: "history")
+    monkeypatch.setattr(compactor, "summarize", slow_summary)
+    persisted = []
+    monkeypatch.setattr(compactor, "persist_compaction", lambda *args, **kwargs: persisted.append(args))
+    events = []
+    monkeypatch.setattr(compactor.compaction_events_db, "insert", events.append)
+    return compactor, persisted, events
+
+
+def test_compact_session_timeout_loggt_fehler_ohne_pointer(monkeypatch):
+    compactor, persisted, events = _slow_compaction_setup(monkeypatch)
+
+    with pytest.raises(TimeoutError):
+        asyncio.run(compactor.compact_session(
+            "session-1",
+            model="primary-model",
+            timeout_seconds=0.01,
+        ))
+
+    assert persisted == []
+    assert len(events) == 1
+    assert events[0].error is not None
+    assert "TimeoutError" in events[0].error
+
+
+def test_externe_cancellation_bleibt_cancellation_und_wird_nicht_timeout(monkeypatch):
+    compactor, persisted, events = _slow_compaction_setup(monkeypatch)
+
+    async def cancel_run():
+        task = asyncio.create_task(compactor.compact_session(
+            "session-1",
+            model="primary-model",
+            timeout_seconds=10,
+        ))
+        await asyncio.sleep(0.01)
+        task.cancel()
+        await task
+
+    with pytest.raises(asyncio.CancelledError):
+        asyncio.run(cancel_run())
+
+    assert persisted == []
+    assert len(events) == 1
+    assert events[0].error is not None
+    assert "CancelledError" in events[0].error
+    assert "TimeoutError" not in events[0].error

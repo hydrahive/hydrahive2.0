@@ -3,6 +3,7 @@ from __future__ import annotations
 import logging
 
 from hydrahive.compaction._chunking import split_at_message_boundaries
+from hydrahive.compaction._llm import SummaryTooLarge, call_summary, model_chain
 from hydrahive.compaction._prompts import MERGE_INSTRUCTIONS as _MERGE_INSTRUCTIONS
 from hydrahive.compaction._prompts import SUMMARY_INSTRUCTIONS as _SUMMARY_INSTRUCTIONS
 from hydrahive.compaction.tokens import context_window_for, estimate_dense_text, estimate_text
@@ -12,38 +13,6 @@ logger = logging.getLogger(__name__)
 _USABLE_FRACTION = 0.80
 
 
-class SummaryTooLarge(RuntimeError):
-    """Der Prompt wäre größer als das Modell-Fenster – wird nicht gesendet (kostet nur, Task 5406d099)."""
-
-
-def _guard(model: str, *texts: str) -> None:
-    need = sum(estimate_dense_text(t) for t in texts if t)
-    window = context_window_for(model)
-    if need > window:
-        raise SummaryTooLarge(f"Zusammenfassung zu groß für {model}: etwa {need} > {window} Tokens – nicht gesendet")
-
-
-def _compaction_model(model: str) -> str:
-    """MiniMax-Modelle aktivieren bei bestimmten Prompts intern Web-Search → HTTP 500.
-    Für Compaction auf den ersten non-MiniMax-Provider ausweichen."""
-    from hydrahive.llm._anthropic import is_minimax_model
-    if not is_minimax_model(model):
-        return model
-    from hydrahive.llm._config import load_config
-    cfg = load_config()
-    default = cfg.get("default_model", "")
-    if default and not is_minimax_model(default):
-        logger.info("Compaction: MiniMax → Fallback auf %s", default)
-        return default
-    for p in cfg.get("providers", []):
-        if p.get("id") == "anthropic" and (p.get("api_key") or p.get("oauth")):
-            fallback = "claude-haiku-4-5-20251001"
-            logger.info("Compaction: MiniMax → Fallback auf %s (Anthropic-Provider)", fallback)
-            return fallback
-    logger.warning("Compaction: MiniMax-Modell %s, kein non-MiniMax-Fallback — wird scheitern", model)
-    return model
-
-
 async def summarize(
     *,
     model: str,
@@ -51,12 +20,14 @@ async def summarize(
     previous_summary: str | None = None,
     facts: dict | None = None,
     max_tokens: int = 4096,
+    fallback_models: list[str] | None = None,
 ) -> str:
     """Strukturierte Zusammenfassung. Bei zu großem Input wird verlustfrei
     chunked: History wird in passende Stücke gesplittet, jeder einzeln
     zusammengefasst, dann hierarchisch gemergt (#81 Variante B).
     """
-    model = _compaction_model(model)
+    models = model_chain(model, fallback_models)
+    model = models[0]
     window = context_window_for(model)
     instructions_tokens = estimate_text(_SUMMARY_INSTRUCTIONS)
     facts_str = _facts_string(facts) if facts else ""
@@ -72,7 +43,7 @@ async def summarize(
     history_tokens = estimate_dense_text(serialized_history)
     if history_tokens <= usable_for_history:
         return await _single_summarize(
-            model, _SUMMARY_INSTRUCTIONS, serialized_history,
+            models, _SUMMARY_INSTRUCTIONS, serialized_history,
             previous_summary, facts_str, max_tokens,
         )
 
@@ -85,13 +56,13 @@ async def summarize(
     for i, chunk in enumerate(chunks, 1):
         logger.info("Chunk %d/%d (%d chars) → summarize", i, len(chunks), len(chunk))
         s = await _single_summarize(
-            model, _SUMMARY_INSTRUCTIONS, chunk,
+            models, _SUMMARY_INSTRUCTIONS, chunk,
             previous_summary if i == 1 else None, facts_str if i == 1 else "",
             max_tokens,
         )
         chunk_summaries.append(s)
 
-    return await _merge_summaries(model, chunk_summaries, max_tokens, usable_for_history)
+    return await _merge_summaries(models, chunk_summaries, max_tokens, usable_for_history)
 
 
 def _facts_string(facts: dict) -> str:
@@ -103,7 +74,7 @@ def _facts_string(facts: dict) -> str:
 
 
 async def _single_summarize(
-    model: str,
+    model: str | list[str],
     system_prompt: str,
     history_text: str,
     previous_summary: str | None,
@@ -122,23 +93,17 @@ async def _single_summarize(
         user_parts.append("KONVERSATION zum Zusammenfassen:")
     user_parts.append(history_text)
     content = "\n".join(user_parts)
-    _guard(model, system_prompt, content)
-
-    from hydrahive.runner.llm_bridge import call_with_tools
-    blocks, _, _ = await call_with_tools(
-        model=model,
+    models = [model] if isinstance(model, str) else model
+    return await call_summary(
+        models,
         system_prompt=system_prompt,
-        messages=[{"role": "user", "content": content}],
-        tools=[],
-        temperature=0.3,
+        content=content,
         max_tokens=max_tokens,
     )
-    out_parts = [b.get("text", "") for b in blocks if b.get("type") == "text"]
-    return "\n".join(p for p in out_parts if p).strip()
 
 
 async def _merge_summaries(
-    model: str, summaries: list[str], max_tokens: int, usable_per_call: int,
+    model: str | list[str], summaries: list[str], max_tokens: int, usable_per_call: int,
 ) -> str:
     """Hierarchisches Merging: wenn alle Summaries zusammen ins Window passen,
     ein einzelner Merge. Sonst rekursiv in Gruppen mergen."""
@@ -147,18 +112,13 @@ async def _merge_summaries(
         for i, s in enumerate(summaries)
     )
     if estimate_dense_text(combined) <= usable_per_call or len(summaries) <= 1:
-        _guard(model, _MERGE_INSTRUCTIONS, combined)
-        from hydrahive.runner.llm_bridge import call_with_tools
-        blocks, _, _ = await call_with_tools(
-            model=model,
+        models = [model] if isinstance(model, str) else model
+        return await call_summary(
+            models,
             system_prompt=_MERGE_INSTRUCTIONS,
-            messages=[{"role": "user", "content": combined}],
-            tools=[],
-            temperature=0.3,
+            content=combined,
             max_tokens=max_tokens,
         )
-        out = [b.get("text", "") for b in blocks if b.get("type") == "text"]
-        return "\n".join(p for p in out if p).strip()
 
     # Rekursion: Gruppen von je 4 Summaries mergen, dann nochmal
     group_size = 4

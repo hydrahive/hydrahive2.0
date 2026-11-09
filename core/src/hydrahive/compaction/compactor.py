@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import asyncio
 import logging
 import time
 
@@ -26,6 +27,7 @@ logger = logging.getLogger(__name__)
 
 DEFAULT_RESERVE_TOKENS = 16_384
 DEFAULT_KEEP_RECENT_TOKENS = 20_000
+DEFAULT_COMPACTION_TIMEOUT_SECONDS = 900
 # Token-based threshold is the correct trigger. The turn threshold is only a
 # last-resort safety net — tool-heavy sessions easily pack 200+ short messages
 # into 20K kept tokens, causing compaction to fire on every single turn if this
@@ -121,8 +123,37 @@ async def compact_session(
     keep_recent_tokens: int = DEFAULT_KEEP_RECENT_TOKENS,
     instructions: str | None = None,
     tool_result_limit: int | None = None,
+    fallback_models: list[str] | None = None,
     triggered_by: str = "auto",
     trigger_threshold_pct: int | None = None,
+    timeout_seconds: float = DEFAULT_COMPACTION_TIMEOUT_SECONDS,
+) -> dict:
+    """Compaction mit hartem Gesamtzeitbudget; persistiert erst nach fertiger Summary."""
+    async with asyncio.timeout(timeout_seconds) as timeout:
+        return await _compact_session_impl(
+            session_id,
+            model=model,
+            keep_recent_tokens=keep_recent_tokens,
+            instructions=instructions,
+            tool_result_limit=tool_result_limit,
+            fallback_models=fallback_models,
+            triggered_by=triggered_by,
+            trigger_threshold_pct=trigger_threshold_pct,
+            _timeout=timeout,
+        )
+
+
+async def _compact_session_impl(
+    session_id: str,
+    *,
+    model: str,
+    keep_recent_tokens: int = DEFAULT_KEEP_RECENT_TOKENS,
+    instructions: str | None = None,
+    tool_result_limit: int | None = None,
+    fallback_models: list[str] | None = None,
+    triggered_by: str = "auto",
+    trigger_threshold_pct: int | None = None,
+    _timeout: asyncio.Timeout | None = None,
 ) -> dict:
     """Run one compaction pass. Returns metadata for logging/UI.
 
@@ -286,6 +317,7 @@ async def compact_session(
                 serialized_history=history_text,
                 previous_summary=ctx.previous_summary,
                 facts=facts,
+                fallback_models=fallback_models,
             )
 
         snap["source"] = source
@@ -318,6 +350,12 @@ async def compact_session(
                     logger.warning("After-compact hook %s fehlgeschlagen: %s", h.name, e)
 
         return record
+    except asyncio.CancelledError:
+        if _timeout is not None and _timeout.expired():
+            snap["error"] = "TimeoutError: Compaction-Zeitbudget überschritten"
+        else:
+            snap["error"] = "CancelledError: Compaction extern abgebrochen"
+        raise
     except Exception as e:
         snap["error"] = f"{type(e).__name__}: {e}"
         raise
