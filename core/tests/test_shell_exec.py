@@ -103,6 +103,25 @@ def test_timeout_zu_gross_wird_abgelehnt(launcher, tmp_path):
     assert launcher.calls == []
 
 
+def test_schema_nennt_die_timeout_grenzen():
+    """Harness-Review 09.11.2026: 51 von 146 shell_exec-Fehlern in 30 Tagen kamen von Timeouts > 600 s,
+    weil das Schema nur den Default nannte. Die Grenze muss für das Modell im Schema sichtbar sein."""
+    from hydrahive.tools import shell
+
+    timeout = shell.TOOL.schema["properties"]["timeout"]
+    assert timeout["minimum"] == 1
+    assert timeout["maximum"] == 600
+    assert "600" in timeout["description"]
+
+
+def test_fehlermeldung_sagt_wie_es_richtig_geht(launcher, tmp_path):
+    """Kurs L09 „Rotstift“: Fehlermeldung enthält die Korrektur, nicht nur das Verbot."""
+    res = _run({"cmd": "echo hi", "timeout": 1800}, _ctx(tmp_path))
+    assert not res.success
+    assert "600" in res.error
+    assert "Hintergrund" in res.error
+
+
 def test_default_timeout_ist_60(launcher, tmp_path):
     _run({"cmd": "echo hi"}, _ctx(tmp_path))
     assert launcher.calls[0]["timeout"] == 60
