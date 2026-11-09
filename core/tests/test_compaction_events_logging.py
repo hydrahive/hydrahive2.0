@@ -95,6 +95,26 @@ def test_skip_reason_params_als_json_persistiert(setup_test_env):
     assert _json.loads(row["skip_reason_params"]) == {"hook": "memory_flush"}
 
 
+def test_latest_for_session_liefert_neuestes_event(setup_test_env):
+    from hydrahive.db.connection import db
+
+    session_id = _make_session()
+    with db() as conn:
+        conn.execute(
+            "INSERT INTO compaction_events (id, session_id, created_at, skipped, error) VALUES (?, ?, ?, ?, ?)",
+            ("cmpe_old", session_id, "2026-11-09T10:00:00.000+00:00", 0, "RateLimitError"),
+        )
+        conn.execute(
+            "INSERT INTO compaction_events (id, session_id, created_at, skipped, error) VALUES (?, ?, ?, ?, ?)",
+            ("cmpe_new", session_id, "2026-11-09T10:05:00.000+00:00", 0, None),
+        )
+
+    latest = compaction_events_db.latest_for_session(session_id)
+    assert latest is not None
+    assert latest["id"] == "cmpe_new"
+    assert compaction_events_db.latest_for_session("unknown") is None
+
+
 def test_compact_session_loggt_too_short_skip(setup_test_env):
     """compact_session mit < 4 Messages → skipped=too_short, eine Zeile in compaction_events."""
     session_id = _make_session()
