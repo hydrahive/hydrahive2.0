@@ -129,7 +129,7 @@ async def compact_session(
     timeout_seconds: float = DEFAULT_COMPACTION_TIMEOUT_SECONDS,
 ) -> dict:
     """Compaction mit hartem Gesamtzeitbudget; persistiert erst nach fertiger Summary."""
-    async with asyncio.timeout(timeout_seconds):
+    async with asyncio.timeout(timeout_seconds) as timeout:
         return await _compact_session_impl(
             session_id,
             model=model,
@@ -139,6 +139,7 @@ async def compact_session(
             fallback_models=fallback_models,
             triggered_by=triggered_by,
             trigger_threshold_pct=trigger_threshold_pct,
+            _timeout=timeout,
         )
 
 
@@ -152,6 +153,7 @@ async def _compact_session_impl(
     fallback_models: list[str] | None = None,
     triggered_by: str = "auto",
     trigger_threshold_pct: int | None = None,
+    _timeout: asyncio.Timeout | None = None,
 ) -> dict:
     """Run one compaction pass. Returns metadata for logging/UI.
 
@@ -349,7 +351,10 @@ async def _compact_session_impl(
 
         return record
     except asyncio.CancelledError:
-        snap["error"] = "CancelledError: Compaction abgebrochen oder Zeitbudget überschritten"
+        if _timeout is not None and _timeout.expired():
+            snap["error"] = "TimeoutError: Compaction-Zeitbudget überschritten"
+        else:
+            snap["error"] = "CancelledError: Compaction extern abgebrochen"
         raise
     except Exception as e:
         snap["error"] = f"{type(e).__name__}: {e}"

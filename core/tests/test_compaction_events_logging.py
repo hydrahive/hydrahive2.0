@@ -147,7 +147,7 @@ def test_compact_session_loggt_error_bei_exception(setup_test_env):
         ))
 
 
-def test_compact_session_timeout_loggt_fehler_ohne_pointer(monkeypatch):
+def _slow_compaction_setup(monkeypatch):
     from hydrahive.compaction import compactor
     from hydrahive.compaction.cut_point import CutPoint
 
@@ -177,6 +177,11 @@ def test_compact_session_timeout_loggt_fehler_ohne_pointer(monkeypatch):
     monkeypatch.setattr(compactor, "persist_compaction", lambda *args, **kwargs: persisted.append(args))
     events = []
     monkeypatch.setattr(compactor.compaction_events_db, "insert", events.append)
+    return compactor, persisted, events
+
+
+def test_compact_session_timeout_loggt_fehler_ohne_pointer(monkeypatch):
+    compactor, persisted, events = _slow_compaction_setup(monkeypatch)
 
     with pytest.raises(TimeoutError):
         asyncio.run(compactor.compact_session(
@@ -188,4 +193,27 @@ def test_compact_session_timeout_loggt_fehler_ohne_pointer(monkeypatch):
     assert persisted == []
     assert len(events) == 1
     assert events[0].error is not None
+    assert "TimeoutError" in events[0].error
+
+
+def test_externe_cancellation_bleibt_cancellation_und_wird_nicht_timeout(monkeypatch):
+    compactor, persisted, events = _slow_compaction_setup(monkeypatch)
+
+    async def cancel_run():
+        task = asyncio.create_task(compactor.compact_session(
+            "session-1",
+            model="primary-model",
+            timeout_seconds=10,
+        ))
+        await asyncio.sleep(0.01)
+        task.cancel()
+        await task
+
+    with pytest.raises(asyncio.CancelledError):
+        asyncio.run(cancel_run())
+
+    assert persisted == []
+    assert len(events) == 1
+    assert events[0].error is not None
     assert "CancelledError" in events[0].error
+    assert "TimeoutError" not in events[0].error
