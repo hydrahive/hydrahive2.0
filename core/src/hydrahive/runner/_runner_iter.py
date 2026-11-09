@@ -29,6 +29,7 @@ async def prepare_history(
     *,
     model: str,
     compact_model: str,
+    compact_fallback_models: list[str],
     compact_tool_limit: int | None,
     compact_reserve: int | None,
     compact_threshold_pct: int,
@@ -53,7 +54,7 @@ async def prepare_history(
         try:
             compact_kwargs = {} if compact_tool_limit is None else {"tool_result_limit": compact_tool_limit}
             await compact_session(
-                session_id, model=compact_model,
+                session_id, model=compact_model, fallback_models=compact_fallback_models,
                 triggered_by="auto", trigger_threshold_pct=compact_threshold_pct,
                 **compact_kwargs,
             )

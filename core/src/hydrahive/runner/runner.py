@@ -167,6 +167,7 @@ async def run(
     total_input_tokens = total_output_tokens = total_cache_creation = total_cache_read = 0
 
     compact_model = agent.get("compact_model") or agent["llm_model"]
+    fallback_models = list(agent.get("fallback_models", []) or [])
     compact_tool_limit = agent.get("compact_tool_result_limit")
     compact_reserve = agent.get("compact_reserve_tokens")
     compact_threshold_pct = int(agent.get("compact_threshold_pct", DEFAULT_COMPACT_THRESHOLD_PCT))
@@ -216,6 +217,7 @@ async def run(
         history = []
         async for _item in prepare_history(
             session_id, model=primary_model, compact_model=compact_model,
+            compact_fallback_models=fallback_models,
             compact_tool_limit=compact_tool_limit, compact_reserve=compact_reserve,
             compact_threshold_pct=compact_threshold_pct,
             compact_max_turns=compact_max_turns,
@@ -246,7 +248,7 @@ async def run(
         try:
             async for item in stream_llm_call(
                 primary_model=primary_model,
-                fallback_models=agent.get("fallback_models", []) or [],
+                fallback_models=fallback_models,
                 stable_system=stable_system, volatile_system=volatile_system,
                 summary_system=summary_system, cache_ttl=cache_ttl,
                 anth_messages=to_anthropic_messages(heal_orphan_tool_uses(history)),

@@ -121,6 +121,7 @@ async def compact_session(
     keep_recent_tokens: int = DEFAULT_KEEP_RECENT_TOKENS,
     instructions: str | None = None,
     tool_result_limit: int | None = None,
+    fallback_models: list[str] | None = None,
     triggered_by: str = "auto",
     trigger_threshold_pct: int | None = None,
 ) -> dict:
@@ -286,6 +287,7 @@ async def compact_session(
                 serialized_history=history_text,
                 previous_summary=ctx.previous_summary,
                 facts=facts,
+                fallback_models=fallback_models,
             )
 
         snap["source"] = source
