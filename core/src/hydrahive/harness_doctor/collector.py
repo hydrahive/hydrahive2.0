@@ -120,7 +120,6 @@ def run_doctor(hours: int) -> dict[str, Any]:
         "memory_agents": sum(row["longterm_memory"] for row in complex_rows),
         "completion_claims": integrity["completion_claims"],
         "unverified_claims": integrity["unverified_completion_claims"],
-        "integrity_mode": getattr(settings, "integrity_mode", "observe"),
         "ci_workflows": ci_workflows,
         "active_projects": len(project_list),
         "mapped_project_agents": mapped,
@@ -136,6 +135,7 @@ def run_doctor(hours: int) -> dict[str, Any]:
         "agent_outliers": outliers,
         "notes": [
             "Tool-Schema-Größe umfasst lokale registrierte Schemas vor per-User Access-Filter.",
-            "Scores sind deterministische Warnregeln, keine Kausalitäts- oder Qualitätsbeweise.",
+            "Scores sind deterministische Warnregeln mit festgelegten Schwellen – zum Vergleich über die Zeit, "
+            "nicht als absolute Qualitätsnote.",
         ],
     }

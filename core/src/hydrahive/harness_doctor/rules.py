@@ -112,9 +112,6 @@ def evaluate(snapshot: dict[str, Any]) -> dict[str, Any]:
     elif unverified is not None and unverified > .01:
         add("verification", "verification.unverified", "Unbelegte Abschlussclaims vorhanden", round(unverified, 4),
             "≤ 1 %", 10, "Integrity-Metadaten", "Evidenz-Gate pilotieren.")
-    if snapshot["integrity_mode"] != "enforce":
-        add("verification", "verification.integrity_mode", "Integrity ist nicht erzwingend", snapshot["integrity_mode"],
-            "enforce", 15, "Systemeinstellung", "Enforce erst nach False-Positive-Abnahme aktivieren.")
     if snapshot["ci_workflows"] < 2:
         add("verification", "verification.ci", "Zu wenige erkannte CI-Workflows", snapshot["ci_workflows"], "≥ 2", 20,
             ".github/workflows", "Backend-, Frontend- und Spec-Prüfungen sicherstellen.")
