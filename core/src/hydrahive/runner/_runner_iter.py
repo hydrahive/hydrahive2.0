@@ -24,7 +24,11 @@ def _auto_compaction_cooldown_active(
 ) -> bool:
     latest = compaction_events_db.latest_for_session(session_id)
     error = str(latest.get("error") or "") if latest else ""
-    if not error or error.startswith("CancelledError"):
+    if (
+        not error
+        or latest.get("triggered_by") != "auto"
+        or error.startswith("CancelledError")
+    ):
         return False
     try:
         created = datetime.fromisoformat(str(latest["created_at"]).replace("Z", "+00:00"))

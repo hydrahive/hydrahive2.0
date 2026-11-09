@@ -33,6 +33,7 @@ def test_auto_cooldown_nach_frischem_fehler(monkeypatch):
         lambda _session_id: {
             "created_at": "2026-11-09T10:00:00.000+00:00",
             "error": "RateLimitError",
+            "triggered_by": "auto",
         },
     )
     now = datetime(2026, 11, 9, 10, 4, 59, tzinfo=timezone.utc)
@@ -46,9 +47,24 @@ def test_auto_cooldown_nach_fuenf_minuten_abgelaufen(monkeypatch):
         lambda _session_id: {
             "created_at": "2026-11-09T10:00:00.000+00:00",
             "error": "RateLimitError",
+            "triggered_by": "auto",
         },
     )
     now = datetime(2026, 11, 9, 10, 5, 0, tzinfo=timezone.utc)
+    assert _runner_iter._auto_compaction_cooldown_active("session-1", now=now) is False
+
+
+def test_manueller_fehler_aktiviert_keinen_auto_cooldown(monkeypatch):
+    monkeypatch.setattr(
+        _runner_iter.compaction_events_db,
+        "latest_for_session",
+        lambda _session_id: {
+            "created_at": "2026-11-09T10:00:00.000+00:00",
+            "error": "RateLimitError",
+            "triggered_by": "manual",
+        },
+    )
+    now = datetime(2026, 11, 9, 10, 1, 0, tzinfo=timezone.utc)
     assert _runner_iter._auto_compaction_cooldown_active("session-1", now=now) is False
 
 
@@ -59,6 +75,7 @@ def test_externe_cancellation_aktiviert_keinen_cooldown(monkeypatch):
         lambda _session_id: {
             "created_at": "2026-11-09T10:00:00.000+00:00",
             "error": "CancelledError: Compaction extern abgebrochen",
+            "triggered_by": "auto",
         },
     )
     now = datetime(2026, 11, 9, 10, 1, 0, tzinfo=timezone.utc)
@@ -72,6 +89,7 @@ def test_erfolgreiches_letztes_event_aktiviert_keinen_cooldown(monkeypatch):
         lambda _session_id: {
             "created_at": "2026-11-09T10:00:00.000+00:00",
             "error": None,
+            "triggered_by": "auto",
         },
     )
     now = datetime(2026, 11, 9, 10, 1, 0, tzinfo=timezone.utc)
