@@ -3,6 +3,21 @@ from __future__ import annotations
 
 from statistics import median
 
+from hydrahive.runner._measured_usage import prompt_tokens_from_metadata
+
+
+def input_tokens(row: dict) -> int:
+    """Gesendete Eingabe-Tokens eines Laufs, je Anbieter richtig gezählt.
+
+    Codex meldet gecachte Tokens bereits in `prompt_tokens`; sie dazuzuzählen verdoppelt den Cache-Anteil
+    (Baseline 09.11.2026: bugfix 55.967 statt 42.271). Anthropic weist Cache-Lesen und -Schreiben getrennt aus.
+    Ältere Rohdaten haben kein `cache_creation_tokens`.
+    """
+    return prompt_tokens_from_metadata({
+        "input_tokens": row["prompt_tokens"], "cache_read_tokens": row["cache_read_tokens"],
+        "cache_creation_tokens": row.get("cache_creation_tokens", 0), "model": row["model"],
+    })
+
 
 def summarize(results: list[dict]) -> dict[str, dict]:
     by_task: dict[str, list[dict]] = {}
@@ -15,7 +30,7 @@ def summarize(results: list[dict]) -> dict[str, dict]:
             "runs": len(rows),
             "success_rate": round(sum(r["success"] for r in rows) / len(rows), 2),
             "median_seconds": median(r["seconds"] for r in rows),
-            "median_input_tokens": median(r["prompt_tokens"] + r["cache_read_tokens"] for r in rows),
+            "median_input_tokens": median(input_tokens(r) for r in rows),
             "median_output_tokens": median(r["completion_tokens"] for r in rows),
             "median_tool_errors": median(r["tool_errors"] for r in rows),
             "total_cost_usd": round(sum(costs), 4) if costs else None,

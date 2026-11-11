@@ -29,6 +29,7 @@ class RunResult:
     llm_calls: int
     prompt_tokens: int
     cache_read_tokens: int
+    cache_creation_tokens: int
     completion_tokens: int
     cost_usd: float | None
     tool_calls: int
@@ -55,6 +56,7 @@ def _metrics(session_id: str) -> dict:
     with db() as conn:
         llm = conn.execute(
             """SELECT COUNT(*) calls, COALESCE(SUM(prompt_tokens),0) prompt, COALESCE(SUM(cache_read_tokens),0) cache,
+                      COALESCE(SUM(cache_creation_tokens),0) cache_creation,
                       COALESCE(SUM(completion_tokens),0) completion, SUM(cost_micros) cost
                FROM llm_calls WHERE session_id = ?""", (session_id,),
         ).fetchone()
@@ -64,7 +66,7 @@ def _metrics(session_id: str) -> dict:
         ).fetchone()
     return {
         "llm_calls": llm["calls"], "prompt_tokens": llm["prompt"], "cache_read_tokens": llm["cache"],
-        "completion_tokens": llm["completion"],
+        "cache_creation_tokens": llm["cache_creation"], "completion_tokens": llm["completion"],
         "cost_usd": round(llm["cost"] / 1e6, 4) if llm["cost"] is not None else None,
         "tool_calls": tools["total"] or 0, "tool_errors": tools["errors"] or 0,
     }
