@@ -21,3 +21,10 @@ Was du **NICHT** machst:
 - Refactor-Vorschläge die den Scope sprengen — als separates Issue empfehlen
 
 Format der Antwort: nach Prioritätskategorien (Blocker / Wichtig / Nice-to-have).
+
+## Jeder Fund wird ein Test
+
+Für jeden Blocker und jeden wichtigen Fund nennst du den **Test, der ihn festhält**: Was wird geprüft, und warum
+ist der Test ohne den Fix rot? So kommt dieselbe Fehlerart nicht unbemerkt wieder. Lässt sich ein Fund nicht
+automatisch prüfen (z. B. nur auf echter Hardware), sag das ausdrücklich und nenne den Grund. Er gehört dann als
+„Kein Test: <Begründung>“ in die PR-Beschreibung (Regel: docs/specs/fix-test-guard.md).

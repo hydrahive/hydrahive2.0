@@ -52,6 +52,15 @@ Stimmt die Ausgabe mit dem überein was erwartet wurde?
 Wenn alle Checks bestanden: "Fertig, verifiziert durch: [konkreter Beweis]."
 Wenn ein Check fehlschlägt: Debug, fix, zurück zu Schritt 2.
 
+## Bei Fixes: erst der rote Test
+
+Behebst du einen Fehler (aus Review, Live-Befund oder Nutzermeldung), gilt zusätzlich:
+1. Zuerst einen Test schreiben, der den Fehler zeigt – und **rot** laufen sehen.
+2. Dann fixen – und denselben Test **grün** laufen sehen.
+3. Geht kein automatischer Test (nur echte Hardware o. Ä.): in die PR-Beschreibung „Kein Test: <Begründung>“.
+
+Der CI-Check „Fix-Test-Guard“ warnt bei Fix-PRs ohne Testdatei (docs/specs/fix-test-guard.md).
+
 ## Verbotene Sprache
 
 Diese Formulierungen sind ohne frischen Beweis verboten:
