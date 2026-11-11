@@ -14,8 +14,12 @@ Ein PR gilt als **Fix**, wenn sein Titel, ein Commit-Betreff oder der Branch-Nam
 `bugfix` beginnt (z. B. `fix(shell): …`, `fix: …`, Branch `fix/…`).
 
 Ein Fix-PR, der **Produktivcode** ändert (`.py`, `.ts`, `.tsx`, `.sh`, `.mjs`, `.js` außerhalb von Tests),
-braucht **eine geänderte oder neue Testdatei**: `test_*.py`, `*_test.py`, `*.test.ts(x)`, `*.spec.ts(x)` oder eine
-Datei unter einem `tests/`-Ordner.
+braucht **eine geänderte oder neue Testdatei**: `test_*.py`, `*.test.ts(x)`, `*.spec.ts(x)` oder eine Datei unter
+einem `tests/`-Ordner. `*_test.py` zählt bewusst nicht: Das Muster kommt im Repo nicht vor und würde Skripte wie
+`check_fix_has_test.py` fälschlich als Test werten (echter Fund im ersten CI-Lauf, PR #696).
+
+Fix-Erkennung nur als Präfix wie in Commit-Konventionen (`fix:`, `fix(scope):`, `fix …`). Titel wie
+„Fix-Test-Guard“ oder „Fixtures …“ sind kein Fix (ebenfalls Fund aus PR #696).
 
 **Ausnahme:** Die PR-Beschreibung enthält eine Zeile `Kein Test: <Begründung>` (mindestens 10 Zeichen
 Begründung). Die Ausnahme ist damit begründet und im PR nachlesbar.
@@ -29,7 +33,7 @@ und ob die Funde berechtigt waren. Erst dann ggf. `block`.
 ## Fehlermeldung (L10: was, warum, wie beheben)
 
 ```
-Fix ohne Test: 3 Produktivdateien geändert, keine Testdatei.
+Fix ohne Test: 3 Produktivdatei(en) geändert (…), keine Testdatei.
 WARUM: Ein Fix ohne Test kann unbemerkt wiederkommen (Kurs L10, Regel docs/specs/fix-test-guard.md).
 BEHEBEN: Test ergänzen, der ohne den Fix rot ist (test_*.py, *.test.ts …),
          oder in die PR-Beschreibung schreiben: „Kein Test: <Begründung>“.

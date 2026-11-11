@@ -36,6 +36,7 @@ def test_fix_wird_erkannt(title, subjects, branch):
 @pytest.mark.parametrize("title", [
     "feat(system): Doctor", "Harness-Benchmark", "Prefix fixen später", "docs: fix typo",
     "Fixtures für Tests aufräumen", "fixed-width Layout",   # „fix“ nur als Wortanfang zählt
+    "Fix-Test-Guard: jeder Fix bringt einen Test mit",       # echter Fehlalarm im CI-Lauf von PR #696
 ])
 def test_kein_fix(title):
     assert not _eval(["core/src/a.py"], title=title).is_fix
@@ -45,7 +46,7 @@ def test_kein_fix(title):
 
 @pytest.mark.parametrize("test_file", [
     "core/tests/test_shell.py",
-    "modules/x/foo_test.py",
+    "modules/x/test_foo.py",
     "frontend/src/features/chat/Chat.test.tsx",
     "frontend/src/shared/api.test.ts",
     "frontend/src/x/thing.spec.ts",
@@ -58,9 +59,20 @@ def test_testdatei_erfuellt_regel(test_file):
     assert result.prod_files == ["core/src/a.py"]      # Testdatei zählt nicht als Produktivcode
 
 
-@pytest.mark.parametrize("not_a_test", ["core/src/latest/x.py", "frontend/src/contest/a.ts", "core/src/attest.py"])
+@pytest.mark.parametrize("not_a_test", [
+    "core/src/latest/x.py", "frontend/src/contest/a.ts", "core/src/attest.py",
+    # *_test.py kommt im Repo nicht vor (10.11.2026); als Muster würde es Skripte wie check_fix_has_test.py treffen.
+    "scripts/check_fix_has_test.py", "core/src/hydrahive/speed_test.py",
+])
 def test_aehnliche_namen_sind_keine_tests(not_a_test):
     assert _eval([not_a_test], title="fix: a").violation
+
+
+def test_guard_skript_selbst_ist_produktivcode():
+    """Echter Fehler im CI-Lauf von PR #696: der Guard zählte sich selbst als Testdatei."""
+    result = _eval([str(_SCRIPT.relative_to(_SCRIPT.parents[1]))], title="fix: a")
+    assert result.test_files == []
+    assert result.violation
 
 
 def test_fix_ohne_test_ist_verstoss():

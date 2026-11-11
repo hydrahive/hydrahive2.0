@@ -14,9 +14,12 @@ import subprocess
 import sys
 from dataclasses import dataclass, field
 
-_FIX = re.compile(r"^\s*(fix|hotfix|bugfix)\b", re.IGNORECASE)
+# Fix = Präfix wie in Commit-Konventionen: „fix:“, „fix(scope):“, „fix “ – nicht „Fix-Test-Guard“ oder „Fixtures“.
+_FIX = re.compile(r"^\s*(fix|hotfix|bugfix)(\(|:|\s|$)", re.IGNORECASE)
 _PROD_EXT = re.compile(r"\.(py|ts|tsx|sh|mjs|js)$")
-_TEST_FILE = re.compile(r"(^|/)(tests?/|test_[^/]+\.py$|[^/]+_test\.py$|[^/]+\.(test|spec)\.tsx?$)")
+# Ordner tests/ bzw. test/, oder Dateiname test_*.py, *_test.py, *.test.ts(x), *.spec.ts(x).
+# Nur der Dateiname zählt – „check_fix_has_test.py“ endet auf „_test.py“, ist aber kein Test.
+_TEST_FILE = re.compile(r"(^|/)(tests?/.+|test_[^/]+\.py|[^/]+\.(test|spec)\.tsx?)$")
 _EXEMPTION = re.compile(r"^\s*Kein Test:\s*(.+?)\s*$", re.IGNORECASE | re.MULTILINE)
 _MIN_REASON = 10
 
