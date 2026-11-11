@@ -115,3 +115,20 @@ def test_summary_und_vergleich():
     assert before["bugfix"]["success_rate"] == 0.5
     table = compare(before, after)
     assert "50% → 100%" in table and "-20%" in table and "-50%" in table
+
+
+def test_codex_zaehlt_gecachte_tokens_nicht_doppelt():
+    """Codex meldet den Cache-Anteil schon in prompt_tokens (Baseline 09.11.: bugfix 55.967 statt 42.271)."""
+    rows = [{**_row("bugfix", True, 1000, 10), "model": "openai-codex/gpt-5.6-sol", "cache_read_tokens": 900}]
+    assert summarize(rows)["bugfix"]["median_input_tokens"] == 1000
+
+
+def test_anthropic_zaehlt_cache_lesen_und_schreiben_dazu():
+    rows = [{**_row("bugfix", True, 1000, 10), "model": "claude-opus-5", "cache_read_tokens": 900,
+             "cache_creation_tokens": 50}]
+    assert summarize(rows)["bugfix"]["median_input_tokens"] == 1950
+
+
+def test_alte_rohdaten_ohne_cache_creation_bleiben_lesbar():
+    rows = [{**_row("bugfix", True, 1000, 10), "model": "claude-opus-5", "cache_read_tokens": 900}]
+    assert summarize(rows)["bugfix"]["median_input_tokens"] == 1900

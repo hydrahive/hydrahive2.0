@@ -21,6 +21,10 @@ jedes Ergebnis maschinell:
 
 Gemessen je Lauf aus `llm_calls`/`tool_calls`: Erfolg, Dauer, Input-/Output-Tokens, Kosten (Abo: keine), Tool-Fehler.
 
+Input-Tokens werden je Anbieter gezählt: Codex meldet gecachte Tokens bereits in `prompt_tokens`, Anthropic weist
+Cache-Lesen und -Schreiben getrennt aus. Bis 11.11.2026 wurde der Cache-Anteil bei Codex doppelt gezählt; die Tabelle
+der Baseline vom 09.11. ist deshalb zu hoch, die Rohdaten stimmen.
+
 ## Isolation
 
 - Eigenes Projekt `harness-bench` mit eigenem Projektagenten „Harness-Benchmark".
