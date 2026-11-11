@@ -1,0 +1,30 @@
+name: Fix-Test-Guard
+
+# Ein Fix-PR mit Produktivcode bringt einen Test mit, oder die PR-Beschreibung begründet „Kein Test: …“.
+# Regel und Modus: docs/specs/fix-test-guard.md (Harness-Punkt 4, Kurs L10). Start im Warnmodus (10.11.2026).
+
+on:
+  pull_request:
+    types: [opened, edited, synchronize, reopened]
+
+permissions:
+  contents: read
+
+jobs:
+  fix-test-guard:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Fix bringt Test mit
+        # PR-Texte nur über env – nie direkt in run: einsetzen (Script-Injection).
+        env:
+          PR_TITLE: ${{ github.event.pull_request.title }}
+          PR_BODY: ${{ github.event.pull_request.body }}
+          PR_BRANCH: ${{ github.event.pull_request.head.ref }}
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+          FIX_TEST_GUARD_MODE: warn
+        run: python3 scripts/check_fix_has_test.py "$BASE_SHA" "$HEAD_SHA"
