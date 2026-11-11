@@ -72,8 +72,7 @@ def _stable_section(
         )
         stable += (
             "\n\n## Skills\n"
-            "Lade einen Skill mit `load_skill(name)` **bevor** du mit einer Aufgabe beginnst. "
-            "Wenn auch nur 1% Chance besteht dass ein Skill passt — lade ihn zuerst.\n\n"
+            "Lade einen Skill mit `load_skill(name)`, wenn er zur Aufgabe passt.\n\n"
             "| Skill | Wann nutzen |\n"
             "|-------|-------------|\n"
             f"{rows}"
