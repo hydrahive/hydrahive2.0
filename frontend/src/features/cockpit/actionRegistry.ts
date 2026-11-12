@@ -14,7 +14,7 @@ export function openLocalPath(path: string) {
 
 export const buddyOfflineActions = [
   { id: "today", label: "Was liegt an?", kind: "local-action", description: "Zeigt eine lokale Übersicht ohne LLM." },
-  { id: "remember", label: "Idee merken", kind: "local-link", path: "/scratchpad", description: "Öffnet Scratchpad statt Chat-Prompt." },
+  { id: "remember", label: "Idee merken", kind: "local-link", path: "/scratchpad", description: "Öffnet die Ideen statt eines Chat-Prompts." },
   { id: "project", label: "Projekt öffnen", kind: "local-link", path: "/projects", description: "Öffnet das Projekt-Cockpit." },
 ] satisfies CockpitAction[]
 
