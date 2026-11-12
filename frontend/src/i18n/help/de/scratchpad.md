@@ -1,36 +1,72 @@
-# Scratchpad
+# Ideen
 
 ## Was ist das?
 
-Das **Scratchpad** ist ein schneller **gemeinsamer Notizzettel** zwischen dir und
-deinem Agenten. Du hältst hier lose Ideen, Notizen und Aufgaben fest — und der
-Agent kann sie lesen, wenn eine Aufgabe darauf Bezug nimmt. Es speichert
-automatisch, während du tippst.
+Unter **Ideen** hältst du fest, was einmal werden soll: jede Idee einzeln, mit
+**Kopfzeile**, **Beschreibung**, **Projekt** und **Status**. Du brauchst dafür
+keinen Agenten. Der Agent kann deine Ideen lesen und etwas danebenschreiben.
+Deinen Text ändert er nicht.
 
-## Die zwei Bereiche
+## Eine Idee festhalten
 
-- **Meine Ideen** — dein Bereich. Hier schreibst **nur du**. Der Agent liest ihn,
-  wenn es zur Aufgabe passt.
-- **Agent-Notizen** — hier schreibt **nur der Agent** seine eigenen Notizen. Dein
-  Bereich bleibt ihm zum Schreiben tabu.
+1. Oben in **„Was soll es werden?“** die Kopfzeile schreiben.
+2. Wenn du magst, in **„Was stelle ich mir vor?“** beschreiben, wie du es dir
+   vorstellst. Markdown geht, leer lassen auch.
+3. Ein **Projekt** wählen oder „Ohne Projekt“ lassen. Die letzte Wahl wird gemerkt.
+4. **Idee festhalten** drücken oder **Strg+Enter**.
 
-## Bedienung
+Die neue Idee steht danach in der Liste und ist rechts geöffnet.
 
-- Einfach in **Meine Ideen** lostippen — es speichert automatisch (du siehst
-  „speichert…" / „gespeichert").
-- **Markdown** wird unterstützt, inklusive Checkboxen: `- [ ]` für offen, `- [x]`
-  für erledigt.
-- **Agent-Notizen** kannst du bei Bedarf **leeren** (mit Bestätigung).
+## Die Liste
 
-## Wann Scratchpad, wann Notizbuch?
+- **Projekt:** alle Projekte, ohne Projekt oder ein einzelnes Projekt. Bei „Alle
+  Projekte“ ist die Liste nach Projekt gruppiert.
+- **Status:** Die Knöpfe zeigen, wie viele Ideen es je Status gibt. Am Anfang
+  siehst du die **offenen** (Neu, Wird geprüft, Geplant).
+- Die zuletzt geänderte Idee steht oben.
 
-- **Scratchpad** — schnelle, formlose Zettelwirtschaft, **geteilt mit dem Agenten**;
-  ideal für „merk dir das" und laufende Gedanken.
-- **Notizbuch** — dauerhafte, betitelte Notizen, eher als eigenes Archiv.
+## Eine Idee bearbeiten
 
-## Tipps
+- Kopfzeile und Beschreibung **speichern von selbst**, kurz nachdem du tippst
+  („speichert…“ / „gespeichert“). Eine leere Kopfzeile wird nicht gespeichert.
+- **Vorschau** zeigt die Beschreibung fertig formatiert.
+- **Status** und **Projekt** stellst du über die beiden Auswahlfelder um.
+- **Löschen** fragt nach und entfernt die Idee mit ihren Anmerkungen.
 
-- **Aufgaben als Checkboxen**: `- [ ] noch offen` — der Agent sieht deine Liste
-  und kann sie berücksichtigen.
-- **Kurz halten**: Das Scratchpad ist der Notizzettel, nicht das Archiv — Größeres
-  gehört ins Notizbuch.
+## Status
+
+- **Neu** — gerade festgehalten.
+- **Wird geprüft** — jemand sieht sie sich an.
+- **Geplant** — soll umgesetzt werden.
+- **Geparkt** — nicht jetzt, aber nicht verworfen.
+- **Umgesetzt** — erledigt.
+- **Verworfen** — wird nicht gemacht.
+
+Die Reihenfolge ist frei. Du kannst jederzeit jeden Status setzen.
+
+## Was der Agent darf
+
+- Er **liest** deine Ideen, wenn du im Chat darauf verweist, zum Beispiel:
+  „Schau dir meine Idee zur Admin-Seite an.“
+- Er schreibt **Anmerkungen** neben deine Idee. Sie stehen unter der Beschreibung
+  und lassen sich einzeln löschen.
+- Er darf den **Status** ändern. Ändert er ihn, steht der Wechsel als Anmerkung dabei.
+- Er kann **eigene Ideen** anlegen. In der Liste steht dann „vom Agenten“.
+- Kopfzeile und Beschreibung **deiner** Ideen kann er nicht ändern.
+
+## Ideen und Projekte
+
+Das Projekt ist eine Zuordnung, keine Freigabe: Deine Ideen siehst nur du, auch
+wenn sie einem gemeinsamen Projekt zugeordnet sind.
+
+## Früherer Notizblock
+
+Bis Version 1 gab es hier einen freien Text für dich und einen für den Agenten.
+Beim ersten Öffnen werden beide in einzelne Ideen übernommen, geteilt an den
+Überschriften der ersten Ebene (`# `). Die alten Dateien bleiben auf dem Server
+liegen.
+
+## Wann Ideen, wann Notizbuch?
+
+- **Ideen** — was einmal gebaut oder gemacht werden soll, mit Status und Projekt.
+- **Notizbuch** — dauerhafte, betitelte Notizen für dich.

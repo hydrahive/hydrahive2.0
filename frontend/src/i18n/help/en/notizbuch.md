@@ -28,5 +28,5 @@ toggled between **Edit** and **Preview**.
 ## How it differs
 
 - **Notebook** — permanent, titled notes for you.
-- **Scratchpad** — a quick shared pad between you and the agent.
+- **Ideas** — single ideas with status and project; the agent can read and annotate them.
 - **My Record** — structured health data (not a free-text notebook).

@@ -31,5 +31,5 @@ umschalten.
 ## Abgrenzung
 
 - **Notizbuch** — dauerhafte, betitelte Notizen für dich.
-- **Scratchpad** — ein schneller gemeinsamer Zettel zwischen dir und dem Agenten.
+- **Ideen** — einzelne Ideen mit Status und Projekt; der Agent kann sie lesen und anmerken.
 - **Meine Akte** — strukturierte Gesundheitsdaten (kein Freitext-Notizbuch).
