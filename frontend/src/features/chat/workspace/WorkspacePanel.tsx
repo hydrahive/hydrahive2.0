@@ -5,12 +5,12 @@ import { useRunFinished } from "@/shared/runFinished"
 import { FileTree } from "./FileTree"
 import { GitPanel } from "./GitPanel"
 import { classifyFile, type FileKind } from "./fileType"
+import { tabLabel, type TabLabelSource } from "./tabLabel"
 import { moduleWorkspaceTabs } from "@/modules/index.generated"
 import { moduleList } from "@/shared/moduleList"
 
-interface WorkspaceTabDef {
+interface WorkspaceTabDef extends TabLabelSource {
   id: string
-  label: string
   component: ComponentType<{ projectId?: string | null }>
 }
 
@@ -51,7 +51,7 @@ export function WorkspacePanel({ agentId, projectId, onOpenFile }: Props) {
       <div className="flex border-b border-s-rand bg-s-kopf text-[10px]">
         {allTabs.map((id) => {
           const extra = extraTabs.find((x) => x.id === id)
-          const label = extra ? extra.label : t(`tab_${id}`)
+          const label = extra ? tabLabel(t, extra) : t(`tab_${id}`)
           return (
             <button key={id} onClick={() => setTab(id)}
               className={`flex-1 border-b-2 py-1.5 font-semibold transition-colors ${tab === id ? "border-[#69d7ff] bg-[#1c2940] text-[#69d7ff]" : "border-transparent text-[#9aa7bc] hover:bg-s-hebung hover:text-[#e8eef8]"}`}>
