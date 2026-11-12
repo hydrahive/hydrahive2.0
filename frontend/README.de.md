@@ -108,6 +108,11 @@ Optionale Exporte, die der Generator aktuell sammelt:
 - `mediaSources`
 - `mediaWorkflows`
 
+Ein Eintrag in `workspaceTabs` hat `id`, `label` und `component`. Mit dem optionalen `labelKey`
+(Schlüssel mit Namensraum, zum Beispiel `"tasks:title"`) folgt die Beschriftung des Reiters der
+Sprache der Oberfläche. `label` bleibt der Rückfall, wenn der Schlüssel fehlt oder sich nicht
+auflösen lässt.
+
 `npm run build` scant `src/modules`, validiert lokale Imports und regeneriert `src/modules/index.generated.ts`. Wenn ein installiertes Modul einen fehlenden lokalen Import hat, entfernt der Generator nur seine rebuild-fähige Frontend-Kopie, damit die gesamte HydraHive-UI trotzdem bauen kann; Runtime-Backend-Daten werden durch diesen Schritt nicht gelöscht.
 
 Die kanonische distributierbare Modul-Source lebt im separaten `hydrahive2-modules`-Hub. Der Backend-Modul-Installer kopiert das Frontend eines Moduls in dieses Verzeichnis und baut die App anschließend neu.
