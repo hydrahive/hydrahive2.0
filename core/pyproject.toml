@@ -30,7 +30,13 @@ dependencies = [
     # HA Voice PE bridge: muss im Core-venv deklariert sein, damit ein venv-
     # Neuaufbau bei Python-/Distro-Upgrades die ESPHome-Anbindung nicht entfernt.
     "aioesphomeapi>=45.3.1,<46",
-    "litellm>=1.83,<2",
+    # Untergrenze 1.108.7: litellm 1.106.0–1.108.3 importiert bei JEDEM Aufruf mit Tools
+    # `mcp.types.CacheableResult` (gibt es erst in mcp 2.x, wir pinnen mcp<2) → jeder
+    # Ollama-/LiteLLM-Chat scheiterte mit ImportError (Befund 13.11.2026, Kunden-Mac
+    # mit 1.106.2). Ab 1.108.4 prüft litellm vorher, ob überhaupt ein MCP-Gateway
+    # gemeint ist; 1.108.7 ist mit mcp 1.30 getestet. Die höhere Untergrenze sorgt
+    # dafür, dass `pip install -e core` im Update eine kaputte Version ersetzt.
+    "litellm>=1.108.7,<2",
     "anthropic>=0.105,<1",
     # <2 pinnen: mcp v2 ist ein Major-Rework mit Breaking Changes —
     # streamablehttp_client → streamable_http_client umbenannt UND zieht
