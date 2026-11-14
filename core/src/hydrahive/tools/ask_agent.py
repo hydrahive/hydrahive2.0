@@ -27,7 +27,13 @@ from hydrahive.agentlink import (
 )
 from hydrahive.settings import settings
 from hydrahive.tools import _ask_agent_background as _bg
-from hydrahive.tools._ask_agent_prepare import build_briefing, map_context, missing_briefing, project_refusal
+from hydrahive.tools._ask_agent_prepare import (
+    build_briefing,
+    map_context,
+    missing_briefing,
+    on_demand_refusal,
+    project_refusal,
+)
 from hydrahive.tools._ask_agent_schema import DESCRIPTION as _DESCRIPTION, SCHEMA as _SCHEMA
 from hydrahive.tools._ask_agent_target import resolve_target
 from hydrahive.tools._ask_agent_helpers import (
@@ -90,6 +96,9 @@ async def _execute(args: dict, ctx: ToolContext) -> ToolResult:
     refused = project_refusal(ctx.agent_id, target)
     if refused:
         return ToolResult.fail(refused)
+    refused, on_demand_reason = on_demand_refusal(target_agent, args)
+    if refused:
+        return ToolResult.fail(refused)
     task_description, files, errors = map_context(task, raw_context)
     if not args.get("resume_token"):
         task_description = build_briefing(task_description, args)
@@ -126,7 +135,8 @@ async def _execute(args: dict, ctx: ToolContext) -> ToolResult:
             files=files,
             git=raw_context.get("git"),
             errors=errors + ([f"Budget-Überschreitung angefordert: {overrun_reason[:500]}"]
-                             if profile == OVERRUN_PROFILE else []),
+                             if profile == OVERRUN_PROFILE else [])
+                          + ([f"Auf Abruf: {on_demand_reason}"] if on_demand_reason else []),
         ),
         handoff=Handoff(
             to_agent=routing_target,

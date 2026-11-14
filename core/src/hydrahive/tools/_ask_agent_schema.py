@@ -67,6 +67,11 @@ SCHEMA = {
             "type": "string", "minLength": 10, "maxLength": 500,
             "description": "Pflicht bei overrun: warum der Auftrag mehr Budget braucht.",
         },
+        "on_demand_reason": {
+            "type": "string", "maxLength": 500,
+            "description": "Pflicht bei Spezialisten „auf Abruf“ (z. B. Security, nur mit task_type review): "
+                           "warum dieses Review jetzt nötig ist.",
+        },
         "resume_token": {
             "type": "string",
             "pattern": "^[A-Za-z0-9_-]{8,128}$",

@@ -57,3 +57,21 @@ def build_briefing(task: str, args: dict) -> str:
         parts.append(f"## Bekannt\n{known}")
     parts.append(f"## Liefern\n{str(args['deliverable']).strip()}")
     return "\n\n".join(parts)
+
+
+def on_demand_refusal(target_agent: dict | None, args: dict) -> tuple[str | None, str]:
+    """Spezialisten „auf Abruf“ (Template `on_demand`, z. B. Security) nur mit task_type review + Begründung
+    (Plan E6 T5). Rückgabe: (Fehlertext oder None, Begründung für den Auftrag)."""
+    if not target_agent or not target_agent.get("template"):
+        return None, ""
+    from hydrahive.agents.templates import resolve
+    t = resolve(target_agent)
+    if t is None or not t.on_demand:
+        return None, ""
+    if (args.get("task_type") or "feature") != "review":
+        return ("Dieser Spezialist arbeitet auf Abruf (z. B. Security): nur für ein Review beauftragen, mit "
+                "task_type=\"review\" und on_demand_reason (warum jetzt).", "")
+    reason = str(args.get("on_demand_reason") or "").strip()
+    if len(reason) < 10:
+        return "Auf Abruf: on_demand_reason fehlt (mindestens 10 Zeichen: warum dieses Review jetzt nötig ist).", ""
+    return None, reason[:500]
