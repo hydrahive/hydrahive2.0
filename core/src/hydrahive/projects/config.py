@@ -39,6 +39,9 @@ def create(
     _validation.validate_members(members)
     members = _members_model.normalize_members(members)
 
+    from hydrahive.projects import _model_check
+    warnings = _model_check.check(template)          # wirft vor dem ersten Ordner, wenn das Hauptmodell fehlt
+
     project_id = uuid7()
     cfg: dict[str, Any] = {
         "id": project_id,
@@ -64,8 +67,22 @@ def create(
     # Project-Agent automatisch anlegen
     # Template nur, wenn der Aufrufer es nennt (Route: immer). Module rufen bis Etappe 5 noch ohne Template und
     # setzen ihr Modell selbst – das bleibt bis dahin unverändert.
+    try:
+        agent = _create_agent(name, template, llm_model, created_by, project_id)
+    except Exception:
+        _remove_half_created(project_id)
+        raise
+    cfg["agent_id"] = agent["id"]
+    _save_atomic(config_path(project_id), cfg)
+    from hydrahive.agents._workspace_links import sync_links_for_project
+    sync_links_for_project(project_id)
+    logger.info("Projekt '%s' angelegt (id=%s, agent=%s)", name, project_id, agent["id"])
+    return {**cfg, "warnings": warnings}
+
+
+def _create_agent(name: str, template: str | None, llm_model: str, created_by: str, project_id: str) -> dict:
     from hydrahive.agents._binding import template_if_available
-    agent = agent_config.create(
+    return agent_config.create(
         agent_type="project",
         name=f"{name} — Projekt-Agent",
         template=template_if_available(template) if template else None,
@@ -78,13 +95,17 @@ def create(
         max_tokens=16000,
         thinking_budget=0,
     )
-    cfg["agent_id"] = agent["id"]
-    _save_atomic(config_path(project_id), cfg)
-    from hydrahive.agents._workspace_links import sync_links_for_project
-    sync_links_for_project(project_id)
-    logger.info("Projekt '%s' angelegt (id=%s, agent=%s)", name, project_id, agent["id"])
-    return cfg
 
+
+def _remove_half_created(project_id: str) -> None:
+    """Agent scheiterte: die gerade angelegten Ordner wieder weg – nur wenn leer (kein rmtree, nichts Fremdes)."""
+    from hydrahive.projects._paths import workspace_path
+    for d in (project_dir(project_id), workspace_path(project_id)):
+        try:
+            if d.is_dir() and not d.is_symlink():
+                d.rmdir()
+        except OSError as exc:
+            logger.warning("Halb angelegtes Projekt %s: %s nicht entfernt: %s", project_id, d, exc)
 
 
 def update(project_id: str, **changes: Any) -> dict:

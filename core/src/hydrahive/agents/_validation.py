@@ -67,15 +67,6 @@ def validate_model(model: str) -> None:
         )
 
 
-def validate_fallback_models(models: list[str]) -> None:
-    if not isinstance(models, list):
-        raise AgentValidationError("fallback_models muss eine Liste sein")
-    for m in models:
-        if not isinstance(m, str) or not m:
-            raise AgentValidationError("fallback_models darf keine leeren Einträge enthalten")
-        validate_model(m)
-
-
 _TOOL_CONFIG_BLOCKS = {
     "smtp": {"host", "port", "user", "password", "from", "use_tls"},
     "imap": {"host", "port", "user", "password"},
@@ -242,3 +233,7 @@ def normalize_compact_changes(changes: dict) -> None:
             changes.pop("cache_ttl")
         else:
             validate_cache_ttl(changes["cache_ttl"])
+
+
+# Ersatzmodelle (eigene Datei, Größe): am Ende eingebunden, weil _fallback_check AgentValidationError braucht.
+from hydrahive.agents._fallback_check import unknown_fallback_models, validate_fallback_models  # noqa: E402,F401

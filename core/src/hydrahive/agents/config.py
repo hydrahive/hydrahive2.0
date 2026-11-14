@@ -69,7 +69,7 @@ def create(
     _validation.validate_temperature(temperature)
     _validation.validate_max_tokens(max_tokens)
     if fallback_models:
-        _validation.validate_fallback_models(fallback_models)
+        _validation.unknown_fallback_models(fallback_models)    # nur warnen (Till 14.11.2026), Hauptmodell bleibt hart
 
     agent_id = str(uuid.uuid4())
     cfg: dict[str, Any] = {
@@ -142,7 +142,7 @@ def update(agent_id: str, *, _managed_by: str | None = None, **changes: Any) -> 
     if "llm_model" in changes:
         _validation.validate_model(changes["llm_model"])
     if "fallback_models" in changes:
-        _validation.validate_fallback_models(changes["fallback_models"])
+        _validation.unknown_fallback_models(changes["fallback_models"])
     if "temperature" in changes:
         _validation.validate_temperature(changes["temperature"])
     if "max_tokens" in changes:

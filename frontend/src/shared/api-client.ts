@@ -55,9 +55,12 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
       useVaultStore.getState().setToken(null)
       useVaultStore.getState().requestUnlock(body.detail.params?.pin_set !== false)
     }
-    const err = new Error(buildErrorMessage(body, res.status)) as Error & { status?: number; code?: string }
+    const err = new Error(buildErrorMessage(body, res.status)) as Error & {
+      status?: number; code?: string; params?: Record<string, unknown>
+    }
     err.status = res.status
     err.code = isCoded(body.detail) ? body.detail.code : undefined
+    err.params = isCoded(body.detail) ? body.detail.params : undefined
     throw err
   }
   return res.json()

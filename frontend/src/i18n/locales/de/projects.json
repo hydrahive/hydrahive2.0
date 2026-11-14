@@ -213,5 +213,15 @@
     "chat": "Chat",
     "files": "Dateien & Tasks",
     "label": "Bereich wählen"
+  },
+  "create_warning": {
+    "title": "Projekt angelegt – bitte prüfen",
+    "template_fallback_unavailable": "Das Template „{{template}}“ nennt das Ersatzmodell {{model}}. Dieses Modell ist hier gerade nicht verfügbar. Das Projekt läuft trotzdem, fällt das Hauptmodell aus, wird {{model}} aber übersprungen.",
+    "template_not_configured": "Im Template „{{template}}“ ist noch kein Modell eingetragen. Der Projekt-Agent nutzt deshalb vorerst das Standard-Modell.",
+    "general": "Beim Anlegen ist etwas aufgefallen, das du prüfen solltest.",
+    "how_to": "So behebst du es: Seite „KI-Modelle“ öffnen → Reiter „Agenten-Templates“ → das Template wählen. Ein rot markiertes Modell entfernen oder durch eines aus der Liste ersetzen, dann speichern. Fehlt dir ein Anbieter ganz (z. B. ChatGPT), melde ihn vorher im Reiter „Anbieter“ an.",
+    "open_templates": "Agenten-Templates öffnen",
+    "primary_how_to": "Das Projekt wurde nicht angelegt. Trage im Template ein verfügbares Hauptmodell ein und versuche es dann noch einmal.",
+    "continue": "Weiter zum Projekt"
   }
 }

@@ -4,6 +4,8 @@ import { GitBranch, X } from "lucide-react"
 import { useTranslation } from "react-i18next"
 import { TemplateSelect } from "@/features/llm/templates/TemplateSelect"
 import { projectsApi, usersApi } from "./api"
+import { type CreateWarning, templateHint, type TemplateHint } from "./createWarnings"
+import { ProjectCreateNotices } from "./ProjectCreateNotices"
 import { rgbFor } from "@/shared/colors"
 import { useDialog } from "@/shared/dialog/useDialog"
 
@@ -24,6 +26,8 @@ export function NewProjectDialog({ onClose, onCreated }: Props) {
   const [initGit, setInitGit] = useState(false)
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [hint, setHint] = useState<TemplateHint | null>(null)
+  const [done, setDone] = useState<{ id: string; warnings: CreateWarning[] } | null>(null)
 
   useEffect(() => {
     usersApi.list().then((us) => setUsers(us.map((u) => u.username))).catch(() => {})
@@ -31,14 +35,16 @@ export function NewProjectDialog({ onClose, onCreated }: Props) {
 
   async function submit(e: React.FormEvent) {
     e.preventDefault()
-    setBusy(true); setError(null)
+    setBusy(true); setError(null); setHint(null)
     try {
       const created = await projectsApi.create({
         name: name.trim(), description, members, template, init_git: initGit,
       })
-      onCreated(created.id)
+      if (created.warnings?.length) setDone({ id: created.id, warnings: created.warnings })
+      else onCreated(created.id)
     } catch (e) {
       setError(e instanceof Error ? e.message : tCommon("status.error"))
+      setHint(templateHint(e))
     } finally { setBusy(false) }
   }
 
@@ -106,10 +112,12 @@ export function NewProjectDialog({ onClose, onCreated }: Props) {
         {error && (
           <p className="text-sm text-rose-300 bg-rose-500/[6%] border border-rose-500/20 rounded-lg px-3 py-2">{error}</p>
         )}
+        <ProjectCreateNotices hint={hint} />
+        {done && <ProjectCreateNotices warnings={done.warnings} onContinue={() => onCreated(done.id)} />}
 
         <div className="flex justify-end gap-2 pt-2">
           <button type="button" onClick={onClose} className="px-4 py-2 rounded-lg text-sm text-zinc-400 hover:text-zinc-200 hover:bg-white/5">{tCommon("actions.cancel")}</button>
-          <button type="submit" disabled={busy || !name.trim() || !template}
+          <button type="submit" disabled={busy || !!done || !name.trim() || !template}
             className="px-4 py-2 rounded-lg bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-500 hover:to-violet-500 text-white text-sm font-medium disabled:opacity-40 disabled:cursor-not-allowed shadow-md shadow-violet-900/20">
             {tCommon("actions.create")}
           </button>

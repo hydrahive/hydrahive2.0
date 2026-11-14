@@ -1,10 +1,11 @@
 import { api } from "@/shared/api-client"
+import type { CreateWarning } from "./createWarnings"
 import type { Project, ProjectAuditEntry, ProjectCreate, ProjectGiteaStatus, ProjectGitRepo, ProjectRole, ProjectServer, ProjectStats, ProjectSession, ProjectWebhook, ServerKind, SmbMount, SmbMountCreate } from "./types"
 
 export const projectsApi = {
   list: () => api.get<Project[]>("/projects"),
   get: (id: string) => api.get<Project>(`/projects/${id}`),
-  create: (req: ProjectCreate) => api.post<Project>("/projects", req),
+  create: (req: ProjectCreate) => api.post<Project & { warnings?: CreateWarning[] }>("/projects", req),
   update: (id: string, fields: Partial<ProjectCreate & { status: string; notes: string; tags: string[]; mcp_server_ids: string[]; allowed_plugins: string[]; allowed_specialists: string[] }>) =>
     api.patch<Project>(`/projects/${id}`, fields),
   listFiles: (id: string, path = "") =>

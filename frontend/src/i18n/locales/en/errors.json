@@ -163,5 +163,7 @@
   "module_operation_busy": "A module change is already running ({{module}}). Please wait a moment and try again.",
   "module_update_all_failed": "No module could be updated: {{detail}}",
   "agent_managed": "This agent is managed by a module. Tools, prompt and soul can't be changed here.",
-  "git_container_project": "Git for this project runs inside the container, not on the HydraHive server."
+  "git_container_project": "Git for this project runs inside the container, not on the HydraHive server.",
+  "template_primary_unavailable": "Project not created: the template \"{{template}}\" uses {{model}} as its main model, which is not available here right now.",
+  "project_agent_invalid": "Project not created: the project agent could not be set up ({{message}})."
 }
