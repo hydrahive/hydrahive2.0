@@ -64,7 +64,7 @@ def default_model() -> str:
     return load_config().get("default_model", "")
 
 
-async def complete(
+async def _complete_one(
     messages: list[dict], model: str | None = None,
     temperature: float = 0.7, max_tokens: int = 4096,
 ) -> str:
@@ -113,7 +113,7 @@ async def complete(
     return resp.choices[0].message.content
 
 
-async def stream(
+async def _stream_one(
     messages: list[dict], model: str | None = None,
     temperature: float = 0.7, max_tokens: int = 4096,
 ) -> AsyncIterator[str]:
@@ -168,3 +168,10 @@ async def stream(
         delta = chunk.choices[0].delta.content
         if delta:
             yield delta
+
+
+# Module fragen eine Rolle (Agenten-Template) an statt eines festen Modells – Plan E5. Die Ketten-Logik liegt in
+# `_client_chain.py`; hier nur die öffentlichen Namen, damit `from hydrahive.llm.client import complete` bleibt.
+from hydrahive.llm._client_chain import SUPPORTS_TEMPLATE, complete, stream  # noqa: E402
+
+__all__ = ["SUPPORTS_TEMPLATE", "complete", "default_model", "stream"]

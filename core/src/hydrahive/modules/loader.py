@@ -13,6 +13,7 @@ import sys
 import types
 from pathlib import Path
 
+from hydrahive.modules._manifest_templates import ensure_module_templates
 from hydrahive.modules.manifest import ManifestError, ModuleManifest
 from hydrahive.modules.context import ModuleContext
 from hydrahive.modules.registry import REGISTRY, LoadedModule
@@ -101,6 +102,7 @@ def _load_one(module_dir: Path) -> LoadedModule:
                 error="backend/__init__.py hat kein register(ctx)",
             )
         ctx = ModuleContext(manifest.id)
+        ensure_module_templates(manifest.id, manifest.templates)
         register(ctx)
         if ctx.migrations_rel:
             apply_module_migrations(manifest.id, module_dir / ctx.migrations_rel)

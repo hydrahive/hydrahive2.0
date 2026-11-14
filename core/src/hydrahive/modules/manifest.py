@@ -5,6 +5,7 @@ from pathlib import Path, PurePosixPath, PureWindowsPath
 
 from hydrahive.modules._manifest_caps import CapabilitySpec, parse_capabilities
 from hydrahive.modules._manifest_sensitive import parse_sensitive_tools
+from hydrahive.modules._manifest_templates import parse_templates
 
 _ID_RE = re.compile(r"^[a-z0-9][a-z0-9-]*$")
 
@@ -56,6 +57,8 @@ class ModuleManifest:
     sensitive_tools: tuple[tuple[str, str], ...] = ()
     # Vault-Bereich: Oberflächen-Routen nur nach Vault-PIN (docs/specs/vault.md §4.1)
     vault: bool = False
+    # Eigene Agenten-Templates ((id, label, base), …) – Plan E5 agent-templates
+    templates: tuple[tuple[str, str, str], ...] = ()
 
     @classmethod
     def load(cls, path: Path) -> "ModuleManifest":
@@ -81,4 +84,5 @@ class ModuleManifest:
             capabilities=parse_capabilities(d["id"], d.get("capabilities"), ManifestError),
             sensitive_tools=parse_sensitive_tools(d.get("sensitive_tools"), ManifestError),
             vault=d.get("vault", False) is True,
+            templates=parse_templates(d.get("templates"), ManifestError),
         )
