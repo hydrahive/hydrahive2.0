@@ -16,6 +16,11 @@ _PROFILE_CAPS: dict[str, tuple[int, int, int]] = {
     "standard": (32, 16_384, 540),
     "deep": (96, 32_768, 1_800),
 }
+# Agenten-Templates (Spec agent-templates.md Kap. 7): Ziele mit Template bekommen dessen Budget. „overrun“ heißt:
+# Template-Budget × (1 + overrun_pct/100), nur mit Begründung (Prüfung in ask_agent), gekappt an den Grenzen.
+TEMPLATE_PROFILE = "template"
+OVERRUN_PROFILE = "overrun"
+_LIMITS = (250, 200_000, 3_600)
 
 
 def _agent_defaults() -> tuple[int, int, int]:
@@ -42,7 +47,26 @@ class RuntimeBudget:
 
 def normalize_profile(profile: object) -> str:
     value = profile.strip().lower() if isinstance(profile, str) else ""
+    if value in (OVERRUN_PROFILE, TEMPLATE_PROFILE):
+        return value
     return value if value in _PROFILE_CAPS else DEFAULT_RUNTIME_PROFILE
+
+
+def _template_budget(agent: dict, profile: str) -> RuntimeBudget | None:
+    if not agent.get("template"):
+        return None
+    from hydrahive.agents.templates import resolve
+    t = resolve(agent)
+    if t is None:
+        return None
+    values = (t.max_iterations, t.max_tokens, t.timeout_seconds)
+    name = TEMPLATE_PROFILE
+    if profile == OVERRUN_PROFILE and t.overrun_pct > 0:
+        factor = 1 + t.overrun_pct / 100
+        values = tuple(min(limit, int(v * factor)) for v, limit in zip(values, _LIMITS))
+        name = OVERRUN_PROFILE
+    return RuntimeBudget(version=RUNTIME_VERSION, profile=name, max_iterations=values[0],
+                         max_tokens=values[1], timeout_seconds=values[2])
 
 
 def _validated_cap(value: Any, *, fallback: int, minimum: int, maximum: int) -> int:
@@ -57,8 +81,15 @@ def _validated_cap(value: Any, *, fallback: int, minimum: int, maximum: int) -> 
 
 
 def effective_budget(agent: dict, profile: object = DEFAULT_RUNTIME_PROFILE) -> RuntimeBudget:
-    """Resolve a profile locally and intersect it with the target agent's caps."""
+    """Resolve a profile locally and intersect it with the target agent's caps.
+
+    Ziel mit Template: Budget des Templates (ggf. mit Überschreitung), Profil spielt keine Rolle."""
     selected = normalize_profile(profile)
+    from_template = _template_budget(agent, selected)
+    if from_template is not None:
+        return from_template
+    if selected not in _PROFILE_CAPS:
+        selected = DEFAULT_RUNTIME_PROFILE
     profile_iterations, profile_tokens, profile_timeout = _PROFILE_CAPS[selected]
     default_iterations, default_tokens, default_timeout = _agent_defaults()
     agent_iterations = _validated_cap(

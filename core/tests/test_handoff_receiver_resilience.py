@@ -228,3 +228,26 @@ def test_successful_run_posts_done_reply(monkeypatch):
     assert captured["status"] == "done"
     assert captured["output"] == "OK"
     assert captured["db_status"] == "done"
+
+
+# --- Kurzfassung + Langfassung (agent-templates E4) ----------------------------------------------------------------
+
+def test_lange_antwort_wird_kurzfassung_mit_datei(monkeypatch, tmp_path):
+    from pathlib import Path
+
+    from hydrahive.runner import _handoff_report as rep
+    captured = _capture_reply(monkeypatch)
+    monkeypatch.setattr(rep, "_reports_dir", lambda: tmp_path)
+    monkeypatch.setattr(rep, "summary_limit_for", lambda agent: 500)
+    monkeypatch.setattr(hr, "record_delegation_result", lambda *a, **k: None)
+    long_text = "## Ergebnis\nAlles gut.\n\n## Belege\n" + "x" * 5000 + " ENDE"
+
+    async def _ok(session_id, user_input, output_parts):
+        output_parts.append(long_text)
+        return None
+    monkeypatch.setattr(hr, "_consume_run", _ok)
+    asyncio.run(hr._run_and_reply(_state(), "sess-k", "hdb-k"))
+    assert captured["status"] == "done"
+    assert captured["output"].startswith("## Ergebnis\nAlles gut.")
+    path = Path(captured["output"].split("Langfassung: ", 1)[1].split()[0])
+    assert path.read_text() == long_text
