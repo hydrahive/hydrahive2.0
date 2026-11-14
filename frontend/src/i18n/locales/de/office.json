@@ -1,0 +1,14 @@
+{
+  "title": "Agenten-Büro",
+  "empty": {
+    "title": "Gerade arbeitet niemand",
+    "hint": "Sobald ein Agent oder Spezialist läuft, erscheint er hier."
+  },
+  "card": {
+    "delegated_by": "beauftragt von"
+  },
+  "drawer": {
+    "close": "Schließen",
+    "empty": "Noch keine Tool-Aufrufe."
+  }
+}

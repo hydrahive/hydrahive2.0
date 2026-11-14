@@ -116,7 +116,9 @@ async def run(
         first_prompt=_first_prompt,
     )
     from hydrahive.runner import activity
-    activity.start(session_id, agent, owner=session.user_id, project_id=active_project_id)
+    from hydrahive.runner._activity_link import activity_start_kwargs
+    activity.start(session_id, agent, owner=session.user_id, project_id=active_project_id,
+                   **activity_start_kwargs(session, agent))
 
     base_system_prompt = agent_config.get_system_prompt(agent["id"])
     base_system_prompt = with_emote_hint(base_system_prompt, is_buddy=bool(agent.get("is_buddy")))
@@ -196,6 +198,7 @@ async def run(
         except Exception as e:
             logger.warning("Recall fehlgeschlagen (best-effort): %s", e, exc_info=True)
 
+    pending_activity_summary: str | None = None
     for iteration in range(max_iterations):
         yield IterationStart(iteration=iteration + 1)
 
@@ -390,7 +393,9 @@ async def run(
             return
 
         # Tool-Use-Loop: in Sub-Modul. Letzter yield ist result_blocks.
-        activity.set_tool(session_id, tool_uses[-1].get("name") if tool_uses else None)
+        activity.set_tool(session_id, tool_uses[-1].get("name") if tool_uses else None,
+                         result_summary=pending_activity_summary)
+        pending_activity_summary = None
         result_blocks: list[dict] = []
         try:
             async for item in process_tool_uses(
@@ -416,6 +421,8 @@ async def run(
             metadata={"integrity": integrity_state.audit_metadata()},
         )
         history.append(tool_msg)
+        from hydrahive.runner._activity_summary import summarize_result_blocks
+        pending_activity_summary = summarize_result_blocks(result_blocks)
 
     # Pre-Resume-Compaction (#143): Wenn die History bei max_iterations noch
     # groß ist, einmal compactes bevor wir pausieren. Damit der "Weitermachen"-

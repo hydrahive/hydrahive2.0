@@ -1,0 +1,14 @@
+{
+  "title": "Agent Office",
+  "empty": {
+    "title": "No one is working right now",
+    "hint": "As soon as an agent or specialist runs, it appears here."
+  },
+  "card": {
+    "delegated_by": "delegated by"
+  },
+  "drawer": {
+    "close": "Close",
+    "empty": "No tool calls yet."
+  }
+}

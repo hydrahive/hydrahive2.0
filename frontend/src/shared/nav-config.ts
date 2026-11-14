@@ -1,5 +1,5 @@
 import { BrainCircuit,
-  BookOpen, Bot, Box, Film, FolderKanban, Globe, HardDrive, Heart, LayoutDashboard,
+  BookOpen, Bot, Box, Building2, Film, FolderKanban, Globe, HardDrive, Heart, LayoutDashboard,
   MessageCircle, MessageSquare, MessagesSquare, MoonStar, Pickaxe, Puzzle, Server, Shield, Sparkles, Workflow,
 } from "lucide-react"
 import type { LucideIcon } from "lucide-react"
@@ -53,6 +53,7 @@ export const NAV_GROUPS: NavGroup[] = [
 export const NAV_ITEMS: NavItem[] = [
   // Überblick
   { path: "/dashboard",   icon: LayoutDashboard, labelKey: "dashboard",   group: "overview" },
+  { path: "/office",      icon: Building2,       labelKey: "office",      group: "overview" },
   // Cockpits
   { path: "/projects",    icon: FolderKanban,    labelKey: "projects",    group: "working" },
   { path: "/buddy",       icon: Heart,           labelKey: "buddy",       group: "working" },
