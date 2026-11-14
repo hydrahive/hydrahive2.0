@@ -15,7 +15,7 @@ from __future__ import annotations
 import asyncio
 import logging
 
-from hydrahive.agentlink.runtime_profiles import OVERRUN_PROFILE, reason_with_profile
+from hydrahive.agentlink.runtime_profiles import OVERRUN_PROFILE, reason_with_profile, thread_key
 from hydrahive.agentlink import (
     ContextBlock,
     Handoff,
@@ -27,7 +27,13 @@ from hydrahive.agentlink import (
 )
 from hydrahive.settings import settings
 from hydrahive.tools import _ask_agent_background as _bg
-from hydrahive.tools._ask_agent_prepare import map_context, project_refusal
+from hydrahive.tools._ask_agent_prepare import (
+    build_briefing,
+    map_context,
+    missing_briefing,
+    on_demand_refusal,
+    project_refusal,
+)
 from hydrahive.tools._ask_agent_schema import DESCRIPTION as _DESCRIPTION, SCHEMA as _SCHEMA
 from hydrahive.tools._ask_agent_target import resolve_target
 from hydrahive.tools._ask_agent_helpers import (
@@ -50,6 +56,11 @@ async def _execute(args: dict, ctx: ToolContext) -> ToolResult:
         return ToolResult.fail("agent_id fehlt")
     if not task:
         return ToolResult.fail("task fehlt")
+    missing = missing_briefing(args)
+    if missing:
+        return ToolResult.fail(
+            f"Briefing unvollständig, es fehlt: {', '.join(missing)}. goal = was am Ende erreicht sein soll, "
+            "deliverable = was zurückkommen soll (z. B. Ursache mit Datei:Zeile). Optional: known, files.")
 
     # Federation-Routing: "persona@workstation" → remote /remote/chat
     if "@" in target:
@@ -85,7 +96,13 @@ async def _execute(args: dict, ctx: ToolContext) -> ToolResult:
     refused = project_refusal(ctx.agent_id, target)
     if refused:
         return ToolResult.fail(refused)
+    refused, on_demand_reason = on_demand_refusal(target_agent, args)
+    if refused:
+        return ToolResult.fail(refused)
     task_description, files, errors = map_context(task, raw_context)
+    if not args.get("resume_token"):
+        task_description = build_briefing(task_description, args)
+    files += [{"path": str(p)} for p in (args.get("files") or [])[:50]]
 
     background = _bg.wants_background(args, ctx, _is_internal)
     if background:
@@ -105,6 +122,8 @@ async def _execute(args: dict, ctx: ToolContext) -> ToolResult:
         try:
             task_reason = reason_with_profile(
                 target, profile, task[:120], resume_token=resume_token,
+                # Plan E6 T4: Folgeaufträge aus derselben Sitzung setzen die Sitzung des Spezialisten fort
+                thread=thread_key(ctx.session_id) if ctx.session_id and not resume_token else None,
             )
         except ValueError as exc:
             return ToolResult.fail(str(exc))
@@ -116,7 +135,8 @@ async def _execute(args: dict, ctx: ToolContext) -> ToolResult:
             files=files,
             git=raw_context.get("git"),
             errors=errors + ([f"Budget-Überschreitung angefordert: {overrun_reason[:500]}"]
-                             if profile == OVERRUN_PROFILE else []),
+                             if profile == OVERRUN_PROFILE else [])
+                          + ([f"Auf Abruf: {on_demand_reason}"] if on_demand_reason else []),
         ),
         handoff=Handoff(
             to_agent=routing_target,

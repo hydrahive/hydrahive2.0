@@ -21,6 +21,16 @@ SCHEMA = {
             ),
         },
         "task": {"type": "string", "description": "Aufgabenbeschreibung für den Ziel-Agenten."},
+        "goal": {"type": "string", "maxLength": 2000,
+                 "description": "Pflicht: Was am Ende erreicht sein soll (ein Satz, prüfbar)."},
+        "known": {"type": "string", "maxLength": 4000,
+                  "description": "Was du schon weißt (Befunde, Vermutungen, Ausgeschlossenes) – spart dem Spezialisten "
+                                 "das erneute Suchen."},
+        "deliverable": {"type": "string", "maxLength": 2000,
+                        "description": "Pflicht: Was der Spezialist zurückliefern soll (z. B. Ursache mit Datei:Zeile, "
+                                       "Patch, Liste, Ja/Nein)."},
+        "files": {"type": "array", "items": {"type": "string"}, "maxItems": 50,
+                  "description": "Relevante Dateien (Pfade)."},
         "task_type": {
             "type": "string",
             "description": "Task-Typ. Default 'feature'.",
@@ -56,6 +66,11 @@ SCHEMA = {
         "overrun_reason": {
             "type": "string", "minLength": 10, "maxLength": 500,
             "description": "Pflicht bei overrun: warum der Auftrag mehr Budget braucht.",
+        },
+        "on_demand_reason": {
+            "type": "string", "maxLength": 500,
+            "description": "Pflicht bei Spezialisten „auf Abruf“ (z. B. Security, nur mit task_type review): "
+                           "warum dieses Review jetzt nötig ist.",
         },
         "resume_token": {
             "type": "string",

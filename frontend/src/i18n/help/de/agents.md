@@ -63,4 +63,7 @@ HydraHive2 kennt drei Agent-Typen:
 
 - **System-Prompt ist die wichtigste Schraube**. Spezifischer = besser. Beispiele für gewünschtes Verhalten reinschreiben.
 - **Master-Agent nicht zu generisch halten** — auch er profitiert von einem klaren Profil ("Du bist mein persönlicher Programmier-Assistent…").
-- **Specialist-Agents im Projekt nutzen** über `ask_agent` (kommt mit AgentLink) — Master delegiert spezifische Aufgaben.
+- **Specialist-Agents im Projekt nutzen** über `ask_agent` (kommt mit AgentLink): Der Projekt-Agent plant und prüft, die Spezialisten arbeiten.
+  - Jeder Auftrag braucht ein kurzes Briefing: `goal` (was am Ende erreicht sein soll) und `deliverable` (was zurückkommen soll), dazu wahlweise `known` (was schon bekannt ist) und `files`.
+  - Ein Folgeauftrag aus derselben Sitzung an denselben Spezialisten setzt dessen Sitzung fort, der Spezialist kennt den Stand also schon.
+  - Spezialisten mit einem Template „auf Abruf“ (z. B. Security) nehmen nur Reviews an: `task_type="review"` plus `on_demand_reason`.

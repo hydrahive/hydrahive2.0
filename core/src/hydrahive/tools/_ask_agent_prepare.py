@@ -37,3 +37,41 @@ def map_context(task: str, raw_context: dict) -> tuple[str, list[dict], list[str
     if raw_context.get("code_snippet"):
         description = f"{task}\n\n```\n{raw_context['code_snippet']}\n```"
     return description, files, errors
+
+
+BRIEFING_REQUIRED = ("goal", "deliverable")
+
+
+def missing_briefing(args: dict) -> list[str]:
+    """Pflichtfelder des Briefings, die fehlen (Plan E6 T1). Abbrechen und Fortsetzen brauchen keins."""
+    if args.get("cancel") or args.get("resume_token"):
+        return []
+    return [k for k in BRIEFING_REQUIRED if not str(args.get(k) or "").strip()]
+
+
+def build_briefing(task: str, args: dict) -> str:
+    """Auftrag + fester Briefing-Block für den Spezialisten (Plan E6 T2)."""
+    parts = [task, f"## Ziel\n{str(args['goal']).strip()}"]
+    known = str(args.get("known") or "").strip()
+    if known:
+        parts.append(f"## Bekannt\n{known}")
+    parts.append(f"## Liefern\n{str(args['deliverable']).strip()}")
+    return "\n\n".join(parts)
+
+
+def on_demand_refusal(target_agent: dict | None, args: dict) -> tuple[str | None, str]:
+    """Spezialisten „auf Abruf“ (Template `on_demand`, z. B. Security) nur mit task_type review + Begründung
+    (Plan E6 T5). Rückgabe: (Fehlertext oder None, Begründung für den Auftrag)."""
+    if not target_agent or not target_agent.get("template"):
+        return None, ""
+    from hydrahive.agents.templates import resolve
+    t = resolve(target_agent)
+    if t is None or not t.on_demand:
+        return None, ""
+    if (args.get("task_type") or "feature") != "review":
+        return ("Dieser Spezialist arbeitet auf Abruf (z. B. Security): nur für ein Review beauftragen, mit "
+                "task_type=\"review\" und on_demand_reason (warum jetzt).", "")
+    reason = str(args.get("on_demand_reason") or "").strip()
+    if len(reason) < 10:
+        return "Auf Abruf: on_demand_reason fehlt (mindestens 10 Zeichen: warum dieses Review jetzt nötig ist).", ""
+    return None, reason[:500]

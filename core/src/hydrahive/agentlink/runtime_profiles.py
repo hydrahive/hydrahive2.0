@@ -11,6 +11,7 @@ RUNTIME_VERSION = 1
 DEFAULT_RUNTIME_PROFILE = "standard"
 
 _RESUME_TOKEN = re.compile(r"^[A-Za-z0-9_-]{8,128}$")
+_THREAD = re.compile(r"^[0-9a-f]{24}$")
 _PROFILE_CAPS: dict[str, tuple[int, int, int]] = {
     "quick": (8, 8_192, 180),
     "standard": (32, 16_384, 540),
@@ -120,6 +121,7 @@ def reason_with_profile(
     task_summary: str,
     *,
     resume_token: str | None = None,
+    thread: str | None = None,
 ) -> str:
     """Build the backward-compatible, versioned internal reason envelope."""
     selected = normalize_profile(profile)
@@ -131,6 +133,10 @@ def reason_with_profile(
         if not _RESUME_TOKEN.fullmatch(resume_token):
             raise ValueError("Ungültiges Resume-Token")
         segments.append(f"hh-resume:v{RUNTIME_VERSION}:{resume_token}")
+    if thread is not None:
+        if not _THREAD.fullmatch(thread):
+            raise ValueError("Ungültiger Vorgangs-Schlüssel")
+        segments.append(f"hh-thread:v{RUNTIME_VERSION}:{thread}")
     # Keep the human-readable reason while preventing task text from injecting
     # additional pipe-delimited control segments.
     encoded_summary = quote(" ".join(task_summary.split()), safe=" -_.")
@@ -172,3 +178,23 @@ def session_budget(agent: dict, metadata: dict | None) -> RuntimeBudget | None:
     if not isinstance(raw, dict) or raw.get("version") != RUNTIME_VERSION:
         return None
     return effective_budget(agent, raw.get("profile"))
+
+
+def thread_key(caller_session_id: str) -> str:
+    """Vorgangs-Schlüssel aus der Sitzung des Auftraggebers (Plan E6 T4): Hash, damit die ID nicht mitgeht."""
+    import hashlib
+    return hashlib.sha256(f"hh-thread:{caller_session_id}".encode()).hexdigest()[:24]
+
+
+def thread_from_reason(reason: str | None) -> str | None:
+    """Vorgangs-Schlüssel aus dem Reason; nach `hh-task:` zählt nichts (kein Einschleusen über den Auftragstext)."""
+    for segment in (reason or "").split("|"):
+        if segment.startswith("hh-task:"):
+            break
+        if not segment.startswith("hh-thread:"):
+            continue
+        parts = segment.split(":", 2)
+        if len(parts) != 3 or parts[1] != f"v{RUNTIME_VERSION}":
+            return None
+        return parts[2] if _THREAD.fullmatch(parts[2]) else None
+    return None

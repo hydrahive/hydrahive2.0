@@ -9,6 +9,7 @@ from hydrahive.agentlink.runtime_profiles import (
     effective_budget,
     profile_from_reason,
     resume_token_from_reason,
+    thread_from_reason,
 )
 from hydrahive.db import agent_handoffs as db_agent_handoffs
 from hydrahive.db import sessions as sessions_db
@@ -25,6 +26,7 @@ class PreparedHandoff:
     timeout_seconds: int
     resumed: bool
     resume_token: str | None = None
+    continued: bool = False          # Folgeauftrag im selben Vorgang (Plan E6 T4)
 
 
 def _resume_requested(reason: str) -> bool:
@@ -59,6 +61,26 @@ def _resume_session(state: State, target: dict, reason: str, budget):
     return session, token
 
 
+def _running(session_id: str) -> bool:
+    from hydrahive.runner.concurrency import is_running
+    return is_running(session_id)
+
+
+def _continue_session(state: State, target: dict, thread: str, budget):
+    """Sitzung des letzten Auftrags im selben Vorgang fortsetzen – nur wenn sie dem Ziel gehört und nicht läuft."""
+    prev = db_agent_handoffs.last_in_thread(thread, from_agent=state.agent_id, agent_id=target["id"])
+    if not prev or _running(prev["session_id"]):
+        return None
+    session = sessions_db.get(prev["session_id"])
+    if not session or session.agent_id != target["id"]:
+        return None
+    metadata = dict(session.metadata or {})
+    metadata[RUNTIME_METADATA_KEY] = budget.as_metadata()
+    metadata["incoming_state_id"] = state.id
+    sessions_db.update(session.id, status="active", metadata=metadata)
+    return sessions_db.get(session.id)
+
+
 def _new_session(state: State, target: dict, budget):
     owner = target.get("owner") or "admin"
     return sessions_db.create(
@@ -81,16 +103,20 @@ def prepare_handoff(state: State, target: dict, reason: str) -> PreparedHandoff:
     handoff_record: dict | None = None
     claim_acquired = False
     try:
+        thread = thread_from_reason(reason)
+        continued = None
         if resumed:
             session, resume_token = _resume_session(state, target, reason, budget)
             claim_acquired = True
         else:
-            session = _new_session(state, target, budget)
+            continued = _continue_session(state, target, thread, budget) if thread else None
+            session = continued or _new_session(state, target, budget)
         handoff_record = db_agent_handoffs.create(
             incoming_state_id=state.id or "",
             from_agent=state.agent_id,
             agent_id=target["id"],
             session_id=session.id,
+            thread=thread,
         )
         return PreparedHandoff(
             session_id=session.id,
@@ -98,6 +124,7 @@ def prepare_handoff(state: State, target: dict, reason: str) -> PreparedHandoff:
             timeout_seconds=budget.timeout_seconds,
             resumed=resumed,
             resume_token=resume_token,
+            continued=continued is not None,
         )
     except HandoffSetupError:
         raise

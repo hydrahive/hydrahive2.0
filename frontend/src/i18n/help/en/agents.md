@@ -64,3 +64,6 @@ HydraHive2 has three agent types:
 - **System prompt is the most important knob**. More specific = better. Add examples of desired behavior.
 - **Don't keep the master agent too generic** — it benefits from a clear profile too ("You are my personal coding assistant…").
 - **Use specialists from inside projects** via `ask_agent` (with AgentLink) — the master delegates specific tasks.
+  - Every task needs a short briefing: `goal` (what should be achieved) and `deliverable` (what should come back), optionally `known` (what is already known) and `files`.
+  - A follow-up task from the same session to the same specialist continues its session, so it already knows the context.
+  - Specialists with an "on demand" template (e.g. Security) only take reviews: `task_type="review"` plus `on_demand_reason`.

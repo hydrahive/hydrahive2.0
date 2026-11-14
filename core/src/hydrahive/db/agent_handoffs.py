@@ -11,15 +11,16 @@ def create(
     from_agent: str,
     agent_id: str,
     session_id: str,
+    thread: str | None = None,
 ) -> dict:
     row_id = uuid7()
     now = now_iso()
     with db() as conn:
         conn.execute(
             """INSERT INTO agent_handoffs
-               (id, incoming_state_id, from_agent, agent_id, session_id, status, started_at)
-               VALUES (?, ?, ?, ?, ?, 'running', ?)""",
-            (row_id, incoming_state_id, from_agent, agent_id, session_id, now),
+               (id, incoming_state_id, from_agent, agent_id, session_id, status, started_at, thread)
+               VALUES (?, ?, ?, ?, ?, 'running', ?, ?)""",
+            (row_id, incoming_state_id, from_agent, agent_id, session_id, now, thread),
         )
     return {
         "id": row_id,
@@ -100,6 +101,18 @@ def restore_paused_claim(handoff_id: str) -> bool:
             (handoff_id,),
         ).rowcount
     return changed == 1
+
+
+def last_in_thread(thread: str, *, from_agent: str, agent_id: str) -> dict | None:
+    """Letzter abgeschlossener Handoff desselben Auftraggebers an dasselbe Ziel im selben Vorgang (Plan E6 T4)."""
+    with db() as conn:
+        row = conn.execute(
+            """SELECT * FROM agent_handoffs
+               WHERE thread = ? AND from_agent = ? AND agent_id = ? AND status IN ('done', 'error')
+               ORDER BY started_at DESC LIMIT 1""",
+            (thread, from_agent, agent_id),
+        ).fetchone()
+    return dict(row) if row else None
 
 
 def list_active() -> list[dict]:

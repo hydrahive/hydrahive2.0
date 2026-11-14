@@ -234,6 +234,7 @@ async def run(
             recall_cards=recall_cards,
             recall_search=recall_search,
             lessons=recalled_lessons,
+            agent=agent,
         )
 
         result: IterationResult | None = None
