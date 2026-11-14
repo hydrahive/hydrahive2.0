@@ -1,7 +1,8 @@
 import { useTranslation } from "react-i18next"
-import { X } from "lucide-react"
+import { ExternalLink, X } from "lucide-react"
 import { useAgentActivity } from "@/features/chat/useAgentActivity"
 import { EmptyState } from "@/shared/EmptyState"
+import { standupStats } from "./standupStats"
 import { useTraceDrawer } from "./useTraceDrawer"
 
 /** Spec docs/specs/agent-office.md — Etappe 2: Seite ohne Grafik, einfache Karten + Drawer.
@@ -23,9 +24,25 @@ export function OfficePage() {
 
   const byId = new Map(running.map((a) => [a.session_id, a]))
   const openAgent = drawer.openSessionId ? byId.get(drawer.openSessionId) : undefined
+  const stats = standupStats(running)
 
   return (
     <div className="space-y-3">
+      <div
+        className="flex items-center gap-4 text-xs text-zinc-400 rounded-lg border border-white/10 bg-white/[3%] px-3 py-2"
+        data-standup-total={stats.total}
+        data-standup-delegated={stats.delegated}
+        data-standup-errored={stats.errored}
+      >
+        <span>{t("standup.total", { count: stats.total, defaultValue: "{{count}} laufen" })}</span>
+        {stats.delegated > 0 && (
+          <span>{t("standup.delegated", { count: stats.delegated, defaultValue: "{{count}} davon beauftragt" })}</span>
+        )}
+        {stats.errored > 0 && (
+          <span className="text-red-400">{t("standup.errored", { count: stats.errored, defaultValue: "{{count}} mit Fehler" })}</span>
+        )}
+      </div>
+
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
         {running.map((a) => {
           const progress = a.max_iterations ? Math.min(1, (a.iteration ?? 0) / a.max_iterations) : 0
@@ -78,6 +95,17 @@ export function OfficePage() {
                   <span className={c.status === "error" ? "text-red-400" : "text-zinc-200"}>{c.tool_name}</span>
                   {c.duration_ms != null && <span className="text-zinc-500">{c.duration_ms}ms</span>}
                 </div>
+                {c.github_link && (
+                  <a
+                    href={c.github_link}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="mt-1 inline-flex items-center gap-1 text-emerald-400 hover:text-emerald-300"
+                  >
+                    <ExternalLink className="w-3 h-3" />
+                    {t("drawer.github_link", { defaultValue: "PR/Issue öffnen" })}
+                  </a>
+                )}
               </div>
             ))}
           </div>

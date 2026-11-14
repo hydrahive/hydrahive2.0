@@ -7,6 +7,9 @@ export interface AgentTraceCall {
   duration_ms: number | null
   created_at: string
   iteration: number | null
+  // Etappe 5 (Spec agent-office.md §8.2): Kurzfassung + erkannter PR-/Issue-Link.
+  result_summary?: string
+  github_link?: string | null
 }
 
 export interface AgentTrace {
