@@ -3,7 +3,7 @@
 > Automatisch erzeugt aus Dateinamen, Git-Historie und Überschriften.
 > Neu erzeugen: `python3 scripts/gen_spec_index.py`
 
-136 Spezifikationen. Die Spalte **Status** zeigt nur, was die Spec
+148 Spezifikationen. Die Spalte **Status** zeigt nur, was die Spec
 selbst im Kopf angibt — leer heißt: nicht angegeben, nicht automatisch geraten.
 
 ## Mehrteilige Reihen
@@ -29,12 +29,13 @@ frühere Teile beschreiben bereits umgesetzte Etappen.
 |---|---|---|---|
 | [`access-groups.md`](access-groups.md) | Freigaben und Gruppen — wer darf was nutzen und teilen |  | 2026-09-29 |
 | [`access-groups-plan.md`](access-groups-plan.md) | Plan: Freigaben und Gruppen — Etappe 1 (Funktions-Freigaben) |  | 2026-09-29 |
-| [`admin-cockpit-visual-system.md`](admin-cockpit-visual-system.md) | Admin-Cockpit Visual System |  | 2026-07-16 |
+| [`admin-cockpit-visual-system.md`](admin-cockpit-visual-system.md) | Admin-Cockpit Visual System |  | 2026-10-30 |
 | [`agent-background-delegation.md`](agent-background-delegation.md) | Spec + Plan: Spezialisten im Hintergrund beauftragen (ask_agent) |  | 2026-10-01 |
 | [`agent-infrastructure-tools.md`](agent-infrastructure-tools.md) | Container und VMs als Agent-Werkzeuge |  | 2026-09-26 |
 | [`agent-integrity-layer.md`](agent-integrity-layer.md) | Agent Integrity Layer |  | 2026-09-24 |
 | [`agent-language.md`](agent-language.md) | Spec: Antwortsprache für alle Agenten aus der Buddy-Einstellung |  | 2026-10-11 |
 | [`agent-model-picker.md`](agent-model-picker.md) | Agent-Editor: Modellauswahl ohne Limit, nach Anbieter gruppiert |  | 2026-09-30 |
+| [`agent-templates.md`](agent-templates.md) | Agenten-Templates – Modellketten, Budgets und Arbeitsweise an einem Ort |  | ? |
 | [`agentlink-checkpoint-resume.md`](agentlink-checkpoint-resume.md) | AgentLink Checkpoint and Resume |  | 2026-09-25 |
 | [`agentlink-runtime-profiles.md`](agentlink-runtime-profiles.md) | AgentLink Runtime Profiles |  | 2026-09-25 |
 | [`agentlink-security.md`](agentlink-security.md) | AgentLink: Absicherung |  | 2026-09-29 |
@@ -62,8 +63,10 @@ frühere Teile beschreiben bereits umgesetzte Etappen.
 | [`cockpit-redesign-plan.md`](cockpit-redesign-plan.md) | Plan: Cockpit-Redesign |  | 2026-07-10 |
 | [`cockpit-responsive-topbar.md`](cockpit-responsive-topbar.md) | Cockpit-Chrome P1: Responsive Topbar und Mobile-Navigation |  | 2026-07-11 |
 | [`code-graph.md`](code-graph.md) | Code-Graph — Projekt-Codebase als navigierbarer Wissensgraph (Etappe 1) |  | 2026-07-13 |
+| [`codex-oauth-extended-context.md`](codex-oauth-extended-context.md) | Codex-OAuth: erweitertes Kontextfenster |  | 2026-11-03 |
 | [`comfyui-workflows-pflichtfelder.md`](comfyui-workflows-pflichtfelder.md) | Mitgelieferte ComfyUI-Abläufe: Pflichtfelder vollständig |  | 2026-10-24 |
 | [`compact-riesige-nachrichten.md`](compact-riesige-nachrichten.md) | Compact bei riesigen Einzelnachrichten |  | 2026-10-27 |
+| [`compaction-reliability.md`](compaction-reliability.md) | Compaction-Zuverlässigkeit: Fallback, Cooldown und Zeitbudget |  | 2026-11-09 |
 | [`compute-cluster-v1.md`](compute-cluster-v1.md) | HydraHive Compute Cluster V1 — Node Agent + Incus |  | 2026-07-19 |
 | [`compute-cluster-v1-plan.md`](compute-cluster-v1-plan.md) | Plan: HydraHive Compute Cluster V1 |  | 2026-07-20 |
 | [`container-nat-ports.md`](container-nat-ports.md) | Container auf VPS: NAT-Netz und Portfreigaben | freigegeben von Till · **Task:** fa358d87 | 2026-10-11 |
@@ -79,9 +82,14 @@ frühere Teile beschreiben bereits umgesetzte Etappen.
 | [`discord-moderation-tools.md`](discord-moderation-tools.md) | Feature-Spec: Discord-Moderationswerkzeuge für Agenten | Freigegeben (Till, 2026 | 2026-09-27 |
 | [`discord-server-admin-tools.md`](discord-server-admin-tools.md) | Feature-Spec: Discord-Serververwaltung für Agenten | Freigegeben (Till, 2026 | 2026-09-28 |
 | [`files-access.md`](files-access.md) | /api/files – Zugriff nur auf eigene bzw. freigegebene Dateien |  | 2026-10-10 |
+| [`fix-test-guard.md`](fix-test-guard.md) | Fix-Test-Guard: jeder Fix bringt einen Test mit |  | 2026-11-11 |
 | [`full-cockpit-visual-migration.md`](full-cockpit-visual-migration.md) | Full Cockpit Visual Migration |  | 2026-09-18 |
+| [`game-studio-module-v0.1.md`](game-studio-module-v0.1.md) | Game Studio — Modulspezifikation V0.1 | Fachlich freigegeben; noch nicht implementiert. Der Linux | 2026-11-06 |
 | [`harakiri-confirm-noise.md`](harakiri-confirm-noise.md) | Spec: Weniger Rückfragen bei shell_exec, Warten statt Ablehnen |  | 2026-10-11 |
+| [`harness-bench.md`](harness-bench.md) | Harness-Benchmark: fester Testsatz vor/nach Harness-Änderungen |  | 2026-11-11 |
+| [`harness-doctor.md`](harness-doctor.md) | Harness Doctor V1 |  | 2026-11-09 |
 | [`host-selfheal-ubuntu-2604.md`](host-selfheal-ubuntu-2604.md) | Spec: Host-Self-Heal nach Ubuntu-26.04-Upgrade |  | 2026-09-01 |
+| [`incus-init-update.md`](incus-init-update.md) | Update richtet incus nicht neu ein, wenn es schon läuft | Auftrag von Till („mach 1“) · **Task:** 004d8ee0 | 2026-10-29 |
 | [`installer-core-first.md`](installer-core-first.md) | Spec: Installer – erst der Kern, Zusatz-Module später über die Oberfläche |  | 2026-10-11 |
 | [`knowledge-spaces.md`](knowledge-spaces.md) | Wissensräume für Agenten (E1/E2) |  | 2026-10-09 |
 | [`legacy-topnav-cockpit-alignment.md`](legacy-topnav-cockpit-alignment.md) | Legacy-Topnav auf Cockpit-Standard angleichen |  | 2026-09-18 |
@@ -94,6 +102,8 @@ frühere Teile beschreiben bereits umgesetzte Etappen.
 | [`local-image-to-video.md`](local-image-to-video.md) | Plan: Lokales Image-to-Video mit Start-/Endbild |  | 2026-09-06 |
 | [`local-media-model-switching.md`](local-media-model-switching.md) | Lokale ComfyUI- und Cloud-Medienmodelle gezielt auswählen |  | 2026-09-05 |
 | [`local-media-runtime.md`](local-media-runtime.md) | Spec: Local Media Runtime |  | 2026-09-26 |
+| [`local-pdf-ocr.md`](local-pdf-ocr.md) | Lokales Lesen von Text- und Scan-PDFs |  | 2026-11-03 |
+| [`local-pdf-ocr-plan.md`](local-pdf-ocr-plan.md) | Plan: Lokales Lesen von Text- und Scan-PDFs |  | 2026-11-03 |
 | [`local-video-backends.md`](local-video-backends.md) | Spec: Lokale Video-/Bild-Backends (ComfyUI + sd-server) |  | 2026-10-20 |
 | [`mac-update.md`](mac-update.md) | macOS: Update-Verlauf, Python-Pakete, Frontend – Spec |  | 2026-10-21 |
 | [`media-atelier-layout-mock.md`](media-atelier-layout-mock.md) | Media-Atelier Layout-Mock |  | 2026-07-11 |
@@ -104,14 +114,15 @@ frühere Teile beschreiben bereits umgesetzte Etappen.
 | [`media-trailer-workflow-recovery.md`](media-trailer-workflow-recovery.md) | Media-Trailer-Workflow Recovery |  | 2026-07-11 |
 | [`media-ux-p2-1.md`](media-ux-p2-1.md) | Media UX P2.1: Asset-Picker und vollständige Shot-Bearbeitung |  | 2026-07-11 |
 | [`media-workspace-navigation.md`](media-workspace-navigation.md) | Media-Cockpit: eindeutige Arbeitsbereiche |  | 2026-07-11 |
+| [`minimax-m3.md`](minimax-m3.md) | MiniMax auf den aktuellen Stand bringen (M3.1-Flash, M3) |  | 2026-11-02 |
 | [`mining-modul.md`](mining-modul.md) | Spec: Mining-Modul — GPU-Rechner im Netz für Kryptex verwalten | Design, Aufbau von Till freigegeben, noch nicht implementiert | 2026-10-03 |
 | [`modul-ladeschleife.md`](modul-ladeschleife.md) | Modul-Listen erst beim Gebrauch lesen (Werkstatt schwarz) |  | 2026-10-24 |
 | [`modul-liste-vereinheitlicht.md`](modul-liste-vereinheitlicht.md) | Spec: Modul-Verwaltung — eine Liste, Beschreibungen, kontextabhängige Buttons |  | 2026-07-07 |
-| [`modul-update-alle.md`](modul-update-alle.md) | „Alle updaten“ bei Modulen: ein Ablauf, einmal bauen, einmal neu starten |  | 2026-10-24 |
+| [`modul-update-alle.md`](modul-update-alle.md) | „Alle updaten“ bei Modulen: ein Ablauf, einmal bauen, einmal neu starten |  | 2026-10-30 |
 | [`modul-update-unabhaengig-vom-browser.md`](modul-update-unabhaengig-vom-browser.md) | Modul-Install, -Update und -Deinstallation laufen zu Ende, auch ohne offenen Browser |  | 2026-10-17 |
 | [`modul-updates.md`](modul-updates.md) | Spec: Modul-Update-Erkennung, Übersichtlichkeit & Footer-Indikatoren |  | 2026-07-07 |
 | [`module-view-sandbox.md`](module-view-sandbox.md) | Modul-Ansichten im Chat (abgeschottet) – Spec |  | 2026-10-20 |
-| [`ollama-chat-route.md`](ollama-chat-route.md) | Ollama über /api/chat ansprechen (Werkzeuge für lokale Agenten) |  | ? |
+| [`ollama-chat-route.md`](ollama-chat-route.md) | Ollama über /api/chat ansprechen (Werkzeuge für lokale Agenten) |  | 2026-10-29 |
 | [`ollama-model-manager.md`](ollama-model-manager.md) | Ollama-Modellmanager |  | 2026-08-31 |
 | [`ollama-provider.md`](ollama-provider.md) | Spec: Ollama als LLM-Provider |  | 2026-07-24 |
 | [`plugin-updates.md`](plugin-updates.md) | Plugins: neue Version anzeigen und aktualisieren – wie bei den Modulen |  | 2026-10-10 |
@@ -128,6 +139,7 @@ frühere Teile beschreiben bereits umgesetzte Etappen.
 | [`project-cockpit-p7.md`](project-cockpit-p7.md) | Project-Cockpit P7: Sichere Projektintegrationen |  | 2026-07-11 |
 | [`project-handover.md`](project-handover.md) | Spec: Globale Projekt-Handover-Datei |  | 2026-07-11 |
 | [`project-member-roles.md`](project-member-roles.md) | Spec: Projekt-Member-Rechte (Read / Write / Admin) |  | 2026-07-29 |
+| [`projekt-container-ausfuehrung.md`](projekt-container-ausfuehrung.md) | Projekt-Ausführung im Container (Etappe K1 für Hydra-Labor) | Entwurf, wartet auf Tills Freigabe · **Task:** 2dbf77c4 | 2026-10-30 |
 | [`prompt-archive.md`](prompt-archive.md) | Feature-Spec: Prompt-Archiv (Prompt Library) | Entwurf | 2026-06-25 |
 | [`pytest-parallel.md`](pytest-parallel.md) | Testreihe auf mehreren Kernen (pytest-xdist) |  | 2026-10-29 |
 | [`python-314-umstieg.md`](python-314-umstieg.md) | Umstieg auf Python 3.14 (Ubuntu 26.04) |  | 2026-10-12 |
@@ -142,8 +154,8 @@ frühere Teile beschreiben bereits umgesetzte Etappen.
 | [`system-updates.md`](system-updates.md) | Systemupdates: das ganze System mit aktualisieren |  | 2026-10-26 |
 | [`theme-editor.md`](theme-editor.md) | Theme-Editor & Ordner-Themes |  | 2026-07-02 |
 | [`theme-templates-brainstorm.md`](theme-templates-brainstorm.md) | Brainstorm-Anker: Theme-Templates mit Platzhaltern |  | 2026-07-02 |
-| [`theming-system.md`](theming-system.md) | Theme-System — installierbare Designs (WordPress-Prinzip) – **zurückgenommen 29.10.2026** |  | 2026-07-02 |
-| [`theming-system-etappe3.md`](theming-system-etappe3.md) | Theme-System Etappe 3 — Hub-Installer (WordPress-Gefühl) – **zurückgenommen 29.10.2026** |  | 2026-07-02 |
+| [`theming-system.md`](theming-system.md) | Theme-System — installierbare Designs (WordPress-Prinzip) |  | 2026-10-29 |
+| [`theming-system-etappe3.md`](theming-system-etappe3.md) | Theme-System Etappe 3 — Hub-Installer (WordPress-Gefühl) |  | 2026-10-29 |
 | [`tool-gate-non-tool-models.md`](tool-gate-non-tool-models.md) | Tool-Gate für Modelle ohne Function-Calling |  | 2026-07-27 |
 | [`ubuntu-2604-support.md`](ubuntu-2604-support.md) | Ubuntu 26.04 LTS Support | Installation auf 26.04 läuft fehlerfrei durch | 2026-08-19 |
 | [`ui-standard.md`](ui-standard.md) | HydraHive-UI-Standard (Barrierefreiheit und Bedienbarkeit) |  | 2026-10-20 |
