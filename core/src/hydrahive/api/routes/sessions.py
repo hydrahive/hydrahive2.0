@@ -143,6 +143,11 @@ def update_session(
     sessions_db.update(session_id, title=req.title, status=req.status)
     # model_override getrennt — unter metadata, read-modify-write
     if req.model_override is not None:
+        if req.model_override:
+            from hydrahive.agents import config as agent_config
+            from hydrahive.agents._session_models import is_allowed
+            if not is_allowed(agent_config.get(s.agent_id), req.model_override):
+                raise coded(status.HTTP_400_BAD_REQUEST, "model_not_in_template")
         sessions_db.set_model_override(session_id, req.model_override or None)
     # reasoning_effort getrennt — unter metadata, read-modify-write
     if req.reasoning_effort is not None:

@@ -20,8 +20,8 @@ export function CompactionSection({ agent, models, onChange }: Props) {
   const maxTurns = agent.compact_max_turns ?? ""
   const liveMax = agent.tool_result_max_chars ?? 12000
   const cacheTtl = agent.cache_ttl ?? "5m"
-  // Gebunden (docs/specs/agent-templates.md): Kompaktierungs-Modell, -Schwelle und Cache-Dauer kommen vom Template.
-  const bound = !!agent.template
+  // Kompaktierungs-Modell, -Schwelle und Cache-Dauer kommen immer vom Agenten-Template (Aufräumen 14.11.2026).
+  const bound = true
 
   return (
     <div className="space-y-2">

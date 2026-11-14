@@ -177,6 +177,11 @@
     "budget": "Budget",
     "budget_value": "{{it}} Iterationen · {{tok}} Tokens · {{sec}} s",
     "managed_hint": "Ändern im Reiter „Agenten-Templates“ der LLM-Seite (nur Admin).",
-    "compaction_bound": "Kompaktierungs-Modell, -Schwelle und Cache-Dauer kommen vom Agenten-Template."
+    "compaction_bound": "Kompaktierungs-Modell, -Schwelle und Cache-Dauer kommen vom Agenten-Template.",
+    "unbound_required": "Kein Template: Dieser Agent läuft mit alten Einzelwerten. Bitte ein Template wählen – Modell und Budget kommen dann zentral von der LLM-Seite.",
+    "save": "Speichern",
+    "reset": "Zurücksetzen",
+    "saved": "Template gespeichert. Neue Aufrufe nutzen es.",
+    "save_failed": "Template konnte nicht gespeichert werden."
   }
 }

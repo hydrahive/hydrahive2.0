@@ -27,7 +27,7 @@ export function TemplateBinding({ value, onChange }: { value: string | null | un
       </select>
       {current
         ? <TemplateSummary tpl={current} />
-        : <p className="text-[10px] text-amber-400">{value ? t("template.unknown") : t("template.unbound_hint")}</p>}
+        : <p className="text-[10px] text-amber-400">{value ? t("template.unknown") : t("template.unbound_required")}</p>}
     </div>
   )
 }

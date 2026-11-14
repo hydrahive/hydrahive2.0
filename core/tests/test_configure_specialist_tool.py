@@ -34,21 +34,28 @@ def test_configures_own_project_specialist(monkeypatch):
     monkeypatch.setattr("hydrahive.agents.config.update",
                         lambda aid, **ch: captured.update({"id": aid, **ch}))
     res = asyncio.run(conf.TOOL.execute(
-        {"agent_id": "spec-1", "tools": ["file_read", "todo_write"],
-         "status": "disabled", "max_iterations": 80, "max_tokens": 32_000,
-         "compact_threshold_pct": 65, "handoff_timeout_seconds": 1_500},
+        {"agent_id": "spec-1", "tools": ["file_read", "todo_write"], "status": "disabled",
+         "tool_result_max_chars": 9_000},
         _ctx()))
-    assert res.success
+    assert res.success, res.error
     assert captured["id"] == "spec-1"
     assert captured["tools"] == ["file_read"]   # todo_write nicht beim Erzeuger → gefiltert
     assert captured["status"] == "disabled"
-    assert captured["max_iterations"] == 80
-    assert captured["max_tokens"] == 32_000
-    assert captured["compact_threshold_pct"] == 65
-    assert captured["handoff_timeout_seconds"] == 1_500
-    assert {"max_iterations", "max_tokens", "handoff_timeout_seconds"}.issubset(
-        conf.TOOL.schema["properties"]
-    )
+    assert captured["tool_result_max_chars"] == 9_000
+    # Aufräumen 14.11.2026: Modell/Budget kommen aus dem Template und sind im Schema nicht mehr angeboten.
+    assert not {"max_iterations", "max_tokens", "handoff_timeout_seconds", "llm_model"} & set(
+        conf.TOOL.schema["properties"])
+
+
+def test_configure_budget_ohne_template_abgelehnt(monkeypatch):
+    def _get(_id):
+        if _id == "proj-agent":
+            return {"id": "proj-agent", "type": "project", "owner": "u", "project_id": "P", "tools": []}
+        return {"id": "spec-1", "type": "specialist", "project_id": "P"}
+    monkeypatch.setattr("hydrahive.agents.config.get", _get)
+    monkeypatch.setattr("hydrahive.agents.config.update", lambda aid, **ch: None)
+    res = asyncio.run(conf.TOOL.execute({"agent_id": "spec-1", "max_iterations": 80}, _ctx()))
+    assert not res.success and "agent_needs_template" in (res.error or "")
 
 
 def test_system_prompt_bei_aktiver_soul_wird_abgelehnt(monkeypatch):

@@ -42,7 +42,8 @@ async def run_loop(stop: asyncio.Event) -> None:
                     # Nur mit konfiguriertem Modell (sonst kein LLM-Verdichten).
                     # Modell: Template „Lehren & Karten“ (agent-templates E2), sonst wie bisher das Zahnfee-Modell.
                     from hydrahive.agents.templates._system import system_chain
-                    card_chain = system_chain("lehren", cfg.model or None) if cfg.model else []
+                    # Modell aus dem Template „Lehren & Karten“; ohne Template wie bisher nur mit Zahnfee-Modell.
+                    card_chain = system_chain("lehren", cfg.model or None)
                     if card_chain:
                         from hydrahive.cards.consolidate import consolidate_recent
                         asyncio.create_task(

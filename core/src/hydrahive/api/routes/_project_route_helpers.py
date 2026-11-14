@@ -20,7 +20,10 @@ class ProjectCreate(BaseModel):
     description: str = ""
     # Akzeptiert Legacy (list[str]) und neues Format (list[{username, role}]).
     members: list[str | MemberEntry] = []
-    llm_model: str
+    # Projekt-Agent bekommt immer ein Agenten-Template (Aufräumen 14.11.2026). llm_model nur noch Altbestand
+    # (wird ignoriert, wenn das Template existiert).
+    template: str | None = None
+    llm_model: str = ""
     init_git: bool = False
 
 

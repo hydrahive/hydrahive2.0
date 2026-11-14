@@ -2,7 +2,7 @@
 from __future__ import annotations
 
 from hydrahive.tools._project_authoring import (
-    SPECIALIST_RUNTIME_SCHEMA,
+    SPECIALIST_FREE_SCHEMA,
     TEMPLATE_SCHEMA,
     AuthoringError,
     bounded_tools,
@@ -13,20 +13,20 @@ from hydrahive.tools.base import Tool, ToolContext, ToolResult
 from hydrahive.tools._errors import fail_with_cause
 
 _DESCRIPTION = (
-    "Ändert einen Spezialisten DEINES Projekts (Modell, Tools, System-Prompt, "
-    "Beschreibung, status aktiv/disabled). Tools werden auf deine eigenen begrenzt."
+    "Ändert einen Spezialisten DEINES Projekts (Template, Tools, System-Prompt, "
+    "Beschreibung, status aktiv/disabled). Modell und Budget kommen aus dem Agenten-Template. "
+    "Tools werden auf deine eigenen begrenzt."
 )
 _SCHEMA = {
     "type": "object",
     "properties": {
         "agent_id": {"type": "string"},
-        "llm_model": {"type": "string"},
         "tools": {"type": "array", "items": {"type": "string"}},
         "system_prompt": {"type": "string"},
         "description": {"type": "string"},
         "status": {"type": "string", "enum": ["active", "disabled"]},
         **TEMPLATE_SCHEMA,
-        **SPECIALIST_RUNTIME_SCHEMA,
+        **SPECIALIST_FREE_SCHEMA,
     },
     "required": ["agent_id"],
 }
@@ -66,6 +66,8 @@ async def _execute(args: dict, ctx: ToolContext) -> ToolResult:
 
     try:
         if changes:
+            from hydrahive.agents._binding import guard_user_change
+            guard_user_change(target, changes)
             agent_config.update(target_id, **changes)
         if args.get("system_prompt"):
             agent_config.set_system_prompt(target_id, args["system_prompt"])

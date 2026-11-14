@@ -2,7 +2,7 @@
 from __future__ import annotations
 
 from hydrahive.tools._project_authoring import (
-    SPECIALIST_RUNTIME_SCHEMA,
+    SPECIALIST_FREE_SCHEMA,
     TEMPLATE_SCHEMA,
     AuthoringError,
     bounded_tools,
@@ -22,11 +22,10 @@ _SCHEMA = {
     "properties": {
         "name": {"type": "string", "description": "Name des Spezialisten"},
         "description": {"type": "string", "description": "Wofür er zuständig ist"},
-        "llm_model": {"type": "string", "description": "Optional; Default: dein eigenes Modell"},
         "tools": {"type": "array", "items": {"type": "string"},
                   "description": "Optional; Teilmenge deiner Tools. Default: Spezialist-Standard."},
         **TEMPLATE_SCHEMA,
-        **SPECIALIST_RUNTIME_SCHEMA,
+        **SPECIALIST_FREE_SCHEMA,
     },
     "required": ["name"],
 }
@@ -56,12 +55,13 @@ async def _execute(args: dict, ctx: ToolContext) -> ToolResult:
     reasoning_effort = runtime.pop("reasoning_effort", "")
     fallback_models = runtime.pop("fallback_models", [])
 
-    template = (args.get("template") or "").strip() or None
-    if template:
-        from hydrahive.agents._binding import BOUND_FIELDS
-        clash = sorted(f for f in BOUND_FIELDS if f in args)
-        if clash:
-            return ToolResult.fail(f"Mit template sind diese Felder nicht einstellbar: {', '.join(clash)}")
+    # Neue Spezialisten sind immer gebunden (Aufräumen 14.11.2026). Ohne Angabe: Template nach Name.
+    from hydrahive.agents._binding import BOUND_FIELDS, default_template_for
+    clash = sorted(f for f in BOUND_FIELDS if f in args)
+    if clash:
+        return ToolResult.fail(f"Modell und Budget kommen aus dem Agenten-Template, nicht einstellbar: "
+                               f"{', '.join(clash)}. Wähle stattdessen template.")
+    template = (args.get("template") or "").strip() or default_template_for("specialist", name)
     try:
         cfg = agent_config.create(
             agent_type="specialist",

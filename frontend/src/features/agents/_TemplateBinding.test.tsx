@@ -24,10 +24,11 @@ describe("Agent-Editor mit Template (Plan E3)", () => {
     expect(html).toContain("fields.temperature")
   })
 
-  it("ungebunden: alte Felder bleiben, Hinweis zur Bindung", () => {
+  it("ungebunden: keine alten Felder mehr, Aufforderung ein Template zu wählen (Aufräumen 14.11.2026)", () => {
     const html = renderToStaticMarkup(<ModelTab draft={agent()} catalog={[]} onChange={() => {}} />)
-    expect(html).toContain("fields.fallback_models")
-    expect(html).toContain("template.unbound_hint")
+    expect(html).not.toContain("fields.fallback_models")
+    expect(html).not.toContain("fields.model")
+    expect(html).toContain("template.unbound_required")
   })
 
   it("Zusammenfassung zeigt die Kette", () => {

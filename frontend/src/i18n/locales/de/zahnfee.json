@@ -31,6 +31,7 @@
     "soul_reset_short": "Reset",
     "save": "Speichern",
     "saving": "Speichert…",
-    "saved": "Gespeichert ✓"
+    "saved": "Gespeichert ✓",
+    "model_from_template": "Kommt aus dem Agenten-Template „Zahnfee“ (LLM-Seite → Agenten-Templates)."
   }
 }

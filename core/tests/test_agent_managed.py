@@ -34,11 +34,16 @@ def test_route_gesperrte_felder(client, admin_headers, managed, body):
     assert a["tools"] == ["shell_exec", "file_read"] and a["managed_by"] == "hydralabor"
 
 
-@pytest.mark.parametrize("body", [{"llm_model": "test/other"}, {"fallback_models": ["test/model"]},
-                                  {"status": "disabled"}])
-def test_route_erlaubte_felder(client, admin_headers, managed, body):
-    r = client.patch(f"/api/agents/{managed}", headers=admin_headers, json=body)
+def test_route_erlaubte_felder(client, admin_headers, managed):
+    r = client.patch(f"/api/agents/{managed}", headers=admin_headers, json={"status": "disabled"})
     assert r.status_code == 200, r.text
+
+
+@pytest.mark.parametrize("body", [{"llm_model": "test/other"}, {"fallback_models": ["test/model"]}])
+def test_route_modellfelder_nur_ueber_template(client, admin_headers, managed, body):
+    """Aufräumen 14.11.2026: Modell/Fallback gibt es an der Route nur noch über Agenten-Templates."""
+    r = client.patch(f"/api/agents/{managed}", headers=admin_headers, json=body)
+    assert r.status_code == 400 and ("agent_needs_template" in r.text or "agent_bound_to_template" in r.text)
 
 
 def test_route_systemprompt_gesperrt(client, admin_headers, managed):
@@ -120,16 +125,16 @@ def test_oeffentliche_ansicht_zeigt_verwaltung(client, admin_headers, managed):
     assert r.json().get("managed_by") == "hydralabor"
 
 
-def test_speichern_mit_ganzem_objekt_und_nur_modell_geaendert(client, admin_headers, managed):
+def test_speichern_mit_ganzem_objekt_und_nur_status_geaendert(client, admin_headers, managed):
     """Die Einstellungsseite schickt das ganze Objekt (tools, project_id, managed_by …) – unverändert mitgeschickte
     feste Felder dürfen das Speichern eines erlaubten Felds nicht blockieren."""
     full = client.get(f"/api/agents/{managed}", headers=admin_headers).json()
     for k in ("id", "type", "created_at", "updated_at", "created_by"):
         full.pop(k, None)
-    full["llm_model"] = "test/other"
+    full["status"] = "disabled"
     r = client.patch(f"/api/agents/{managed}", headers=admin_headers, json=full)
     assert r.status_code == 200, r.text
-    assert r.json()["llm_model"] == "test/other" and r.json()["managed_by"] == "hydralabor"
+    assert r.json()["status"] == "disabled" and r.json()["managed_by"] == "hydralabor"
 
 
 def test_ganzes_objekt_mit_geaenderten_werkzeugen_bleibt_gesperrt(client, admin_headers, managed):

@@ -177,6 +177,11 @@
     "budget": "Budget",
     "budget_value": "{{it}} iterations · {{tok}} tokens · {{sec}} s",
     "managed_hint": "Change in the “Agent templates” tab of the LLM page (admin only).",
-    "compaction_bound": "Compaction model, threshold and cache duration come from the agent template."
+    "compaction_bound": "Compaction model, threshold and cache duration come from the agent template.",
+    "unbound_required": "No template: this agent runs on old individual values. Please choose a template – model and budget then come centrally from the LLM page.",
+    "save": "Save",
+    "reset": "Reset",
+    "saved": "Template saved. New calls use it.",
+    "save_failed": "Template could not be saved."
   }
 }

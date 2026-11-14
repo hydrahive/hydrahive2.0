@@ -226,7 +226,7 @@ export function ProjectCockpitPage() {
             title="KI Einstellungen"
             eyebrow="Chat"
             theme="ideen"
-            summary={selectedAgentModel || "Kein Modell"}
+            summary={selectedAgent?.template ? `Template: ${selectedAgent.template}` : (selectedAgentModel || "Kein Template")}
             collapsed={leftPanelCollapsed.ai}
             onToggle={() => setLeftPanelCollapsed("ai", !leftPanelCollapsed.ai)}
           >

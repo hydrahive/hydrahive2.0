@@ -65,6 +65,7 @@ def create_project(
             llm_model=req.llm_model,
             created_by=creator,
             init_git=req.init_git,
+            template=req.template or "projekt-master",
         ))
     except ProjectValidationError as e:
         raise coded(status.HTTP_400_BAD_REQUEST, "validation_error", message=str(e))

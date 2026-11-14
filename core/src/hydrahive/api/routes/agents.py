@@ -106,8 +106,10 @@ def create_agent(
     # Ohne Template und ohne ausdrücklich gesetzte Modell-/Budgetwerte: Standard-Template des Typs (harte Bindung).
     # Ältere Aufrufer, die Modell/Budget selbst schicken, bekommen bis zur Aufräum-Etappe (E7) einen ungebundenen
     # Agenten wie bisher; die Zuordnung (Reiter „Zuordnung“) bindet ihn später.
-    legacy = bool(req.model_fields_set & BOUND_FIELDS)
-    template = req.template or (None if legacy else default_template_for(req.type, req.name))
+    # Neue Agenten sind immer gebunden (Aufräumen 14.11.2026). Modell/Budget im Antrag ohne Template → Fehler.
+    if req.model_fields_set & BOUND_FIELDS - {"llm_model"} and not req.template:
+        raise coded(status.HTTP_400_BAD_REQUEST, "agent_needs_template")
+    template = req.template or default_template_for(req.type, req.name)
     try:
         return _public(agent_config.create(
             agent_type=req.type,
@@ -151,6 +153,10 @@ def update_agent(agent_id: str, req: AgentUpdate) -> dict:
             raise coded(status.HTTP_404_NOT_FOUND, "agent_not_found")
         return _public(agent)
     try:
+        from hydrahive.agents._binding import guard_user_change
+        current = agent_config.get(agent_id)
+        if current:
+            guard_user_change(current, changes)
         return _public(agent_config.update(agent_id, **changes))
     except KeyError:
         raise coded(status.HTTP_404_NOT_FOUND, "agent_not_found")
@@ -162,6 +168,18 @@ def update_agent(agent_id: str, req: AgentUpdate) -> dict:
 
 router.add_api_route("/{agent_id}", _delete_job.delete_agent, methods=["DELETE"],
                      status_code=status.HTTP_202_ACCEPTED)   # Ins Archiv oder unwiderruflich (Etappe 2)
+
+
+@router.get("/{agent_id}/session-models")
+def get_session_models(agent_id: str, _: Annotated[tuple[str, str], Depends(require_auth)]) -> dict:
+    """Im Chat wählbare Modelle (Option B, 14.11.2026). Nur Modellnamen der Template-Kette – die sind für alle
+    Angemeldeten ohnehin über /api/agent-templates lesbar, daher keine Besitzer-Prüfung (Projekt-Mitglieder)."""
+    from hydrahive.agents._session_models import allowed_session_models
+    agent = agent_config.get(agent_id)
+    if not agent:
+        raise coded(status.HTTP_404_NOT_FOUND, "agent_not_found")
+    allowed = allowed_session_models(agent)
+    return {"restricted": allowed is not None, "models": allowed or []}
 
 
 @router.get("/{agent_id}/system_prompt")

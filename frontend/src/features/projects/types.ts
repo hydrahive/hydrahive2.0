@@ -32,7 +32,8 @@ export interface ProjectCreate {
   name: string
   description: string
   members: (string | ProjectMember)[]
-  llm_model: string
+  /** Agenten-Template des Projekt-Agenten (docs/specs/agent-templates.md). */
+  template: string
   init_git: boolean
 }
 

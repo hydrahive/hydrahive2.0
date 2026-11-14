@@ -41,6 +41,9 @@ export const chatApi = {
   logCmd: (id: string, user_text: string, assistant_text: string) =>
     api.post<{ ok: boolean }>(`/sessions/${id}/log-cmd`, { user_text, assistant_text }),
   listAgents: () => api.get<AgentBrief[]>("/agents"),
+  /** Im Chat wählbare Modelle (Option B): bei Agenten mit Template nur die Kette. */
+  sessionModels: (agentId: string) =>
+    api.get<{ restricted: boolean; models: string[] }>(`/agents/${encodeURIComponent(agentId)}/session-models`),
   listProjects: () => api.get<ProjectBrief[]>("/projects"),
   compact: (id: string) => api.post<{
     skipped?: boolean

@@ -31,11 +31,24 @@ def guard(cfg: dict, changes: dict[str, Any]) -> None:
         else:
             changes["template"] = None          # Bindung lösen nur ausdrücklich (Admin-Werkzeug, E3-Rückweg)
     bound = changes.get("template", cfg.get("template"))
-    if not bound:
+    changed = sorted(k for k in BOUND_FIELDS if k in changes and cfg.get(k) != changes[k])
+    if not changed:
+        return
+    if bound:
+        raise AgentValidationError(f"agent_bound_to_template:{','.join(changed)}")
+
+
+def guard_user_change(cfg: dict, changes: dict[str, Any]) -> None:
+    """Strengere Regel für Änderungen aus Oberfläche/API/Agenten-Werkzeugen (Aufräumen, Till 14.11.2026):
+    Modell und Budget gibt es nur noch über Templates – auch ungebundene Agenten müssen erst gebunden werden.
+    Ausnahme: der Buddy (seine freie Modellwahl bleibt). Module (Kern-Aufrufe ohne diese Prüfung) sind bis
+    Etappe 5 nicht betroffen."""
+    from hydrahive.agents._validation import AgentValidationError
+    if cfg.get("is_buddy"):
         return
     changed = sorted(k for k in BOUND_FIELDS if k in changes and cfg.get(k) != changes[k])
-    if changed:
-        raise AgentValidationError(f"agent_bound_to_template:{','.join(changed)}")
+    if changed and not changes.get("template", cfg.get("template")):
+        raise AgentValidationError(f"agent_needs_template:{','.join(changed)}")
 
 
 def create_defaults(template_id: str) -> dict[str, Any]:

@@ -81,7 +81,10 @@
     "lessons": "Lessons",
     "lessons_default": "Default (same as chat)",
     "lessons_off": "Off – write no lessons",
-    "lessons_hint": "At most one evidence-backed lesson at the end of a session. Applies from the next session on."
+    "lessons_hint": "At most one evidence-backed lesson at the end of a session. Applies from the next session on.",
+    "chat_moved": "Chat default and lessons model are now set in the “Agent templates” tab (templates “Assistant” and “Lessons & cards”).",
+    "lessons_on": "Write lessons at the end of a session",
+    "lessons_on_hint": "At most one lesson with evidence per session. The model comes from the “Lessons & cards” template."
   },
   "media_models": {
     "title": "Media models",

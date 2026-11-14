@@ -2,7 +2,7 @@ import { useEffect, useState } from "react"
 import type { CSSProperties } from "react"
 import { GitBranch, X } from "lucide-react"
 import { useTranslation } from "react-i18next"
-import { llmModelsApi } from "@/features/llm/api"
+import { TemplateSelect } from "@/features/llm/templates/TemplateSelect"
 import { projectsApi, usersApi } from "./api"
 import { rgbFor } from "@/shared/colors"
 import { useDialog } from "@/shared/dialog/useDialog"
@@ -18,8 +18,7 @@ export function NewProjectDialog({ onClose, onCreated }: Props) {
   const { t: tCommon } = useTranslation("common")
   const [name, setName] = useState("")
   const [description, setDescription] = useState("")
-  const [model, setModel] = useState("")
-  const [models, setModels] = useState<string[]>([])
+  const [template, setTemplate] = useState("projekt-master")
   const [users, setUsers] = useState<string[]>([])
   const [members, setMembers] = useState<string[]>([])
   const [initGit, setInitGit] = useState(false)
@@ -27,11 +26,6 @@ export function NewProjectDialog({ onClose, onCreated }: Props) {
   const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
-    llmModelsApi.byModality("chat").then((res) => {
-      const ids = res.models.map((m) => m.id)
-      setModels(ids)
-      setModel(res.default || res.models[0]?.id || "")
-    }).catch(() => {})
     usersApi.list().then((us) => setUsers(us.map((u) => u.username))).catch(() => {})
   }, [])
 
@@ -40,7 +34,7 @@ export function NewProjectDialog({ onClose, onCreated }: Props) {
     setBusy(true); setError(null)
     try {
       const created = await projectsApi.create({
-        name: name.trim(), description, members, llm_model: model, init_git: initGit,
+        name: name.trim(), description, members, template, init_git: initGit,
       })
       onCreated(created.id)
     } catch (e) {
@@ -78,12 +72,10 @@ export function NewProjectDialog({ onClose, onCreated }: Props) {
         </div>
 
         <div className="space-y-1.5">
-          <label className="block text-xs font-medium text-zinc-400">{t("new_dialog.model_label")}</label>
-          <select value={model} onChange={(e) => setModel(e.target.value)}
-            className="w-full px-3 py-2 rounded-lg bg-zinc-950 border border-white/[8%] text-zinc-200 text-sm">
-            {models.length === 0 && <option value="">{t("new_dialog.no_model")}</option>}
-            {models.map((m) => <option key={m} value={m}>{m}</option>)}
-          </select>
+          <label className="block text-xs font-medium text-zinc-400">{t("new_dialog.template_label")}</label>
+          <TemplateSelect value={template} onChange={setTemplate} groups={["projects", "specialists"]}
+            className="w-full px-3 py-2 rounded-lg bg-zinc-950 border border-white/[8%] text-zinc-200 text-sm" />
+          <p className="text-[11px] text-zinc-500">{t("new_dialog.template_hint")}</p>
         </div>
 
         <div className="space-y-1.5">
@@ -117,7 +109,7 @@ export function NewProjectDialog({ onClose, onCreated }: Props) {
 
         <div className="flex justify-end gap-2 pt-2">
           <button type="button" onClick={onClose} className="px-4 py-2 rounded-lg text-sm text-zinc-400 hover:text-zinc-200 hover:bg-white/5">{tCommon("actions.cancel")}</button>
-          <button type="submit" disabled={busy || !name.trim() || !model}
+          <button type="submit" disabled={busy || !name.trim() || !template}
             className="px-4 py-2 rounded-lg bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-500 hover:to-violet-500 text-white text-sm font-medium disabled:opacity-40 disabled:cursor-not-allowed shadow-md shadow-violet-900/20">
             {tCommon("actions.create")}
           </button>

@@ -172,6 +172,8 @@ async def use_in_agent(req: UseInAgentRequest) -> dict:
         raise coded(status.HTTP_404_NOT_FOUND, "agent_not_found")
     _ensure_model_in_providers(req.model)
     try:
+        from hydrahive.agents._binding import guard_user_change
+        guard_user_change(agent, {"llm_model": req.model})
         agent_config.update(req.agent_id, llm_model=req.model)
     except AgentValidationError as e:
         raise coded(status.HTTP_400_BAD_REQUEST, "agent_invalid", message=str(e))

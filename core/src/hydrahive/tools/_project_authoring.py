@@ -22,6 +22,11 @@ SPECIALIST_RUNTIME_SCHEMA: dict[str, dict] = {
 }
 SPECIALIST_RUNTIME_FIELDS = tuple(SPECIALIST_RUNTIME_SCHEMA)
 
+# Für Werkzeug-Schemas (Aufräumen 14.11.2026): nur noch Felder, die NICHT aus dem Agenten-Template kommen.
+_TEMPLATE_OWNED = {"fallback_models", "reasoning_effort", "max_tokens", "max_iterations", "compact_model",
+                   "compact_threshold_pct", "cache_ttl", "handoff_timeout_seconds"}
+SPECIALIST_FREE_SCHEMA: dict[str, dict] = {k: v for k, v in SPECIALIST_RUNTIME_SCHEMA.items() if k not in _TEMPLATE_OWNED}
+
 # Agenten-Templates (Spec agent-templates.md Kap. 5): Modell, Fallback und Budget kommen aus dem Template.
 TEMPLATE_SCHEMA: dict[str, dict] = {"template": {"type": "string", "description": (
     "Agenten-Template (z. B. reviewer, backend, frontend, security, recherche, klein). Legt Modellkette und "
