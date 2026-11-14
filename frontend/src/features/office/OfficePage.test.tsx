@@ -46,15 +46,15 @@ describe("OfficePage", () => {
         template_group: "modules" },
     ]
     const h = html()
-    expect(h).toContain('src="/office/office-bg.webp"')
-    expect(h).toContain('src="/office/char-modules.webp"')
+    expect(h).toContain('src="/office-media/office-bg.webp"')
+    expect(h).toContain('src="/office-media/char-modules.webp"')
   })
 
   it("fällt ohne template_group auf das specialists-Bild zurück", () => {
     running = [
       { session_id: "s1", agent_id: "a1", name: "Reviewer", project_id: "P1", current_tool: "shell_exec" },
     ]
-    expect(html()).toContain('src="/office/char-specialists.webp"')
+    expect(html()).toContain('src="/office-media/char-specialists.webp"')
   })
 
   it("zeigt die Verbindung zum Auftraggeber, wenn parent_session_id gesetzt ist", () => {
