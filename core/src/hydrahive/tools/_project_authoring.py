@@ -22,6 +22,11 @@ SPECIALIST_RUNTIME_SCHEMA: dict[str, dict] = {
 }
 SPECIALIST_RUNTIME_FIELDS = tuple(SPECIALIST_RUNTIME_SCHEMA)
 
+# Agenten-Templates (Spec agent-templates.md Kap. 5): Modell, Fallback und Budget kommen aus dem Template.
+TEMPLATE_SCHEMA: dict[str, dict] = {"template": {"type": "string", "description": (
+    "Agenten-Template (z. B. reviewer, backend, frontend, security, recherche, klein). Legt Modellkette und "
+    "Budget fest; mit Template sind llm_model/fallback_models/max_* nicht einstellbar.")}}
+
 AUTHORING_TOOLS: frozenset[str] = frozenset({
     "create_specialist", "configure_specialist", "list_specialists",
     "write_skill", "delete_skill",

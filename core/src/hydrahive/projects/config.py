@@ -61,6 +61,8 @@ def create(
         cfg["git_initialized"] = init_repo(workspace)
 
     # Project-Agent automatisch anlegen
+    # Nicht automatisch gebunden: Das Anlegen-Fenster fragt heute nach einem Modell, das sonst still ignoriert würde.
+    # Bindung über die Zuordnung (agent-templates E3); Anlegen-Fenster auf Template-Auswahl umstellen = offener Punkt.
     agent = agent_config.create(
         agent_type="project",
         name=f"{name} — Projekt-Agent",

@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react"
+import { useTranslation } from "react-i18next"
 import { Check, RefreshCw } from "lucide-react"
 import { agentsApi } from "@/features/agents/api"
 import { llmModelsApi } from "@/features/llm/api"
@@ -18,6 +19,7 @@ export function ProjectAiSettingsPanel({ agentId, agents, onAgentChanged }: Prop
   const [message, setMessage] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
   const effortLevels = useEffortLevels(model)
+  const { t } = useTranslation("agents")
 
   useEffect(() => {
     setModel(agent?.llm_model ?? "")
@@ -49,6 +51,14 @@ export function ProjectAiSettingsPanel({ agentId, agents, onAgentChanged }: Prop
       setMessage("Modell und Thinking-Tiefe gespeichert. Neue Aufrufe nutzen diese Vorgabe.")
     } catch { setError("KI-Einstellungen konnten nicht gespeichert werden.") }
     finally { setSaving(false) }
+  }
+
+  if (agent?.template) {
+    // Gebunden (docs/specs/agent-templates.md): Modell und Denktiefe kommen aus dem Template der LLM-Seite.
+    return <div className="space-y-2 text-xs text-[#9aa7bc]" data-template-bound>
+      <p>{t("template.label")}: <span className="font-mono text-[#69d7ff]">{agent.template}</span></p>
+      <p>{t("template.managed_hint")}</p>
+    </div>
   }
 
   return <div className="space-y-3">

@@ -77,3 +77,31 @@ def test_create_specialist_rejects_non_project_agent(monkeypatch):
                         lambda _id: {"id": "m", "type": "master", "owner": "u"})
     res = asyncio.run(cs.TOOL.execute({"name": "x"}, _ctx()))
     assert not res.success
+
+
+def _fake_env(monkeypatch, created: dict):
+    creator = {"id": "proj-agent", "type": "project", "owner": "u", "project_id": "P",
+               "llm_model": "claude-sonnet-4-6", "tools": ["file_read"]}
+    monkeypatch.setattr("hydrahive.agents.config.get", lambda _id: creator)
+    monkeypatch.setattr("hydrahive.agents.config.create",
+                        lambda *a, **k: (created.update(k), {"id": "spec-1", **k})[1])
+    monkeypatch.setattr("hydrahive.projects.config.get", lambda pid: {"id": pid, "allowed_specialists": []})
+    monkeypatch.setattr("hydrahive.projects.config.update", lambda pid, **ch: None)
+
+
+def test_create_specialist_mit_template(monkeypatch):
+    """Agenten-Templates (Plan E3 T5): Template wird an create durchgereicht."""
+    created: dict = {}
+    _fake_env(monkeypatch, created)
+    res = asyncio.run(cs.TOOL.execute({"name": "rev", "template": "reviewer"}, _ctx()))
+    assert res.success and created["template"] == "reviewer"
+    assert "template" in cs.TOOL.schema["properties"]
+
+
+def test_create_specialist_template_und_modell_abgelehnt(monkeypatch):
+    created: dict = {}
+    _fake_env(monkeypatch, created)
+    res = asyncio.run(cs.TOOL.execute({"name": "rev", "template": "reviewer", "llm_model": "x",
+                                       "max_iterations": 9}, _ctx()))
+    assert not res.success and "llm_model" in res.error and "max_iterations" in res.error
+    assert created == {}

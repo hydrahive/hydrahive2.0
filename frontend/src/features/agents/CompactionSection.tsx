@@ -20,9 +20,12 @@ export function CompactionSection({ agent, models, onChange }: Props) {
   const maxTurns = agent.compact_max_turns ?? ""
   const liveMax = agent.tool_result_max_chars ?? 12000
   const cacheTtl = agent.cache_ttl ?? "5m"
+  // Gebunden (docs/specs/agent-templates.md): Kompaktierungs-Modell, -Schwelle und Cache-Dauer kommen vom Template.
+  const bound = !!agent.template
 
   return (
     <div className="space-y-2">
+      {bound && <p className="text-[10px] text-zinc-500">{t("template.compaction_bound")}</p>}
       <div className="flex items-center gap-1.5">
         <p className="text-xs font-medium text-zinc-400">{t("compaction.section_title")}</p>
         <span title={t("compaction.help")} className="text-zinc-500 hover:text-zinc-400 cursor-help">
@@ -36,6 +39,7 @@ export function CompactionSection({ agent, models, onChange }: Props) {
           <select
             value={compactModel}
             onChange={(e) => onChange({ compact_model: e.target.value })}
+            disabled={bound}
             className="w-full px-2 py-1 rounded-md bg-zinc-900 border border-white/[8%] text-xs text-zinc-200"
           >
             <option value="">{t("compaction.model_main", { model: agent.llm_model })}</option>
@@ -104,6 +108,7 @@ export function CompactionSection({ agent, models, onChange }: Props) {
             step={5}
             value={thresholdPct}
             onChange={(e) => onChange({ compact_threshold_pct: parseInt(e.target.value) })}
+            disabled={bound}
             className="w-full"
           />
         </div>
@@ -133,6 +138,7 @@ export function CompactionSection({ agent, models, onChange }: Props) {
           <select
             value={cacheTtl}
             onChange={(e) => onChange({ cache_ttl: e.target.value })}
+            disabled={bound}
             className="w-full px-2 py-1 rounded-md bg-zinc-900 border border-white/[8%] text-xs text-zinc-200"
           >
             <option value="1h">1h ({t("compaction.default")})</option>

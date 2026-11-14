@@ -180,5 +180,21 @@
       "stream_abort": "Verbindung abgebrochen",
       "error": "Fehler"
     }
+  },
+  "bindings": {
+    "view_templates": "Templates",
+    "view_bindings": "Zuordnung der Agenten",
+    "intro": "Jeder Agent bekommt ein Template. Danach kommen Modell, Failover und Budget nur noch von dort (harte Bindung). Vor dem Anwenden wird jede betroffene Agent-Config gesichert; „rückgängig“ stellt sie wieder her.",
+    "agent": "Agent",
+    "today": "Heute",
+    "template": "Template",
+    "bound_to": "gebunden: {{id}}",
+    "unsure": "Vorschlag unsicher – bitte prüfen",
+    "apply": "Anwenden ({{n}})",
+    "confirm": "{{n}} Agenten an Templates binden? Vorher wird alles gesichert.",
+    "done": "{{n}} Agenten gebunden. Sicherung: {{backup}}",
+    "undo": "rückgängig {{backup}}",
+    "undo_confirm": "Sicherung {{backup}} zurückspielen?",
+    "undone": "{{n}} Agent-Configs wiederhergestellt."
   }
 }

@@ -3,6 +3,7 @@ from __future__ import annotations
 
 from hydrahive.tools._project_authoring import (
     SPECIALIST_RUNTIME_SCHEMA,
+    TEMPLATE_SCHEMA,
     AuthoringError,
     bounded_tools,
     resolve_project_agent,
@@ -24,6 +25,7 @@ _SCHEMA = {
         "llm_model": {"type": "string", "description": "Optional; Default: dein eigenes Modell"},
         "tools": {"type": "array", "items": {"type": "string"},
                   "description": "Optional; Teilmenge deiner Tools. Default: Spezialist-Standard."},
+        **TEMPLATE_SCHEMA,
         **SPECIALIST_RUNTIME_SCHEMA,
     },
     "required": ["name"],
@@ -54,10 +56,17 @@ async def _execute(args: dict, ctx: ToolContext) -> ToolResult:
     reasoning_effort = runtime.pop("reasoning_effort", "")
     fallback_models = runtime.pop("fallback_models", [])
 
+    template = (args.get("template") or "").strip() or None
+    if template:
+        from hydrahive.agents._binding import BOUND_FIELDS
+        clash = sorted(f for f in BOUND_FIELDS if f in args)
+        if clash:
+            return ToolResult.fail(f"Mit template sind diese Felder nicht einstellbar: {', '.join(clash)}")
     try:
         cfg = agent_config.create(
             agent_type="specialist",
             name=name,
+            template=template,
             llm_model=model,
             tools=tools,
             owner=creator.get("owner"),
@@ -80,7 +89,7 @@ async def _execute(args: dict, ctx: ToolContext) -> ToolResult:
         project_config.update(pid, allowed_specialists=allowed + [cfg["id"]])
 
     return ToolResult.ok({
-        "id": cfg["id"], "name": name, "tools": tools, "project_id": pid,
+        "id": cfg["id"], "name": name, "tools": tools, "project_id": pid, "template": cfg.get("template"),
         "max_iterations": cfg.get("max_iterations"),
         "max_tokens": cfg.get("max_tokens"),
         "handoff_timeout_seconds": cfg.get("handoff_timeout_seconds"),

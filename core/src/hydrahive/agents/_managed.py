@@ -9,7 +9,9 @@ from __future__ import annotations
 import re
 
 FIELD = "managed_by"
-FREE = frozenset({"llm_model", "fallback_models", "reasoning_effort", "status", "updated_at"})
+# `template` ist frei (Spec agent-templates.md Kap. 5): Module wählen das Template, Modell/Budget kommen von dort.
+# Die Modellfelder bleiben frei, solange ein verwalteter Agent noch nicht gebunden ist (Altbestand).
+FREE = frozenset({"llm_model", "fallback_models", "reasoning_effort", "status", "updated_at", "template"})
 _NAME = re.compile(r"^[a-z][a-z0-9_-]{1,62}$")
 
 

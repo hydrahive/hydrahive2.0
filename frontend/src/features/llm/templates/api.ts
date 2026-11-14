@@ -1,5 +1,5 @@
 import { api } from "@/shared/api-client"
-import type { AgentTemplate, BoundAgent, ChainTestResult, TemplateBody, TemplateDetail, TemplateHealth } from "./types"
+import type { AgentTemplate, BindingProposal, BoundAgent, ChainTestResult, TemplateBody, TemplateDetail, TemplateHealth } from "./types"
 
 export const templatesApi = {
   list: () => api.get<{ templates: AgentTemplate[]; groups: string[] }>("/agent-templates"),
@@ -14,4 +14,9 @@ export const templatesApi = {
   revert: (id: string, revision: number) =>
     api.post<AgentTemplate>(`/agent-templates/${encodeURIComponent(id)}/revert/${revision}`, {}),
   remove: (id: string) => api.delete<{ deleted: string }>(`/agent-templates/${encodeURIComponent(id)}`),
+  proposal: () => api.get<{ proposal: BindingProposal[]; backups: string[] }>("/agent-templates/bindings/proposal"),
+  apply: (assignments: Record<string, string>) =>
+    api.post<{ backup: string; written: number; unchanged: number }>("/agent-templates/bindings/apply", { assignments }),
+  undo: (stamp: string) =>
+    api.post<{ restored: number }>(`/agent-templates/bindings/undo/${encodeURIComponent(stamp)}`, {}),
 }

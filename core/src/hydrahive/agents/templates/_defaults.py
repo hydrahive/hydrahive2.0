@@ -21,8 +21,11 @@ _FAMILY: dict[str, tuple[str, ...]] = {
 
 # id: (label, group, primär-familie, budget, extras)
 _ROLES: dict[str, tuple[str, str, str, dict, dict]] = {
-    "buddy": ("Buddy", "personal", "sonnet", {"max_iterations": 30, "timeout_seconds": 600}, {}),
-    "assistant": ("Assistant", "personal", "sonnet", {"max_iterations": 30, "timeout_seconds": 600}, {}),
+    # Buddy/Assistant/Hilfe kompaktierten schon bisher bei 70 % (buddy/__init__.py, helpdesk/_agent.py).
+    "buddy": ("Buddy", "personal", "sonnet",
+              {"max_iterations": 30, "max_tokens": 16_000, "timeout_seconds": 600, "compact_threshold_pct": 70}, {}),
+    "assistant": ("Assistant", "personal", "sonnet",
+                  {"max_iterations": 30, "timeout_seconds": 600, "compact_threshold_pct": 70}, {}),
     "projekt-master": ("Projekt-Master", "projects", "opus",
                        {"max_iterations": 60, "max_tokens": 32_768, "timeout_seconds": 1_200,
                         "reasoning_effort": "high"}, {}),
@@ -42,7 +45,8 @@ _ROLES: dict[str, tuple[str, str, str, dict, dict]] = {
     "zahnfee": ("Zahnfee", "system", "sonnet", {"max_iterations": 30, "timeout_seconds": 1_800}, {}),
     "kompaktierung": ("Kompaktierung", "system", "sonnet", {"max_tokens": 16_384}, {}),
     "lehren": ("Lehren & Karten", "system", "sonnet", {"max_tokens": 8_192}, {}),
-    "hilfe": ("Hilfe", "system", "sonnet", {"max_iterations": 8, "timeout_seconds": 300}, {}),
+    "hilfe": ("Hilfe", "system", "sonnet",
+              {"max_iterations": 8, "max_tokens": 4_000, "timeout_seconds": 300, "compact_threshold_pct": 70}, {}),
 }
 
 

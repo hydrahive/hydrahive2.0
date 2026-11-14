@@ -121,8 +121,8 @@ def get_or_create_buddy(username: str) -> dict:
 
     existing = _find_buddy_for(username)
     if existing:
-        if existing.get("compact_threshold_pct", 100) > 70:
-            agent_config.update(existing["id"], compact_threshold_pct=70)
+        if existing.get("compact_threshold_pct", 100) > 70 and not existing.get("template"):
+            agent_config.update(existing["id"], compact_threshold_pct=70)   # gebunden: Schwelle aus dem Template
         sid = _get_or_create_session(existing, username)
         return {
             "agent_id": existing["id"],
@@ -143,6 +143,8 @@ def get_or_create_buddy(username: str) -> dict:
 
     universe, character = _pick_character()
     soul = _build_soul(username, universe, character)
+    # Buddy wird beim Anlegen NICHT automatisch gebunden: Nutzer stellen ihn heute selbst ein (Buddy-Einstellungen).
+    # Bindung erst über die Zuordnung mit Bestätigung des Admins (agent-templates E3, offener Punkt Buddy-UI).
     agent = agent_config.create(
         agent_type="master",
         name=f"{username}'s Buddy",
@@ -155,7 +157,8 @@ def get_or_create_buddy(username: str) -> dict:
         max_tokens=16000,
         thinking_budget=0,
     )
-    agent_config.update(agent["id"], is_buddy=True, compact_threshold_pct=70)
+    agent_config.update(agent["id"], is_buddy=True,
+                        **({} if agent.get("template") else {"compact_threshold_pct": 70}))
     from hydrahive.buddy._soul_state import CHARACTER_KEY, format_character
 
     memory_store.write_key(agent["id"], CHARACTER_KEY, format_character(character, universe))

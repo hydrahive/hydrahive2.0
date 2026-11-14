@@ -67,3 +67,17 @@ export interface ChainTestResult {
 
 export type TemplateBody = Pick<AgentTemplate,
   "label" | "group" | "chain" | "failover_on" | "budget" | "reply" | "on_demand" | "description">
+
+export interface BindingProposal {
+  id: string
+  name: string
+  type: string
+  owner: string
+  managed_by: string | null
+  current_template: string | null
+  llm_model: string
+  fallback_models: string[]
+  max_iterations: number | null
+  proposed: string
+  unsure: boolean
+}

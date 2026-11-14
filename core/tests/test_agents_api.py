@@ -281,3 +281,18 @@ def test_set_and_get_system_prompt(client, admin_headers):
     res = client.get(f"/api/agents/{agent_id}/system_prompt", headers=admin_headers)
     assert res.status_code == 200
     assert res.json()["prompt"] == "Du bist ein hilfreicher Assistent."
+
+
+# --- Agenten-Templates (Spec agent-templates.md Kap. 5, Plan E3) -------------------------------------------------
+
+def test_create_agent_mit_template_ist_gebunden(client, admin_headers):
+    data = _create_agent(client, admin_headers, name="Bound Bot", template="reviewer", llm_model="")
+    assert data["template"] == "reviewer"
+    res = client.patch(f"/api/agents/{data['id']}", headers=admin_headers, json={"max_iterations": 3})
+    assert res.status_code == 400 and "agent_bound_to_template" in res.text
+
+
+def test_create_agent_ohne_alles_bekommt_typ_template(client, admin_headers):
+    res = client.post("/api/agents", headers=admin_headers, json={"type": "specialist", "name": "Nur Name"})
+    assert res.status_code == 201, res.text
+    assert res.json()["template"] == "recherche"

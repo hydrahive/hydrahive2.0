@@ -86,6 +86,7 @@ def get_or_create_help_agent(username: str) -> dict:
     agent = _help_agent_for(username)
     created = agent is None
     if agent is None:
+        # Nicht automatisch gebunden: folgt heute dem Chat-Standardmodell (Bindung über die Zuordnung).
         agent = agent_config.create(
             agent_type="specialist",
             name="Hilfe-Assistent",
@@ -101,7 +102,8 @@ def get_or_create_help_agent(username: str) -> dict:
             mcp_servers=[],
             max_iterations=8,
         )
-        agent_config.update(agent["id"], is_help=True, compact_threshold_pct=70)
+        agent_config.update(agent["id"], is_help=True,
+                            **({} if agent.get("template") else {"compact_threshold_pct": 70}))
         agent = agent_config.get(agent["id"]) or agent
         logger.info("Hilfe-Assistent für %s angelegt (agent_id=%s)", username, agent["id"])
     fix: dict = {}
@@ -110,7 +112,7 @@ def get_or_create_help_agent(username: str) -> dict:
             fix["tools"] = list(HELP_TOOLS)
         if agent.get("mcp_servers"):
             fix["mcp_servers"] = []
-        if agent.get("llm_model") != model:
+        if agent.get("llm_model") != model and not agent.get("template"):   # gebunden: Modell kommt vom Template
             fix["llm_model"] = model
     if fix:
         agent_config.update(agent["id"], **fix)
