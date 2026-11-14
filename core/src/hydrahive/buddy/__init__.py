@@ -143,9 +143,11 @@ def get_or_create_buddy(username: str) -> dict:
 
     universe, character = _pick_character()
     soul = _build_soul(username, universe, character)
+    from hydrahive.agents._binding import template_if_available
     agent = agent_config.create(
         agent_type="master",
         name=f"{username}'s Buddy",
+        template=template_if_available("buddy"),
         llm_model=model,
         owner=username,
         created_by=username,

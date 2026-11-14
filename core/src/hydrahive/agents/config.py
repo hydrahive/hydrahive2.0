@@ -4,7 +4,7 @@ import logging
 import uuid
 from typing import Any
 
-from hydrahive.agents import _managed, _prompt, _tool_config, _validation
+from hydrahive.agents import _binding, _managed, _prompt, _tool_config, _validation
 from hydrahive.agents._managed import AgentManaged, set_managed  # noqa: F401 – öffentliche API
 from hydrahive.agents._config_utils import (
     get, list_all, list_by_owner, normalize, save_atomic,
@@ -52,8 +52,16 @@ def create(
     tool_result_max_chars: int | None = None,
     cache_ttl: str | None = None,
     handoff_timeout_seconds: int | None = None,
+    template: str | None = None,
 ) -> dict:
     _validation.validate_type(agent_type)
+    if template:
+        # Gebunden (Spec agent-templates.md Kap. 5): Modell/Fallback/Budget kommen aus dem Template.
+        bound = _binding.create_defaults(template)
+        llm_model, fallback_models, max_tokens = bound["llm_model"], bound["fallback_models"], bound["max_tokens"]
+        max_iterations, handoff_timeout_seconds = bound["max_iterations"], bound["handoff_timeout_seconds"]
+        reasoning_effort, compact_threshold_pct, cache_ttl = (
+            bound["reasoning_effort"], bound["compact_threshold_pct"], bound["cache_ttl"])
     _validation.validate_model(llm_model)
     if tools is None:
         tools = DEFAULT_TOOLS[agent_type]
@@ -74,6 +82,7 @@ def create(
         "reasoning_effort": reasoning_effort,
         "status": "active", "created_at": now_iso(), "updated_at": now_iso(),
         "external": bool(external),
+        **({"template": template} if template else {}),
     }
     runtime = {
         key: value for key, value in {
@@ -123,6 +132,7 @@ def update(agent_id: str, *, _managed_by: str | None = None, **changes: Any) -> 
     # Verwaltete Agenten (agents/_managed.py): feste Felder nur mit der Kennung des Moduls. Auch Felder, die hier
     # gleich verworfen würden (type, managed_by), lösen die Sperre aus – ein Versuch soll sichtbar scheitern.
     _managed.guard(cfg, changes, _managed_by)
+    _binding.guard(cfg, changes)
 
     for protected in ("id", "type", "created_at", "created_by", _managed.FIELD):
         changes.pop(protected, None)

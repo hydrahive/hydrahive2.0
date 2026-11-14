@@ -10,7 +10,10 @@ from hydrahive.api.middleware.errors import coded
 class AgentCreate(BaseModel):
     type: str
     name: str
-    llm_model: str
+    # Spec agent-templates.md Kap. 5: Agenten werden an ein Template gebunden. Fehlt `template`, nimmt die Route
+    # das Standard-Template des Typs; `llm_model` wird dann aus dem Template gesetzt und ist nur noch Altbestand.
+    template: str | None = None
+    llm_model: str = ""
     tools: list[str] | None = None
     owner: str | None = None
     description: str = ""
@@ -42,6 +45,7 @@ class AgentUpdate(BaseModel):
     type: str | None = None
     project_id: str | None = None
     managed_by: str | None = None
+    template: str | None = None
     llm_model: str | None = None
     tools: list[str] | None = None
     owner: str | None = None

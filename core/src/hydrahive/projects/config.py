@@ -61,9 +61,11 @@ def create(
         cfg["git_initialized"] = init_repo(workspace)
 
     # Project-Agent automatisch anlegen
+    from hydrahive.agents._binding import template_if_available
     agent = agent_config.create(
         agent_type="project",
         name=f"{name} — Projekt-Agent",
+        template=template_if_available("projekt-master"),
         llm_model=llm_model,
         owner=created_by,
         created_by=created_by,

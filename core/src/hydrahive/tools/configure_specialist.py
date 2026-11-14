@@ -3,6 +3,7 @@ from __future__ import annotations
 
 from hydrahive.tools._project_authoring import (
     SPECIALIST_RUNTIME_SCHEMA,
+    TEMPLATE_SCHEMA,
     AuthoringError,
     bounded_tools,
     resolve_project_agent,
@@ -24,6 +25,7 @@ _SCHEMA = {
         "system_prompt": {"type": "string"},
         "description": {"type": "string"},
         "status": {"type": "string", "enum": ["active", "disabled"]},
+        **TEMPLATE_SCHEMA,
         **SPECIALIST_RUNTIME_SCHEMA,
     },
     "required": ["agent_id"],
@@ -53,6 +55,8 @@ async def _execute(args: dict, ctx: ToolContext) -> ToolResult:
     changes = specialist_runtime_changes(args)
     if "llm_model" in args:
         changes["llm_model"] = args["llm_model"]
+    if "template" in args:
+        changes["template"] = (args["template"] or "").strip()
     if "tools" in args:
         changes["tools"] = bounded_tools(args["tools"], creator.get("tools", []))
     if "description" in args:

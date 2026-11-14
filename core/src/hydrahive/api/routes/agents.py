@@ -102,10 +102,17 @@ def create_agent(
     auth: Annotated[tuple[str, str], Depends(require_admin)],
 ) -> dict:
     creator, _ = auth
+    from hydrahive.agents._binding import BOUND_FIELDS, default_template_for
+    # Ohne Template und ohne ausdrücklich gesetzte Modell-/Budgetwerte: Standard-Template des Typs (harte Bindung).
+    # Ältere Aufrufer, die Modell/Budget selbst schicken, bekommen bis zur Aufräum-Etappe (E7) einen ungebundenen
+    # Agenten wie bisher; die Zuordnung (Reiter „Zuordnung“) bindet ihn später.
+    legacy = bool(req.model_fields_set & BOUND_FIELDS)
+    template = req.template or (None if legacy else default_template_for(req.type, req.name))
     try:
         return _public(agent_config.create(
             agent_type=req.type,
             name=req.name,
+            template=template,
             llm_model=req.llm_model,
             tools=req.tools,
             owner=req.owner or creator,

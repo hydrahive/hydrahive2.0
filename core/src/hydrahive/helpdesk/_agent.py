@@ -86,9 +86,11 @@ def get_or_create_help_agent(username: str) -> dict:
     agent = _help_agent_for(username)
     created = agent is None
     if agent is None:
+        from hydrahive.agents._binding import template_if_available
         agent = agent_config.create(
             agent_type="specialist",
             name="Hilfe-Assistent",
+            template=template_if_available("hilfe"),
             llm_model=model,
             tools=list(HELP_TOOLS),
             owner=username,
@@ -110,7 +112,7 @@ def get_or_create_help_agent(username: str) -> dict:
             fix["tools"] = list(HELP_TOOLS)
         if agent.get("mcp_servers"):
             fix["mcp_servers"] = []
-        if agent.get("llm_model") != model:
+        if agent.get("llm_model") != model and not agent.get("template"):   # gebunden: Modell kommt vom Template
             fix["llm_model"] = model
     if fix:
         agent_config.update(agent["id"], **fix)

@@ -58,6 +58,38 @@ def list_bindings() -> dict:
     return {"bindings": bindings(agent_config.list_all())}
 
 
+class ApplyBody(BaseModel):
+    assignments: dict[str, str] = Field(default_factory=dict, max_length=2000)
+
+
+@router.get("/bindings/proposal", dependencies=[Depends(require_admin)])
+def bindings_proposal() -> dict:
+    from hydrahive.agents.templates import _migrate
+    return {"proposal": _migrate.propose(agent_config.list_all()), "backups": _migrate.backups()}
+
+
+@router.post("/bindings/apply", dependencies=[Depends(require_admin)])
+def bindings_apply(body: ApplyBody) -> dict:
+    from hydrahive.agents import AgentValidationError
+    from hydrahive.agents.templates import _migrate
+    from hydrahive.db._utils import now_iso
+    stamp = now_iso().replace(":", "").replace("-", "").replace(".", "")[:15]
+    try:
+        return _migrate.apply(body.assignments, stamp=stamp)
+    except AgentValidationError as exc:
+        raise coded(status.HTTP_400_BAD_REQUEST, str(exc))
+    except FileExistsError:
+        raise coded(status.HTTP_409_CONFLICT, "bindings_apply_running")
+
+
+@router.post("/bindings/undo/{stamp}", dependencies=[Depends(require_admin)])
+def bindings_undo(stamp: str) -> dict:
+    from hydrahive.agents.templates import _migrate
+    if stamp not in _migrate.backups():
+        raise coded(status.HTTP_404_NOT_FOUND, "backup_unknown")
+    return {"restored": _migrate.undo(stamp)}
+
+
 @router.get("/{template_id}")
 def get_template(template_id: str, _: Annotated[tuple[str, str], Depends(require_auth)]) -> dict:
     t = tpl.get(template_id)
