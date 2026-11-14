@@ -106,6 +106,9 @@ Route `office` im Cockpit-Layout (`App.tsx`, bei den anderen Cockpit-Routen), Na
    zuerst zum Laufen bringen, Design danach.
 3. Grafik: Büro-Hintergrund + Charakter-Sätze generieren, Platzhalter ersetzen.
 4. Sound/Musik-Schalter.
+5. Informations-Erweiterungen (günstig, unabhängig von 2D/3D) — siehe Kapitel 8.
+6. 3D-Umbau (teuer, eigenes Vorhaben) — siehe Kapitel 9. Erst angehen, wenn Etappe 1–5 im Alltag
+   gelaufen sind und sich bewährt haben.
 
 ## 7. Akzeptanzkriterien
 - [ ] Startet ein Spezialist per `ask_agent`, erscheint er im Büro mit Verbindungslinie zum
@@ -116,3 +119,53 @@ Route `office` im Cockpit-Layout (`App.tsx`, bei den anderen Cockpit-Routen), Na
 - [ ] Ohne laufende Agenten: leerer, aber hübscher Zustand, kein Fehler.
 - [ ] Nur eigene Agenten sichtbar (Owner-Filter wie bisher in `snapshot()`), kein Daten-Leck anderer
       Nutzer.
+
+## 8. Informations-Erweiterungen (Till, 14.11.2026 — Anregung durch Claw3D)
+
+Till hat [Claw3D](https://github.com/iamlukethedev/Claw3D) gezeigt (3D-Büro-Visualisierung auf
+OpenClaw/Hermes-Gateways). Einordnung: Claw3D ist eine reine Visualisierungsschicht über einem
+fremden Gateway (eigener WS-Proxy, Token-Hop, Protokoll-Version). Das betrifft uns nicht — wir
+sind selbst das System mit direkter DB/SSE, keine Gateway-Schicht nötig. Übernommen werden daher
+nur **Konzepte**, nicht Architektur oder Code.
+
+Was sich lohnt (günstig, baut auf Etappe 1–4 auf, kein 3D nötig):
+
+### 8.1 Standup-Leiste
+Kompakte Übersichtszeile oberhalb des Büros: Anzahl laufender Agenten, wie viele davon Delegationen
+sind, wie viele eine Fehlermeldung als letzten Tool-Status haben. Ersetzt das Einzeln-Anklicken für
+den schnellen Blick „läuft alles rund?". Reine Aggregation aus `snapshot()`, keine neue Route.
+
+### 8.2 PR-/Issue-Kontext im Trace-Drawer
+Ist ein Tool-Call in der Trace-Liste ein GitHub-Tool (`gh issue create`, `gh pr create` als
+`shell_exec`-Argument, oder künftige dedizierte GitHub-Tools), zusätzlich zur Kurzfassung einen
+klickbaren Link auf PR/Issue zeigen (aus dem Tool-Ergebnis geparst: `github.com/.../pull/\d+` bzw.
+`/issues/\d+`). Erkennung rein im Frontend (Regex auf den vorhandenen `result`-Text der Trace-Route),
+keine Backend-Änderung nötig.
+
+### 8.3 Config-Diff/Health — nicht nötig
+Claw3Ds Ideen „Config-Diff/Rollback“ und „Health-Dashboard“ decken wir bereits ab (bestehendes
+Dashboard, `agent_config`-Historie, Access-Groups). Keine Übernahme.
+
+### Nicht übernommen (bewusst)
+- Office-Builder (eigener Layout-Editor) — Overkill für unseren Scope, Agenten-Platzierung ist bei
+  uns datengetrieben (Template-Gruppe), nicht frei editierbar.
+- Gym/Skill-Training, Jukebox, SSH-Remote-Ops — passt nicht zu „reine Beobachtung“ (Kapitel 5).
+- Gateway/Proxy-Architektur — betrifft uns nicht, wir haben keine fremde Runtime dazwischen.
+
+## 9. 3D-Umbau (eigenes Vorhaben, nach Bewährung von Etappe 1–5)
+
+Tills Vorstellung geht in Richtung Claw3D-Optik: Charaktere laufen durch einen Raum statt auf
+Karten zu stehen. Das ist ein eigenständiger, teurer Umbau — neue Abhängigkeit (Three.js /
+React Three Fiber), eigene Lernkurve, Performance-Fragen (WebGL auf schwächeren Clients), und
+der 2D-Drawer/Trace-Teil (Kapitel 1–3) bleibt dabei unverändert als Datenbasis bestehen. Deshalb
+separates Vorhaben, kein Teil dieser Spec-Etappen 1–5:
+
+- Grober Umriss (wird vor Start in einer eigenen Spec `docs/specs/agent-office-3d.md` verfeinert):
+  ein begehbarer Raum (React Three Fiber), Agenten als einfache 3D-Figuren an festen
+  „Schreibtisch“-Punkten (keine freie Pathfinding-Animation in der ersten Fassung — zu teuer für
+  den Nutzen), Kamera frei drehbar/zoombar, Klick auf eine Figur öffnet denselben Drawer wie heute.
+- Startpunkt erst, wenn Etappe 1–5 mindestens 2–4 Wochen im Alltag gelaufen sind (Datenmodell hat
+  sich bewährt, bekannte Lücken sind behoben) — vermeidet einen Umbau auf Basis von Daten, die sich
+  noch ändern.
+- Kein Ersatz der 2D-Fassung bis das 3D-Büro mindestens dieselben Akzeptanzkriterien (Kapitel 7)
+  erfüllt; beide können parallel existieren (Nutzer wählt), bis klar ist, was sich durchsetzt.
