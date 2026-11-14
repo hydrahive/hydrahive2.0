@@ -78,3 +78,8 @@ export function pendingAssignments(
     return tid && tid !== r.current_template ? [[r.id, tid]] : []
   }))
 }
+
+/** Standard-Template je Agent-Typ (spiegelt agents/_binding.default_template_for, ohne Namensregeln). */
+export function defaultTemplateForType(type: string): string {
+  return type === "master" ? "assistant" : type === "project" ? "projekt-master" : "recherche"
+}

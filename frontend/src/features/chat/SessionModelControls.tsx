@@ -1,3 +1,4 @@
+import { useEffect, useState } from "react"
 import { useTranslation } from "react-i18next"
 import { ModelPicker } from "./ModelPicker"
 import { ReasoningEffortPill } from "./ReasoningEffortPill"
@@ -22,6 +23,14 @@ export function SessionModelControls({ session, agent, onSessionChanged }: Props
   const activeModel = override || agent.llm_model || ""
   const effortLevels = useEffortLevels(activeModel)
   const supportsReasoningEffort = effortLevels.length > 0
+  const [allowed, setAllowed] = useState<string[] | null>(null)
+  useEffect(() => {
+    let alive = true
+    chatApi.sessionModels(agent.id)
+      .then((r) => { if (alive) setAllowed(r.restricted ? r.models : null) })
+      .catch(() => { if (alive) setAllowed(null) })
+    return () => { alive = false }
+  }, [agent.id, agent.template])
 
   return (
     <div className="border-t border-white/[8%] bg-black/20">
@@ -32,6 +41,7 @@ export function SessionModelControls({ session, agent, onSessionChanged }: Props
             current={activeModel}
             hint={override ? t("model_hint") : `${t("model_hint")} · ${agent.llm_model}`}
             fullWidth
+            allowed={allowed}
             showReset={!!override}
             onReset={async () => {
               const updated = await chatApi.updateSession(session.id, { model_override: "" })

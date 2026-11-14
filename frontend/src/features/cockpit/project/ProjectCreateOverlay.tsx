@@ -5,6 +5,7 @@ import { projectsApi } from "@/features/projects/api"
 import type { Project } from "@/features/projects/types"
 import { CockpitButton } from "../CockpitButton"
 import { useDialogFokus } from "@/shared/dialog/useDialogFokus"
+import { TemplateSelect } from "@/features/llm/templates/TemplateSelect"
 
 interface Props {
   agents: AgentBrief[]
@@ -12,18 +13,18 @@ interface Props {
   onCreated: (project: Project) => void
 }
 
-export function ProjectCreateOverlay({ agents, onClose, onCreated }: Props) {
+export function ProjectCreateOverlay({ onClose, onCreated }: Props) {
   const dialogRef = useDialogFokus<HTMLElement>()
   const [name, setName] = useState("")
   const [description, setDescription] = useState("")
-  const [model, setModel] = useState(agents[0]?.llm_model ?? "")
+  const [template, setTemplate] = useState("projekt-master")
   const [initGit, setInitGit] = useState(true)
   const [enableSamba, setEnableSamba] = useState(true)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
   async function create() {
-    if (!name.trim() || !model.trim() || saving) return
+    if (!name.trim() || !template || saving) return
     setSaving(true)
     setError(null)
     try {
@@ -31,7 +32,7 @@ export function ProjectCreateOverlay({ agents, onClose, onCreated }: Props) {
         name: name.trim(),
         description: description.trim(),
         members: [],
-        llm_model: model,
+        template,
         init_git: initGit,
       })
       if (enableSamba) await projectsApi.putSamba(project.id, true)
@@ -54,7 +55,7 @@ export function ProjectCreateOverlay({ agents, onClose, onCreated }: Props) {
         <div className="space-y-4 p-5">
           <label className="block text-xs font-bold uppercase tracking-[0.12em] text-[#69d7ff]">Projektname<input autoFocus value={name} onChange={(event) => setName(event.target.value)} maxLength={120} className="mt-2 w-full rounded-[4px] border border-s-rand bg-s-tief px-3 py-2 text-sm font-normal normal-case tracking-normal text-[#e8eef8]" placeholder="z. B. Kunstprojekt" /></label>
           <label className="block text-xs font-bold uppercase tracking-[0.12em] text-[#69d7ff]">Beschreibung<textarea value={description} onChange={(event) => setDescription(event.target.value)} maxLength={2000} rows={4} className="mt-2 w-full resize-y rounded-[4px] border border-s-rand bg-s-tief px-3 py-2 text-sm font-normal normal-case tracking-normal text-[#e8eef8]" placeholder="Wofür ist das Projekt gedacht?" /></label>
-          <label className="block text-xs font-bold uppercase tracking-[0.12em] text-[#69d7ff]">Agent-Modell<select value={model} onChange={(event) => setModel(event.target.value)} className="mt-2 w-full rounded-[4px] border border-s-rand bg-s-tief px-3 py-2 text-sm font-normal normal-case tracking-normal text-[#e8eef8]">{Array.from(new Set(agents.map((agent) => agent.llm_model).filter(Boolean))).map((item) => <option key={item}>{item}</option>)}</select></label>
+          <label className="block text-xs font-bold uppercase tracking-[0.12em] text-[#69d7ff]">Agenten-Template<TemplateSelect value={template} onChange={setTemplate} groups={["projects", "specialists"]} className="mt-2 w-full rounded-[4px] border border-s-rand bg-s-tief px-3 py-2 text-sm font-normal normal-case tracking-normal text-[#e8eef8]" /><span className="mt-1 block text-[11px] font-normal normal-case tracking-normal text-[#9aa7bc]">Modell, Failover und Budget kommen aus dem Template (LLM-Seite).</span></label>
           <div className="grid gap-3 sm:grid-cols-2">
             <label className="flex items-start gap-3 rounded-[4px] border border-s-rand bg-s-tief p-3 text-sm text-[#e8eef8]"><input type="checkbox" checked={initGit} onChange={(event) => setInitGit(event.target.checked)} className="mt-0.5" /><span><strong className="block">Git initialisieren</strong><span className="text-xs text-[#9aa7bc]">Lokales Repository im Workspace vorbereiten.</span></span></label>
             <label className="flex items-start gap-3 rounded-[4px] border border-s-rand bg-s-tief p-3 text-sm text-[#e8eef8]"><input type="checkbox" checked={enableSamba} onChange={(event) => setEnableSamba(event.target.checked)} className="mt-0.5" /><span><strong className="block">Samba freigeben</strong><span className="text-xs text-[#9aa7bc]">Workspace direkt im Netzwerk sichtbar machen.</span></span></label>
@@ -62,7 +63,7 @@ export function ProjectCreateOverlay({ agents, onClose, onCreated }: Props) {
           {error && <div className="rounded-[4px] border border-rose-500/30 bg-rose-500/10 p-3 text-sm text-rose-200">{error}</div>}
         </div>
 
-        <footer className="flex justify-end gap-2 border-t border-s-rand px-5 py-4"><CockpitButton onClick={onClose} disabled={saving}>Abbrechen</CockpitButton><CockpitButton tone="primary" onClick={() => void create()} disabled={saving || !name.trim() || !model.trim()}>{saving ? "Wird angelegt…" : "Projekt anlegen"}</CockpitButton></footer>
+        <footer className="flex justify-end gap-2 border-t border-s-rand px-5 py-4"><CockpitButton onClick={onClose} disabled={saving}>Abbrechen</CockpitButton><CockpitButton tone="primary" onClick={() => void create()} disabled={saving || !name.trim() || !template}>{saving ? "Wird angelegt…" : "Projekt anlegen"}</CockpitButton></footer>
       </section>
     </div>
   )

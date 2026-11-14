@@ -3,8 +3,7 @@ import { useTranslation } from "react-i18next"
 import { llmApi, llmModelsApi, type LlmConfig, type MediaModel, type RegistryModel } from "./api"
 import { MediaModelSelect } from "./MediaModelSelect"
 import { ModelSelect } from "./ModelSelect"
-import { LessonsModelSelect } from "./LessonsModelSelect"
-import { lessonsChoice } from "./lessonsModel"
+import { LESSONS_OFF, lessonsChoice } from "./lessonsModel"
 import { purposeFor } from "./defaultModelSave"
 
 // Maps purpose → config field path (mirrors backend _PURPOSE_KEYS)
@@ -18,12 +17,6 @@ interface PurposeDef {
 }
 
 const PURPOSES: PurposeDef[] = [
-  {
-    purpose: "chat",
-    labelKey: "default_models.chat",
-    getVal: (cfg) => cfg.default_model ?? "",
-    setVal: (cfg, model) => ({ ...cfg, default_model: model }),
-  },
   {
     purpose: "embed",
     labelKey: "default_models.embed",
@@ -76,7 +69,7 @@ export function DefaultModelsSection({ config, onSaved }: DefaultModelsSectionPr
   const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
-    const purposes: Purpose[] = ["chat", "embed", "image", "music", "tts", "stt", "video"]
+    const purposes: Purpose[] = ["embed", "image", "music", "tts", "stt", "video"]
     Promise.all(
       purposes.map((p) =>
         llmModelsApi.byModality(p)
@@ -148,6 +141,7 @@ export function DefaultModelsSection({ config, onSaved }: DefaultModelsSectionPr
           {error}
         </p>
       )}
+      <p className="text-[11px] text-zinc-500">{t("default_models.chat_moved")}</p>
       {PURPOSES.map((def) => {
         if (def.purpose === "image" || def.purpose === "video") {
           const listed = mediaModels[def.purpose] ?? []
@@ -172,11 +166,12 @@ export function DefaultModelsSection({ config, onSaved }: DefaultModelsSectionPr
           />
         )
       })}
-      <LessonsModelSelect
-        value={lessonsChoice(config)}
-        models={modelsByPurpose.chat ?? []}
-        onChange={(choice) => void savePurpose("lessons", choice)}
-      />
+      <label className="flex items-center gap-2 text-sm text-zinc-300">
+        <input type="checkbox" checked={lessonsChoice(config) !== LESSONS_OFF}
+          onChange={(e) => void savePurpose("lessons", e.target.checked ? "" : LESSONS_OFF)} />
+        {t("default_models.lessons_on")}
+      </label>
+      <p className="-mt-2 text-[11px] text-zinc-500">{t("default_models.lessons_on_hint")}</p>
     </div>
   )
 }

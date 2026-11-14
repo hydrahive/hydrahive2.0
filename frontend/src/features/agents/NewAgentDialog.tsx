@@ -6,21 +6,24 @@ import { agentsApi } from "./api"
 import type { AgentDefaults, AgentTemplate } from "./types"
 import { rgbFor } from "@/shared/colors"
 import { useDialog } from "@/shared/dialog/useDialog"
+import { TemplateSelect } from "@/features/llm/templates/TemplateSelect"
+import { defaultTemplateForType } from "@/features/llm/templates/templateLogic"
 
 interface Props {
-  models: string[]
-  defaultModel: string
+  /** Nicht mehr genutzt (Modell kommt aus dem Agenten-Template); bleibt für bestehende Aufrufer optional. */
+  models?: string[]
+  defaultModel?: string
   onClose: () => void
   onCreated: (id: string) => void
 }
 
-export function NewAgentDialog({ models, defaultModel, onClose, onCreated }: Props) {
+export function NewAgentDialog({ onClose, onCreated }: Props) {
   const dlg = useDialog()
   const { t } = useTranslation("agents")
   const { t: tCommon } = useTranslation("common")
   const [type, setType] = useState("specialist")
   const [name, setName] = useState("")
-  const [model, setModel] = useState(defaultModel || models[0] || "")
+  const [agentTemplate, setAgentTemplate] = useState("recherche")
   const [defaults, setDefaults] = useState<AgentDefaults | null>(null)
   const [templates, setTemplates] = useState<AgentTemplate[]>([])
   const [selectedTemplate, setSelectedTemplate] = useState<AgentTemplate | null>(null)
@@ -52,14 +55,12 @@ export function NewAgentDialog({ models, defaultModel, onClose, onCreated }: Pro
       const created = await agentsApi.create({
         type,
         name: name.trim(),
-        llm_model: model,
+        template: agentTemplate,
         tools,
         description: selectedTemplate?.description ?? "",
         temperature: selectedTemplate?.temperature ?? 0.7,
-        max_tokens: selectedTemplate?.max_tokens ?? 16384,
         thinking_budget: selectedTemplate?.thinking_budget ?? 0,
         mcp_servers: [],
-        fallback_models: [],
         system_prompt: selectedTemplate?.system_prompt ?? null,
       })
       onCreated(created.id)
@@ -104,7 +105,7 @@ export function NewAgentDialog({ models, defaultModel, onClose, onCreated }: Pro
         <div className="grid grid-cols-2 gap-3">
           <div className="space-y-1.5">
             <label className="block text-xs font-medium text-zinc-400">{t("new_dialog.type_label")}</label>
-            <select value={type} onChange={(e) => setType(e.target.value)}
+            <select value={type} onChange={(e) => { setType(e.target.value); setAgentTemplate(defaultTemplateForType(e.target.value)) }}
               className="w-full px-3 py-2 rounded-lg bg-zinc-950 border border-white/[8%] text-zinc-200 text-sm">
               <option value="master">{t("type.master")}</option>
               <option value="project">{t("type.project")}</option>
@@ -112,12 +113,9 @@ export function NewAgentDialog({ models, defaultModel, onClose, onCreated }: Pro
             </select>
           </div>
           <div className="space-y-1.5">
-            <label className="block text-xs font-medium text-zinc-400">{t("new_dialog.model_label")}</label>
-            <select value={model} onChange={(e) => setModel(e.target.value)}
-              className="w-full px-3 py-2 rounded-lg bg-zinc-950 border border-white/[8%] text-zinc-200 text-sm">
-              {models.length === 0 && <option value="">{t("new_dialog.no_model")}</option>}
-              {models.map((m) => <option key={m} value={m}>{m}</option>)}
-            </select>
+            <label className="block text-xs font-medium text-zinc-400">{t("template.label")}</label>
+            <TemplateSelect value={agentTemplate} onChange={setAgentTemplate}
+              className="w-full px-3 py-2 rounded-lg bg-zinc-950 border border-white/[8%] text-zinc-200 text-sm" />
           </div>
         </div>
 
@@ -149,7 +147,7 @@ export function NewAgentDialog({ models, defaultModel, onClose, onCreated }: Pro
             className="px-4 py-2 rounded-lg text-sm text-zinc-400 hover:text-zinc-200 hover:bg-white/5">
             {tCommon("actions.cancel")}
           </button>
-          <button type="submit" disabled={busy || !name.trim() || !model}
+          <button type="submit" disabled={busy || !name.trim() || !agentTemplate}
             className="px-4 py-2 rounded-lg bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-500 hover:to-violet-500 text-white text-sm font-medium disabled:opacity-40 disabled:cursor-not-allowed shadow-md shadow-violet-900/20">
             {tCommon("actions.create")}
           </button>

@@ -15,24 +15,27 @@ interface Props {
   onReset?: () => Promise<void> | void
   /** Wenn true: füllt die volle Breite des Containers (für schmale Panels). */
   fullWidth?: boolean
+  /** Feste Auswahl (z. B. Modelle der Template-Kette, Option B 14.11.2026). Ohne: alle Chat-Modelle. */
+  allowed?: string[] | null
 }
 
 const RESET_VALUE = "__RESET__"
 
 /** Native <select> für Modellwahl. Caller entscheidet wo der Pick hingeht
  *  (session.metadata.model_override im Chat, agent.llm_model im Buddy). */
-export function ModelPicker({ current, hint, onPick, showReset, onReset, fullWidth }: Props) {
+export function ModelPicker({ current, hint, onPick, showReset, onReset, fullWidth, allowed }: Props) {
   const { t } = useTranslation("chat")
   const [models, setModels] = useState<string[]>([])
   const [busy, setBusy] = useState(false)
 
   useEffect(() => {
     let alive = true
+    if (allowed) { setModels(allowed); return () => { alive = false } }
     llmModelsApi.byModality("chat")
       .then((res) => { if (alive) setModels(res.models.map((m) => m.id)) })  // Backend sortiert schon
       .catch(() => {})
     return () => { alive = false }
-  }, [])
+  }, [allowed])
 
   async function handleChange(e: React.ChangeEvent<HTMLSelectElement>) {
     const value = e.target.value

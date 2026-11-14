@@ -2,7 +2,6 @@ import { useEffect, useState } from "react"
 import { useTranslation } from "react-i18next"
 import { Loader2, Save, RotateCcw } from "lucide-react"
 import { zahnfeeApi, type ZahnfeeConfig as Cfg } from "./api"
-import { ModelPicker } from "@/features/chat/ModelPicker"
 
 /**
  * Zahnfee-EINSTELLUNGEN (aktiv, Modell, Uhrzeit, Lookback, Quellen, Soul).
@@ -52,9 +51,7 @@ export function ZahnfeeConfig() {
 
       <div className="flex flex-col gap-1.5">
         <label className="text-xs text-zinc-500 font-medium uppercase tracking-wider">{t("config.model")}</label>
-        <ModelPicker current={cfg.model} hint={t("config.model_hint")} showReset
-          onPick={(m) => setCfg({ ...cfg, model: m })}
-          onReset={() => setCfg({ ...cfg, model: "" })} />
+        <p className="text-sm text-zinc-400">{t("config.model_from_template")}</p>
       </div>
 
       <div className="grid grid-cols-2 gap-4">

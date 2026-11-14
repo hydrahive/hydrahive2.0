@@ -66,6 +66,8 @@ def save(template_id: str, data: dict, *, by: str) -> dict:
         new = {**body, "id": template_id, "revision": (old or {}).get("revision", 0) + 1,
                "updated_at": now_iso(), "updated_by": by}
         store["templates"][template_id] = new
+    from hydrahive.agents.templates._mirror import mirror_to_llm_config
+    mirror_to_llm_config(template_id, new["chain"])
     return dict(new)
 
 

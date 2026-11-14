@@ -119,24 +119,18 @@ export interface AgentTemplate {
 export interface AgentCreate {
   type: string
   name: string
-  llm_model: string
+  /** Agenten-Template: Modell, Failover und Budget kommen von dort (docs/specs/agent-templates.md). */
+  template: string
   tools: string[]
   description: string
   temperature: number
-  max_tokens: number
   thinking_budget: number
-  reasoning_effort?: string
   mcp_servers: string[]
-  fallback_models: string[]
   owner?: string | null
   domain?: string | null
   system_prompt?: string | null
-  compact_model?: string
   compact_tool_result_limit?: number
   compact_reserve_tokens?: number
-  compact_threshold_pct?: number
   compact_max_turns?: number | null
   tool_result_max_chars?: number
-  max_iterations?: number
-  handoff_timeout_seconds?: number
 }

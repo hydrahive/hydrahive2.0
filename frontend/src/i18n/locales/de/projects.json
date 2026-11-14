@@ -180,7 +180,9 @@
     "model_label": "Modell für Project-Agent",
     "no_model": "(kein Modell konfiguriert)",
     "git_init": "Workspace mit `git init` initialisieren",
-    "no_users": "(keine User)"
+    "no_users": "(keine User)",
+    "template_label": "Agenten-Template",
+    "template_hint": "Modell, Failover und Budget kommen aus dem Template (LLM-Seite)."
   },
   "mounts": {
     "empty": "Noch keine Freigabe zugewiesen.",

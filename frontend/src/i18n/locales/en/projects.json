@@ -180,7 +180,9 @@
     "model_label": "Model for project agent",
     "no_model": "(no model configured)",
     "git_init": "Initialize workspace with `git init`",
-    "no_users": "(no users)"
+    "no_users": "(no users)",
+    "template_label": "Agent template",
+    "template_hint": "Model, failover and budget come from the template (LLM page)."
   },
   "mounts": {
     "empty": "No share assigned yet.",
