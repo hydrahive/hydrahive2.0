@@ -39,6 +39,24 @@ describe("OfficePage", () => {
     expect(h).toMatch(/data-agent-card="s1"[^>]*type="button"|type="button"[^>]*data-agent-card="s1"/)
   })
 
+  // Etappe 3 (Spec §4.1): Hintergrundbild + Charakter-Sprite je Template-Gruppe.
+  it("zeigt das Büro-Hintergrundbild und das Charakterbild der Template-Gruppe", () => {
+    running = [
+      { session_id: "s1", agent_id: "a1", name: "Reviewer", project_id: "P1", current_tool: "shell_exec",
+        template_group: "modules" },
+    ]
+    const h = html()
+    expect(h).toContain('src="/office/office-bg.webp"')
+    expect(h).toContain('src="/office/char-modules.webp"')
+  })
+
+  it("fällt ohne template_group auf das specialists-Bild zurück", () => {
+    running = [
+      { session_id: "s1", agent_id: "a1", name: "Reviewer", project_id: "P1", current_tool: "shell_exec" },
+    ]
+    expect(html()).toContain('src="/office/char-specialists.webp"')
+  })
+
   it("zeigt die Verbindung zum Auftraggeber, wenn parent_session_id gesetzt ist", () => {
     running = [
       { session_id: "s1", agent_id: "a1", name: "Buddy", project_id: null, current_tool: null },

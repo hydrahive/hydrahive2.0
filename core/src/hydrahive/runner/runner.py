@@ -116,8 +116,9 @@ async def run(
         first_prompt=_first_prompt,
     )
     from hydrahive.runner import activity
-    from hydrahive.runner._activity_link import activity_start_kwargs
+    from hydrahive.runner._activity_link import activity_start_kwargs, template_group_for_agent
     activity.start(session_id, agent, owner=session.user_id, project_id=active_project_id,
+                   template_group=template_group_for_agent(agent),
                    **activity_start_kwargs(session, agent))
 
     base_system_prompt = agent_config.get_system_prompt(agent["id"])

@@ -35,6 +35,7 @@ class AgentActivity:
     max_iterations: int = 0
     deadline_at: float | None = None
     last_tool_result_summary: str = ""
+    template_group: str = "specialists"
 
 
 _active: dict[str, AgentActivity] = {}
@@ -75,6 +76,7 @@ def start(
     session_id: str, agent: dict, owner: str, project_id: str | None,
     *, parent_session_id: str | None = None, delegation_id: str | None = None,
     max_iterations: int = 0, deadline_at: float | None = None,
+    template_group: str = "specialists",
 ) -> None:
     with _lock:
         _active[session_id] = AgentActivity(
@@ -83,6 +85,7 @@ def start(
             current_tool=None, started_at=time.time(),
             parent_session_id=parent_session_id, delegation_id=delegation_id,
             max_iterations=max_iterations, deadline_at=deadline_at,
+            template_group=template_group,
         )
     broadcaster.publish()
 
