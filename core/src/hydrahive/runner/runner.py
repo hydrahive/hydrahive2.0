@@ -370,7 +370,7 @@ async def run(
                 ):
                     await compress_session(_aid, _sid, model=_model)
             asyncio.create_task(
-                _safe_compress(agent["id"], session_id, agent["llm_model"])
+                _safe_compress(agent["id"], session_id, result.used_model)
             )
             start_lessons(agent["id"], session_id)
             yield Done(message_id=assistant_msg.id, iterations=iteration + 1,
@@ -423,16 +423,16 @@ async def run(
     if compact_threshold_pct < 100:
         try:
             _history = messages_db.list_for_llm(session_id)
-            _window = context_window_for(agent["llm_model"])
+            _window = context_window_for(rs.primary_model)
             # compact_max_turns mitgeben, damit der Pre-Resume-Trigger dasselbe
             # Turn-Netz nutzt wie der Haupt-Pfad (None → window-skalierter Default).
             if should_compact(
-                _history, agent["llm_model"],
+                _history, rs.primary_model,
                 reserve_tokens=_window // 2, max_turns=compact_max_turns,
             ):
                 _kwargs = {} if compact_tool_limit is None else {"tool_result_limit": compact_tool_limit}
                 await compact_session(
-                    session_id, model=compact_model,
+                    session_id, model=compact_model, fallback_models=rs.fallback_models,
                     triggered_by="max_iterations_resume",
                     trigger_threshold_pct=50,
                     **_kwargs,

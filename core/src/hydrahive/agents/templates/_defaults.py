@@ -65,6 +65,22 @@ def _catalog_ids() -> set[str]:
     return ids
 
 
+def _current_system_models() -> dict[str, str]:
+    """Heute eingestellte Modelle der Systemrollen. Sie werden beim ersten Anlegen Primärmodell, damit sich beim
+    Update nichts ungefragt ändert (neu ist nur die Failover-Kette)."""
+    from hydrahive.llm._config import load_config
+    cfg = load_config()
+    chat = str(cfg.get("default_model") or "").strip()
+    lessons = str(cfg.get("lessons_model") or "").strip()
+    try:
+        from hydrahive.zahnfee.config import load as load_zahnfee
+        zahnfee = (load_zahnfee().model or "").strip()
+    except Exception:  # Zahnfee-Config kaputt: nicht am Start der Templates scheitern
+        zahnfee = ""
+    return {"kompaktierung": chat, "hilfe": chat, "zahnfee": zahnfee or chat,
+            "lehren": lessons if lessons and lessons != "off" else chat}
+
+
 def _pick(family: str, known: set[str]) -> str:
     return next((m for m in _FAMILY[family] if m in known), "")
 
@@ -72,10 +88,12 @@ def _pick(family: str, known: set[str]) -> str:
 def build(known: set[str] | None = None) -> dict[str, dict]:
     """Start-Templates als {id: rohe Daten} (noch nicht normalisiert)."""
     known = _catalog_ids() if known is None else known
+    current = _current_system_models()
     out: dict[str, dict] = {}
     for tid, (label, group, primary, budget, extras) in _ROLES.items():
-        first = _pick(primary, known)
-        second = _pick("sonnet" if primary == "chatgpt" else "chatgpt", known)
+        first = current.get(tid) or _pick(primary, known)
+        other = "sonnet" if first.startswith("openai-codex/") else "chatgpt"
+        second = _pick(other, known)
         chain = [m for m in dict.fromkeys([first, second, _pick("minimax", known)]) if m]
         out[tid] = {"label": label, "group": group, "chain": chain, "budget": dict(budget), **extras}
     return out

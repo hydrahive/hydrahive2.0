@@ -148,14 +148,14 @@ async def run(username: str, *, events: list[dict] | None = None) -> storage.Bri
     )
 
     try:
-        from hydrahive.llm.client import complete
+        from hydrahive.agents.templates._system import complete_with_chain, system_chain
         soul = cfg.soul.strip() or cfg_mod.DEFAULT_SOUL
-        raw = await complete(
-            messages=[
+        raw = await complete_with_chain(
+            system_chain("zahnfee", model),
+            [
                 {"role": "system", "content": soul},
                 {"role": "user", "content": user_msg},
             ],
-            model=model,
             temperature=0.3,
             max_tokens=2048,
         )

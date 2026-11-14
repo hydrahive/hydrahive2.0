@@ -40,10 +40,13 @@ async def run_loop(stop: asyncio.Event) -> None:
                     # Proaktiver Recall (L2): Cards aus den Sessions des Tages
                     # konsolidieren — Schlaf-Batch, reuse des Zahnfee-Tages-Ticks.
                     # Nur mit konfiguriertem Modell (sonst kein LLM-Verdichten).
-                    if cfg.model:
+                    # Modell: Template „Lehren & Karten“ (agent-templates E2), sonst wie bisher das Zahnfee-Modell.
+                    from hydrahive.agents.templates._system import system_chain
+                    card_chain = system_chain("lehren", cfg.model or None) if cfg.model else []
+                    if card_chain:
                         from hydrahive.cards.consolidate import consolidate_recent
                         asyncio.create_task(
-                            consolidate_recent(cfg.lookback_hours, cfg.model),
+                            consolidate_recent(cfg.lookback_hours, card_chain[0]),
                             name="cards-consolidate",
                         )
                     # Datamining-Volltext pflegen (ohne LLM, idempotent): volle Werkzeug-Ausgaben +

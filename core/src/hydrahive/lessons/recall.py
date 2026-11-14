@@ -41,8 +41,9 @@ def _judge_model() -> str:
 
 
 async def _complete(messages: list[dict], model: str | None = None, temperature: float = 0.0, max_tokens: int = 200) -> str:
-    from hydrahive.llm import client
-    return await client.complete(messages, model=model, temperature=temperature, max_tokens=max_tokens)
+    from hydrahive.agents.templates._system import complete_with_chain, system_chain
+    return await complete_with_chain(system_chain("lehren", model), messages,
+                                     temperature=temperature, max_tokens=max_tokens)
 
 
 def _embed_model() -> str:

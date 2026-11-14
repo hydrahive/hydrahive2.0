@@ -28,8 +28,9 @@ def _messages(session_id: str):
 
 
 async def _complete(msgs: list[dict], model: str | None = None, temperature: float = 0.2, max_tokens: int = MAX_TOKENS) -> str:
-    from hydrahive.llm import client
-    return await client.complete(msgs, model=model, temperature=temperature, max_tokens=max_tokens)
+    from hydrahive.agents.templates._system import complete_with_chain, system_chain
+    return await complete_with_chain(system_chain("lehren", model), msgs,
+                                     temperature=temperature, max_tokens=max_tokens)
 
 
 def _model() -> str:
