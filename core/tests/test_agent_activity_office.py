@@ -54,3 +54,20 @@ def test_set_tool_ohne_zusammenfassung_behaelt_vorherige():
     activity.set_tool("o4", "fetch_url")   # kein result_summary → zeigt weiter "erster Fund", bis das nächste da ist
     assert activity.snapshot("u")[0]["last_tool_result_summary"] == "erster Fund"
     activity.stop("o4")
+
+
+def test_start_mit_template_group_fuer_die_charakter_zuordnung():
+    """Spec agent-office.md §4.1: Charakter-Grafik je Template-Gruppe im Frontend."""
+    activity.stop("o5")
+    activity.start("o5", _agent(), owner="u", project_id=None, template_group="modules")
+    row = next(e for e in activity.snapshot("u") if e["session_id"] == "o5")
+    assert row["template_group"] == "modules"
+    activity.stop("o5")
+
+
+def test_start_ohne_template_group_fallback_specialists():
+    activity.stop("o6")
+    activity.start("o6", _agent(), owner="u", project_id=None)
+    row = next(e for e in activity.snapshot("u") if e["session_id"] == "o6")
+    assert row["template_group"] == "specialists"
+    activity.stop("o6")

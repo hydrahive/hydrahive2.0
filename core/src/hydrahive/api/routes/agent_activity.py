@@ -9,6 +9,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from fastapi.responses import StreamingResponse
 
 from hydrahive.api.middleware.auth import require_auth
+from hydrahive.api.routes._trace_extras import github_link, result_summary
 from hydrahive.db import sessions as sessions_db
 from hydrahive.db import tools as tools_db
 from hydrahive.runner import activity
@@ -66,6 +67,8 @@ async def get_trace(
                 "duration_ms": c.duration_ms,
                 "created_at": c.created_at,
                 "iteration": c.iteration,
+                "result_summary": result_summary(c.result),
+                "github_link": github_link(c.result),
             }
             for c in calls
         ],

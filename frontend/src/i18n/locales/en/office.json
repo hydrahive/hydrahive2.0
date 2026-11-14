@@ -7,8 +7,14 @@
   "card": {
     "delegated_by": "delegated by"
   },
+  "standup": {
+    "total": "{{count}} running",
+    "delegated": "{{count}} delegated",
+    "errored": "{{count}} with error"
+  },
   "drawer": {
     "close": "Close",
-    "empty": "No tool calls yet."
+    "empty": "No tool calls yet.",
+    "github_link": "Open PR/Issue"
   }
 }

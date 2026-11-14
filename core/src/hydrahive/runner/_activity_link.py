@@ -7,6 +7,24 @@ dict, `activity.start(**{})` verhält sich dann wie bisher.
 """
 from __future__ import annotations
 
+_FALLBACK_GROUP = "specialists"
+
+
+def template_group_for_agent(agent: dict) -> str:
+    """Template-Gruppe eines Agenten für die Charakter-Zuordnung im Büro (Spec §4.1).
+
+    Ohne Template oder bei unbekanntem Template: Fallback auf „specialists" — neutralster
+    Platzhalter, kein Fehler für einen noch nicht (oder nicht mehr) existierenden Verweis.
+    """
+    template_id = agent.get("template")
+    if not template_id:
+        return _FALLBACK_GROUP
+    from hydrahive.agents import templates as agent_templates
+    tpl = agent_templates.get(template_id)
+    if not tpl:
+        return _FALLBACK_GROUP
+    return tpl.get("group") or _FALLBACK_GROUP
+
 
 def activity_start_kwargs(session, agent: dict) -> dict:
     state_id = (session.metadata or {}).get("incoming_state_id")
