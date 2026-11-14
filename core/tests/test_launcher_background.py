@@ -185,3 +185,43 @@ def test_stopp_beendet_den_befehl(loop, tmp_path, pids):
     for name in ("bg.pid", "fg.pid"):
         pid = _pid(tmp_path / name, pids)
         assert _gone_within(pid, 3), f"{name}: Prozess läuft nach dem Stopp weiter"
+
+
+@pytest.mark.parametrize("loop", LOOPS)
+def test_stopp_waehrend_des_starts_beendet_die_kinder(loop, tmp_path, pids, monkeypatch):
+    """Wackeltest-Ursache (CI, 14.11.2026): Kommt der Stopp, während `create_subprocess_shell` noch nicht
+    zurückgekehrt ist, gab es noch kein `proc` – die Prozessgruppe wurde nicht beendet, nur die bash (uvloop
+    `proc.close()`), und ihre Kinder liefen verwaist weiter. Hier wird dieses Fenster künstlich verlängert."""
+    real = asyncio.create_subprocess_shell
+
+    async def slow_spawn(*a, **kw):
+        proc = await real(*a, **kw)
+        for _ in range(100):                 # Fenster offen halten, bis bash beide Kinder gestartet hat
+            if (tmp_path / "fg.pid").exists() and (tmp_path / "fg.pid").read_text().strip():
+                break
+            await asyncio.sleep(0.02)
+        await asyncio.sleep(1)               # hier trifft der Stopp ein – noch im Start
+        return proc
+
+    monkeypatch.setattr(asyncio, "create_subprocess_shell", slow_spawn)
+
+    async def go():
+        task = asyncio.ensure_future(DevLauncher().run(
+            "sleep 30 > /dev/null 2>&1 < /dev/null & echo $! > bg.pid; sleep 30 & echo $! > fg.pid; wait",
+            cwd=tmp_path, timeout=60))
+        for _ in range(150):
+            if (tmp_path / "fg.pid").exists() and (tmp_path / "fg.pid").read_text().strip():
+                break
+            await asyncio.sleep(0.02)
+        await asyncio.sleep(0.1)
+        task.cancel()
+        with pytest.raises(asyncio.CancelledError):
+            await task
+
+    if loop == "uvloop":
+        pytest.importorskip("uvloop").run(go())
+    else:
+        asyncio.run(go())
+    for name in ("bg.pid", "fg.pid"):
+        pid = _pid(tmp_path / name, pids)
+        assert _gone_within(pid, 3), f"{name}: Prozess läuft nach Stopp im Start weiter"
