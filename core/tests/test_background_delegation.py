@@ -102,7 +102,7 @@ def test_chat_call_returns_immediately_and_delivers_result(spec_agent, session_i
 
     async def scenario():
         res = await asyncio.wait_for(
-            ask_agent._execute({"agent_id": spec_agent["id"], "task": "prüf das"}, _ctx(session_id, tmp_path)),
+            ask_agent._execute({"goal": "Test-Ziel", "deliverable": "Test-Ergebnis", "agent_id": spec_agent["id"], "task": "prüf das"}, _ctx(session_id, tmp_path)),
             timeout=2,
         )
         assert res.success and res.metadata.get("background") is True
@@ -123,7 +123,7 @@ def test_chat_call_returns_immediately_and_delivers_result(spec_agent, session_i
 def test_result_arrives_via_db_when_agentlink_reply_is_lost(spec_agent, session_id, agentlink, starter, tmp_path):
     """Fehler-Injektion: AgentLink-Antwort kommt nie. Der Receiver schreibt direkt."""
     async def scenario():
-        res = await ask_agent._execute({"agent_id": spec_agent["id"], "task": "x"}, _ctx(session_id, tmp_path))
+        res = await ask_agent._execute({"goal": "Test-Ziel", "deliverable": "Test-Ergebnis", "agent_id": spec_agent["id"], "task": "x"}, _ctx(session_id, tmp_path))
         did = res.metadata["delegation_id"]
         state_id = delegations_db.get(did)["state_id"]
         delegations_db.complete_by_state(state_id, "error", "Modell nicht erlaubt")
@@ -138,7 +138,7 @@ def test_timeout_is_reported_not_silent(spec_agent, session_id, agentlink, start
     monkeypatch.setattr(ask_agent, "_response_timeout", lambda *a: 0)
 
     async def scenario():
-        await ask_agent._execute({"agent_id": spec_agent["id"], "task": "x"}, _ctx(session_id, tmp_path))
+        await ask_agent._execute({"goal": "Test-Ziel", "deliverable": "Test-Ergebnis", "agent_id": spec_agent["id"], "task": "x"}, _ctx(session_id, tmp_path))
         await _settle(lambda: len(starter) == 1)
 
     asyncio.run(scenario())
@@ -152,7 +152,7 @@ def test_non_chat_origin_stays_synchronous(spec_agent, session_id, agentlink, st
 
     async def scenario():
         call = asyncio.create_task(ask_agent._execute(
-            {"agent_id": spec_agent["id"], "task": "x"}, _ctx(session_id, tmp_path, origin="other")))
+            {"goal": "Test-Ziel", "deliverable": "Test-Ergebnis", "agent_id": spec_agent["id"], "task": "x"}, _ctx(session_id, tmp_path, origin="other")))
         await _settle(lambda: len(futures) == 1)
         assert not call.done()                    # wartet wirklich
         next(iter(futures.values())).set_result(_reply("sync-ok"))
@@ -168,7 +168,7 @@ def test_wait_true_keeps_old_behaviour_in_chat(spec_agent, session_id, agentlink
 
     async def scenario():
         call = asyncio.create_task(ask_agent._execute(
-            {"agent_id": spec_agent["id"], "task": "x", "wait": True}, _ctx(session_id, tmp_path)))
+            {"goal": "Test-Ziel", "deliverable": "Test-Ergebnis", "agent_id": spec_agent["id"], "task": "x", "wait": True}, _ctx(session_id, tmp_path)))
         await _settle(lambda: len(futures) == 1)
         next(iter(futures.values())).set_result(_reply("gewartet"))
         return await call
@@ -180,7 +180,7 @@ def test_wait_true_keeps_old_behaviour_in_chat(spec_agent, session_id, agentlink
 def test_chain_depth_limit_refuses_before_posting(spec_agent, session_id, agentlink, starter, tmp_path):
     posted, _ = agentlink
     res = asyncio.run(ask_agent._execute(
-        {"agent_id": spec_agent["id"], "task": "x"},
+        {"goal": "Test-Ziel", "deliverable": "Test-Ergebnis", "agent_id": spec_agent["id"], "task": "x"},
         _ctx(session_id, tmp_path, origin="delegation", depth=_run_origin.MAX_CHAIN_DEPTH)))
     assert res.success is False and "Kette" in res.error
     assert posted == []                            # kein Spezialist läuft umsonst
@@ -191,9 +191,9 @@ def test_running_limit_per_session(spec_agent, session_id, agentlink, starter, t
 
     async def scenario():
         for _ in range(bg.MAX_RUNNING_PER_SESSION):
-            r = await ask_agent._execute({"agent_id": spec_agent["id"], "task": "x"}, _ctx(session_id, tmp_path))
+            r = await ask_agent._execute({"goal": "Test-Ziel", "deliverable": "Test-Ergebnis", "agent_id": spec_agent["id"], "task": "x"}, _ctx(session_id, tmp_path))
             assert r.success
-        over = await ask_agent._execute({"agent_id": spec_agent["id"], "task": "x"}, _ctx(session_id, tmp_path))
+        over = await ask_agent._execute({"goal": "Test-Ziel", "deliverable": "Test-Ergebnis", "agent_id": spec_agent["id"], "task": "x"}, _ctx(session_id, tmp_path))
         for t in list(delegation_watch._tasks.values()):
             t.cancel()
         return over
@@ -356,7 +356,7 @@ def test_background_bookkeeping_failure_returns_error_fast_instead_of_blocking(s
 
     async def scenario():
         return await asyncio.wait_for(
-            ask_agent._execute({"agent_id": spec_agent["id"], "task": "x"}, _ctx(session_id, tmp_path)), timeout=2)
+            ask_agent._execute({"goal": "Test-Ziel", "deliverable": "Test-Ergebnis", "agent_id": spec_agent["id"], "task": "x"}, _ctx(session_id, tmp_path)), timeout=2)
 
     res = asyncio.run(scenario())
     assert res.success is False and "nicht angelegt" in res.error

@@ -41,7 +41,7 @@ def posted(monkeypatch):
 
 def _run(args: dict, tmp_path):
     ctx = ToolContext(session_id="s", agent_id="test-agent-user", user_id="testuser", workspace=tmp_path)
-    return asyncio.run(ask_agent._execute({"task": "prüf alles", "wait": True, **args}, ctx))
+    return asyncio.run(ask_agent._execute({"task": "prüf alles", "goal": "Test-Ziel", "deliverable": "Test-Ergebnis", "wait": True, **args}, ctx))
 
 
 def test_overrun_ohne_begruendung_abgelehnt(target, posted, tmp_path):

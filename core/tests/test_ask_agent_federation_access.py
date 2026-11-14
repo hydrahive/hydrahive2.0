@@ -41,7 +41,7 @@ def _ctx(user: str, tmp_path) -> ToolContext:
 
 
 def _run(user: str, tmp_path):
-    return asyncio.run(ask_agent._execute({"agent_id": "geralt@tillwks", "task": "hi"}, _ctx(user, tmp_path)))
+    return asyncio.run(ask_agent._execute({"goal": "Test-Ziel", "deliverable": "Test-Ergebnis", "agent_id": "geralt@tillwks", "task": "hi"}, _ctx(user, tmp_path)))
 
 
 def test_user_without_grant_is_refused_without_network(client, no_network, tmp_path):

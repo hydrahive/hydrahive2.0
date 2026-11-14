@@ -27,7 +27,7 @@ from hydrahive.agentlink import (
 )
 from hydrahive.settings import settings
 from hydrahive.tools import _ask_agent_background as _bg
-from hydrahive.tools._ask_agent_prepare import map_context, project_refusal
+from hydrahive.tools._ask_agent_prepare import build_briefing, map_context, missing_briefing, project_refusal
 from hydrahive.tools._ask_agent_schema import DESCRIPTION as _DESCRIPTION, SCHEMA as _SCHEMA
 from hydrahive.tools._ask_agent_target import resolve_target
 from hydrahive.tools._ask_agent_helpers import (
@@ -50,6 +50,11 @@ async def _execute(args: dict, ctx: ToolContext) -> ToolResult:
         return ToolResult.fail("agent_id fehlt")
     if not task:
         return ToolResult.fail("task fehlt")
+    missing = missing_briefing(args)
+    if missing:
+        return ToolResult.fail(
+            f"Briefing unvollständig, es fehlt: {', '.join(missing)}. goal = was am Ende erreicht sein soll, "
+            "deliverable = was zurückkommen soll (z. B. Ursache mit Datei:Zeile). Optional: known, files.")
 
     # Federation-Routing: "persona@workstation" → remote /remote/chat
     if "@" in target:
@@ -86,6 +91,9 @@ async def _execute(args: dict, ctx: ToolContext) -> ToolResult:
     if refused:
         return ToolResult.fail(refused)
     task_description, files, errors = map_context(task, raw_context)
+    if not args.get("resume_token"):
+        task_description = build_briefing(task_description, args)
+    files += [{"path": str(p)} for p in (args.get("files") or [])[:50]]
 
     background = _bg.wants_background(args, ctx, _is_internal)
     if background:

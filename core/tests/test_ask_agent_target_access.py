@@ -72,7 +72,7 @@ def posted(monkeypatch):
 
 def _run(target: str, user: str, tmp_path, *, caller: str = "test-agent-user", project_id=None):
     ctx = ToolContext(session_id="s", agent_id=caller, user_id=user, workspace=tmp_path, project_id=project_id)
-    return asyncio.run(ask_agent._execute({"agent_id": target, "task": "hilf mir"}, ctx))
+    return asyncio.run(ask_agent._execute({"goal": "Test-Ziel", "deliverable": "Test-Ergebnis", "agent_id": target, "task": "hilf mir"}, ctx))
 
 
 def _targets(calls: list[State]) -> list[str]:
