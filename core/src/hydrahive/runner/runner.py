@@ -7,12 +7,9 @@ import time
 from typing import AsyncIterator
 
 from hydrahive.agents import config as agent_config
-from hydrahive.agents._defaults import (
-    DEFAULT_COMPACT_THRESHOLD_PCT,
-    DEFAULT_MAX_ITERATIONS,
-    DEFAULT_MAX_TOKENS,
-)
+from hydrahive.agents._defaults import DEFAULT_MAX_ITERATIONS
 from hydrahive.agentlink.runtime_profiles import session_budget
+from hydrahive.runner._run_settings import chain_with_override, run_settings
 from hydrahive.runner._run_workspace import (
     effective_tool_config, project_layout_hint, resolve_run_context, skill_project_id,
 )
@@ -79,14 +76,9 @@ def _user_text(ui: "str | list") -> str:
 
 
 def _runtime_limits(agent: dict, metadata: dict | None) -> tuple[int, int]:
-    """Return per-session AgentLink limits or the ordinary persisted agent caps."""
-    budget = session_budget(agent, metadata)
-    if budget:
-        return budget.max_iterations, budget.max_tokens
-    return (
-        int(agent.get("max_iterations") or DEFAULT_MAX_ITERATIONS),
-        int(agent.get("max_tokens") or DEFAULT_MAX_TOKENS),
-    )
+    """Return per-session AgentLink limits or the ordinary caps (Template oder Agent-Config)."""
+    rs = run_settings(agent, session_budget=session_budget(agent, metadata))
+    return rs.max_iterations, rs.max_tokens
 
 
 async def run(
@@ -166,15 +158,16 @@ async def run(
     )
     total_input_tokens = total_output_tokens = total_cache_creation = total_cache_read = 0
 
-    compact_model = agent.get("compact_model") or agent["llm_model"]
-    fallback_models = list(agent.get("fallback_models", []) or [])
+    # Kette, Budget, Kompaktierung, Cache: aus dem Template oder (Altbestand) aus der Agent-Config.
+    rs = run_settings(agent, session_budget=session_budget(agent, session.metadata))
+    compact_model = rs.compact_model
     compact_tool_limit = agent.get("compact_tool_result_limit")
     compact_reserve = agent.get("compact_reserve_tokens")
-    compact_threshold_pct = int(agent.get("compact_threshold_pct", DEFAULT_COMPACT_THRESHOLD_PCT))
+    compact_threshold_pct = rs.compact_threshold_pct
     compact_max_turns: int | None = agent.get("compact_max_turns")
     tool_result_max_chars = int(agent.get("tool_result_max_chars") or 0)
-    cache_ttl: str = agent.get("cache_ttl") or "1h"
-    max_iterations, run_max_tokens = _runtime_limits(agent, session.metadata)
+    cache_ttl: str = rs.cache_ttl
+    max_iterations, run_max_tokens = rs.max_iterations, rs.max_tokens
     agent_skills = load_agent_skills(agent["id"], agent["owner"], disabled=agent.get("disabled_skills") or [],
                                     project_id=skill_project_id(active_project_id, agent))
 
@@ -210,9 +203,9 @@ async def run(
         # garantiert dasselbe Modell verwenden.
         _fresh_session = sessions_db.get(session_id)
         model_override = (_fresh_session.metadata or {}).get("model_override") if _fresh_session else None
-        primary_model = model_override or agent["llm_model"]
+        primary_model, fallback_models = chain_with_override(rs, model_override)
         session_effort = (_fresh_session.metadata or {}).get("reasoning_effort") if _fresh_session else None
-        reasoning_effort = session_effort or agent.get("reasoning_effort") or None
+        reasoning_effort = session_effort or rs.reasoning_effort
 
         history = []
         async for _item in prepare_history(
@@ -256,6 +249,7 @@ async def run(
                 temperature=agent.get("temperature", 0.7),
                 max_tokens=run_max_tokens,
                 reasoning_effort=reasoning_effort,
+                cooldown_seconds=rs.cooldown_seconds,
             ):
                 if isinstance(item, IterationResult):
                     result = item
