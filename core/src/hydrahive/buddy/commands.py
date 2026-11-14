@@ -91,6 +91,9 @@ def set_model(username: str, model: str) -> dict:
     except AgentValidationError as e:
         raise ValueError(str(e))
     buddy = _require_buddy(username)
+    if buddy.get("template"):
+        raise ValueError(f"Dein Buddy nutzt das Agenten-Template „{buddy['template']}“. "
+                         "Das Modell stellt der Admin auf der LLM-Seite ein.")
     agent_config.update(buddy["id"], llm_model=model)
     return {"ok": True, "model": model, "message": f"Modell auf {model} gewechselt."}
 

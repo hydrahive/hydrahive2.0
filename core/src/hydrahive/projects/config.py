@@ -61,11 +61,11 @@ def create(
         cfg["git_initialized"] = init_repo(workspace)
 
     # Project-Agent automatisch anlegen
-    from hydrahive.agents._binding import template_if_available
+    # Nicht automatisch gebunden: Das Anlegen-Fenster fragt heute nach einem Modell, das sonst still ignoriert würde.
+    # Bindung über die Zuordnung (agent-templates E3); Anlegen-Fenster auf Template-Auswahl umstellen = offener Punkt.
     agent = agent_config.create(
         agent_type="project",
         name=f"{name} — Projekt-Agent",
-        template=template_if_available("projekt-master"),
         llm_model=llm_model,
         owner=created_by,
         created_by=created_by,

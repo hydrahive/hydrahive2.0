@@ -86,11 +86,10 @@ def get_or_create_help_agent(username: str) -> dict:
     agent = _help_agent_for(username)
     created = agent is None
     if agent is None:
-        from hydrahive.agents._binding import template_if_available
+        # Nicht automatisch gebunden: folgt heute dem Chat-Standardmodell (Bindung über die Zuordnung).
         agent = agent_config.create(
             agent_type="specialist",
             name="Hilfe-Assistent",
-            template=template_if_available("hilfe"),
             llm_model=model,
             tools=list(HELP_TOOLS),
             owner=username,
@@ -103,7 +102,8 @@ def get_or_create_help_agent(username: str) -> dict:
             mcp_servers=[],
             max_iterations=8,
         )
-        agent_config.update(agent["id"], is_help=True, compact_threshold_pct=70)
+        agent_config.update(agent["id"], is_help=True,
+                            **({} if agent.get("template") else {"compact_threshold_pct": 70}))
         agent = agent_config.get(agent["id"]) or agent
         logger.info("Hilfe-Assistent für %s angelegt (agent_id=%s)", username, agent["id"])
     fix: dict = {}
