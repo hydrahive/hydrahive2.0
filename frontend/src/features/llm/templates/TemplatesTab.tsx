@@ -11,7 +11,7 @@ import { isValidId, newTemplate } from "./templateLogic"
 import type { AgentTemplate } from "./types"
 
 /** Reiter „Agenten-Templates“ der LLM-Seite (Spec docs/specs/agent-templates.md Kap. 10). */
-export function TemplatesTab() {
+export function TemplatesTab({ initial = null }: { initial?: string | null } = {}) {
   const { t } = useTranslation("llm")
   const isAdmin = useAuthStore((s) => s.role) === "admin"
   const [templates, setTemplates] = useState<AgentTemplate[]>([])
@@ -25,9 +25,10 @@ export function TemplatesTab() {
     try {
       const r = await templatesApi.list()
       setTemplates(r.templates)
-      setSelected((cur) => keep ?? cur ?? r.templates[0]?.id ?? null)
+      const wanted = initial && r.templates.some((x) => x.id === initial) ? initial : null
+      setSelected((cur) => keep ?? cur ?? wanted ?? r.templates[0]?.id ?? null)
     } catch (e) { setError(e instanceof Error ? e.message : String(e)) }
-  }, [])
+  }, [initial])
 
   useEffect(() => {
     reload()

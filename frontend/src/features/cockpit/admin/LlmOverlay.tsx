@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react"
+import { useSearchParams } from "react-router-dom"
 import { BookOpen, CheckCircle, Loader2, Plus, XCircle, Zap } from "lucide-react"
 import { useTranslation } from "react-i18next"
 import { llmApi, type LlmConfig, type LlmProvider } from "@/features/llm/api"
@@ -10,6 +11,7 @@ import { MediaBackendsSection } from "@/features/llm/MediaBackendsSection"
 import { TemplatesTab } from "@/features/llm/templates/TemplatesTab"
 import { CockpitButton } from "../CockpitButton"
 import { AdminOverlay } from "./AdminOverlay"
+import { parseLlmTab, templateFromParams, type LlmTab } from "./llmTabs"
 import { ADMIN_OVERLAY_THEME } from "@/shared/brand/boxThemes"
 
 export function LlmOverlay({ onClose }: { onClose: () => void }) {
@@ -21,7 +23,14 @@ export function LlmOverlay({ onClose }: { onClose: () => void }) {
   const [testResult, setTestResult] = useState<{ ok: boolean; msg: string } | null>(null)
   const [showAdd, setShowAdd] = useState(false)
   const [editingIdx, setEditingIdx] = useState<number | null>(null)
-  const [tab, setTab] = useState<"providers" | "templates">("providers")
+  const [searchParams, setSearchParams] = useSearchParams()
+  const tab = parseLlmTab(searchParams.get("tab"))
+  function setTab(next: LlmTab) {
+    const params = new URLSearchParams(searchParams)
+    params.set("tab", next)
+    params.delete("template")
+    setSearchParams(params, { replace: true })
+  }
 
   useEffect(() => { llmApi.getConfig().then(setConfig).catch(() => {}) }, [])
 
@@ -71,7 +80,7 @@ export function LlmOverlay({ onClose }: { onClose: () => void }) {
             </button>
           ))}
         </div>
-        {tab === "templates" ? <TemplatesTab /> : <>
+        {tab === "templates" ? <TemplatesTab initial={templateFromParams(searchParams)} /> : <>
         <p className="text-sm text-[#9aa7bc]">{t("subtitle")}</p>
 
         <AnthropicUsageCard />

@@ -6,6 +6,8 @@ import type { Project } from "@/features/projects/types"
 import { CockpitButton } from "../CockpitButton"
 import { useDialogFokus } from "@/shared/dialog/useDialogFokus"
 import { TemplateSelect } from "@/features/llm/templates/TemplateSelect"
+import { type CreateWarning, templateHint, type TemplateHint } from "@/features/projects/createWarnings"
+import { ProjectCreateNotices } from "@/features/projects/ProjectCreateNotices"
 
 interface Props {
   agents: AgentBrief[]
@@ -22,11 +24,14 @@ export function ProjectCreateOverlay({ onClose, onCreated }: Props) {
   const [enableSamba, setEnableSamba] = useState(true)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [hint, setHint] = useState<TemplateHint | null>(null)
+  const [done, setDone] = useState<{ project: Project; warnings: CreateWarning[] } | null>(null)
 
   async function create() {
     if (!name.trim() || !template || saving) return
     setSaving(true)
     setError(null)
+    setHint(null)
     try {
       const project = await projectsApi.create({
         name: name.trim(),
@@ -36,9 +41,11 @@ export function ProjectCreateOverlay({ onClose, onCreated }: Props) {
         init_git: initGit,
       })
       if (enableSamba) await projectsApi.putSamba(project.id, true)
-      onCreated(project)
+      if (project.warnings?.length) setDone({ project, warnings: project.warnings })
+      else onCreated(project)
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : "Projekt konnte nicht angelegt werden.")
+      setHint(templateHint(cause))
     } finally {
       setSaving(false)
     }
@@ -61,9 +68,11 @@ export function ProjectCreateOverlay({ onClose, onCreated }: Props) {
             <label className="flex items-start gap-3 rounded-[4px] border border-s-rand bg-s-tief p-3 text-sm text-[#e8eef8]"><input type="checkbox" checked={enableSamba} onChange={(event) => setEnableSamba(event.target.checked)} className="mt-0.5" /><span><strong className="block">Samba freigeben</strong><span className="text-xs text-[#9aa7bc]">Workspace direkt im Netzwerk sichtbar machen.</span></span></label>
           </div>
           {error && <div className="rounded-[4px] border border-rose-500/30 bg-rose-500/10 p-3 text-sm text-rose-200">{error}</div>}
+          <ProjectCreateNotices hint={hint} />
+          {done && <ProjectCreateNotices warnings={done.warnings} onContinue={() => onCreated(done.project)} />}
         </div>
 
-        <footer className="flex justify-end gap-2 border-t border-s-rand px-5 py-4"><CockpitButton onClick={onClose} disabled={saving}>Abbrechen</CockpitButton><CockpitButton tone="primary" onClick={() => void create()} disabled={saving || !name.trim() || !template}>{saving ? "Wird angelegt…" : "Projekt anlegen"}</CockpitButton></footer>
+        <footer className="flex justify-end gap-2 border-t border-s-rand px-5 py-4"><CockpitButton onClick={onClose} disabled={saving}>Abbrechen</CockpitButton><CockpitButton tone="primary" onClick={() => void create()} disabled={saving || !!done || !name.trim() || !template}>{saving ? "Wird angelegt…" : "Projekt anlegen"}</CockpitButton></footer>
       </section>
     </div>
   )
