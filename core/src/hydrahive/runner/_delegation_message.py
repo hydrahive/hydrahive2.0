@@ -9,7 +9,7 @@ from __future__ import annotations
 STATUS_LABEL = {
     "done": "fertig",
     "error": "Fehler",
-    "paused": "pausiert (Iterationslimit)",
+    "paused": "pausiert (Checkpoint, fortsetzbar)",
     "timeout": "keine Antwort (Zeitüberschreitung)",
     "lost": "verloren (Server-Neustart)",
 }

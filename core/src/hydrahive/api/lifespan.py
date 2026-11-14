@@ -110,7 +110,9 @@ async def dispatch_agentlink_event(event, get_state=None) -> None:
     elif (state.handoff.reason or "").startswith("reply_to:"):
         logger.warning("AgentLink: Antwort-State %s ohne lesbare Ziel-ID verworfen", event.state_id)
     else:
-        asyncio.create_task(handoff_receiver.handle(event), name=f"handoff-{event.state_id}")
+        from hydrahive.runner import handoff_tasks
+        task = asyncio.create_task(handoff_receiver.handle(event), name=f"handoff-{event.state_id}")
+        handoff_tasks.register(event.state_id, task)
 
 
 def _setup_background_delegations() -> None:
@@ -303,6 +305,10 @@ async def lifespan(app: FastAPI):
     module_jobs_stop.set()
     if mail_stop is not None:
         mail_stop.set()
+    # Laufenden eingehenden Handoffs kurz Zeit geben, einen Checkpoint zu posten
+    # statt die Arbeit komplett zu verwerfen (Spec delegation-reliability.md 3.1+3.2).
+    from hydrahive.runner import handoff_tasks
+    await handoff_tasks.shutdown(timeout=10.0)
     await agentlink_client.stop_listener()
     shutdown_tasks = [
         zahnfee_task,
