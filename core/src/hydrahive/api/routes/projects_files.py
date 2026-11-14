@@ -1,6 +1,8 @@
 """Workspace-File-Browser für Projekte — Read-Endpunkte."""
 from __future__ import annotations
 
+import stat
+from pathlib import Path
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, Query, status
@@ -38,17 +40,30 @@ def list_files(
     if not target.is_dir():
         raise coded(status.HTTP_400_BAD_REQUEST, "not_a_directory")
 
-    entries = []
-    for item in sorted(target.iterdir(), key=lambda x: (x.is_file(), x.name.lower())):
-        entries.append({
-            "name": item.name,
-            "type": "file" if item.is_file() else "dir",
-            "size": item.stat().st_size if item.is_file() else None,
-            "modified": item.stat().st_mtime,
-        })
-
+    entries = sorted((_entry(item) for item in target.iterdir()),
+                     key=lambda e: (e["type"] == "file", e["name"].lower()))
     rel = str(target.relative_to(workspace.resolve()))
     return {"path": "" if rel == "." else rel, "entries": entries}
+
+
+def _entry(item: Path) -> dict:
+    """Ein Listeneintrag. Ein kaputter Eintrag (toter Symlink, fehlende Rechte) darf nicht die
+    ganze Liste mit 500 abbrechen (Befund 14.11.2026) – er bleibt sichtbar, ohne Größe."""
+    try:
+        st = item.stat()
+    except OSError:
+        try:
+            modified = item.lstat().st_mtime
+        except OSError:
+            modified = None
+        return {"name": item.name, "type": "file", "size": None, "modified": modified, "broken": True}
+    is_dir = stat.S_ISDIR(st.st_mode)
+    return {
+        "name": item.name,
+        "type": "dir" if is_dir else "file",
+        "size": None if is_dir else st.st_size,
+        "modified": st.st_mtime,
+    }
 
 
 @router.get("/{project_id}/files/read")

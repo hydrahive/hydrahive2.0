@@ -10,7 +10,8 @@ interface ProjectFileEntry {
   name: string
   type: "file" | "dir"
   size: number | null
-  modified: number
+  modified: number | null
+  broken?: boolean
 }
 
 interface Props {
@@ -18,7 +19,9 @@ interface Props {
   onOpenFile: (path: string, kind: FileKind) => void
 }
 
-function formatSize(size: number | null) {
+function formatSize(entry: ProjectFileEntry) {
+  const { size } = entry
+  if (entry.broken) return "kaputt"
   if (size == null) return "dir"
   if (size < 1024) return `${size} B`
   if (size < 1024 * 1024) return `${Math.round(size / 1024)} KB`
@@ -180,7 +183,7 @@ export function ProjectWorkspacePanel({ projectId, onOpenFile }: Props) {
                 {entry.type === "dir" ? <Folder size={13} className="shrink-0 text-[#69d7ff]/75" /> : <File size={13} className="shrink-0 text-[#9aa7bc]" />}
                 <span className="truncate">{entry.name}{entry.type === "dir" ? "/" : ""}</span>
               </span>
-              <span className="shrink-0 text-[11px] text-[#9aa7bc]">{formatSize(entry.size)}</span>
+              <span className="shrink-0 text-[11px] text-[#9aa7bc]">{formatSize(entry)}</span>
             </button>
           )
         })}

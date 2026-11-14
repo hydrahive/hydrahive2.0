@@ -5,7 +5,7 @@ import { useTranslation } from "react-i18next"
 import { projectsApi } from "./api"
 import { rgbFor } from "@/shared/colors"
 
-interface Entry { name: string; type: "file" | "dir"; size: number | null; modified: number }
+interface Entry { name: string; type: "file" | "dir"; size: number | null; modified: number | null; broken?: boolean }
 
 interface Props { projectId: string }
 
