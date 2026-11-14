@@ -27,6 +27,8 @@ from hydrahive.agentlink import (
 )
 from hydrahive.settings import settings
 from hydrahive.tools import _ask_agent_background as _bg
+from hydrahive.tools._ask_agent_prepare import map_context, project_refusal
+from hydrahive.tools._ask_agent_schema import DESCRIPTION as _DESCRIPTION, SCHEMA as _SCHEMA
 from hydrahive.tools._ask_agent_target import resolve_target
 from hydrahive.tools._ask_agent_helpers import (
     caller_agentlink_id as _caller_agentlink_id,
@@ -37,79 +39,6 @@ from hydrahive.tools.base import Tool, ToolContext, ToolResult
 from hydrahive.tools._errors import describe
 
 logger = logging.getLogger(__name__)
-
-
-_DESCRIPTION = (
-    "Beauftragt einen anderen Agenten über AgentLink. "
-    "Verwende für Handoffs an Spezialisten oder Project-Agents. "
-    "Erreichbar sind nur eigene Agenten (Admins: alle). "
-    + _bg.DESCRIPTION_HINT
-)
-
-_SCHEMA = {
-    "type": "object",
-    "properties": {
-        "agent_id": {
-            "type": "string",
-            "description": (
-                "ID oder Name des Ziel-Agenten. "
-                "Für Federation-Workstations: 'persona@workstation-name', z.B. 'geralt@projektx-till'."
-            ),
-        },
-        "task": {"type": "string", "description": "Aufgabenbeschreibung für den Ziel-Agenten."},
-        "task_type": {
-            "type": "string",
-            "description": "Task-Typ. Default 'feature'.",
-            "enum": ["bug_fix", "feature", "review", "research", "refactor"],
-        },
-        "context": {
-            "type": "object",
-            "description": (
-                "Optionale Zusatz-Daten für den Ziel-Agenten. Unterstützte Keys: "
-                "error_log (str), code_snippet (str), related_files (list[str]), "
-                "files (list[dict]), errors (list[str]), git (dict)."
-            ),
-            "properties": {
-                "error_log":      {"type": "string"},
-                "code_snippet":   {"type": "string"},
-                "related_files":  {"type": "array", "items": {"type": "string"}},
-                "files":          {"type": "array",  "items": {"type": "object"}},
-                "errors":         {"type": "array",  "items": {"type": "string"}},
-                "git":            {"type": "object"},
-            },
-        },
-        "profile": {
-            "type": "string",
-            "enum": ["quick", "standard", "deep"],
-            "description": ("Nur für Spezialisten OHNE Agenten-Template (Altbestand). Mit Template gilt dessen "
-                            "Budget; mehr gibt es nur über overrun."),
-        },
-        "overrun": {
-            "type": "boolean",
-            "description": ("Budget des Ziel-Templates überschreiten (höchstens um die dort erlaubten Prozent). "
-                            "Nur mit overrun_reason."),
-        },
-        "overrun_reason": {
-            "type": "string", "minLength": 10, "maxLength": 500,
-            "description": "Pflicht bei overrun: warum der Auftrag mehr Budget braucht.",
-        },
-        "resume_token": {
-            "type": "string",
-            "pattern": "^[A-Za-z0-9_-]{8,128}$",
-            "description": "Einmal-Token aus einem pausierten Spezialistenlauf.",
-        },
-        "required_skills": {
-            "type": "array",
-            "items": {"type": "string"},
-            "description": "Optionale Skill-Liste die der Ziel-Agent haben muss.",
-        },
-        "wait": _bg.WAIT_SCHEMA,
-        "cancel": _bg.CANCEL_SCHEMA,
-    },
-    # agent_id/task sind nur fürs Beauftragen nötig (Prüfung in _execute);
-    # für cancel= nicht. Darum hier nicht als Pflichtfelder markiert.
-    "required": [],
-}
 
 
 async def _execute(args: dict, ctx: ToolContext) -> ToolResult:
@@ -153,36 +82,10 @@ async def _execute(args: dict, ctx: ToolContext) -> ToolResult:
     if _is_internal:
         target = target_agent["id"]
 
-    # Project-Agents dürfen nur freigegebene Specialists beauftragen (nach UUID-Normalisierung)
-    try:
-        from hydrahive.agents import config as agent_config
-        from hydrahive.projects import config as project_config
-        calling = agent_config.get(ctx.agent_id)
-        if calling and calling.get("type") == "project":
-            project_id = calling.get("project_id")
-            if project_id:
-                proj = project_config.get(project_id)
-                allowed = proj.get("allowed_specialists", []) if proj else []
-                if allowed and target not in allowed:
-                    return ToolResult.fail(
-                        f"Specialist '{target}' ist für dieses Projekt nicht freigegeben. "
-                        f"Freigegeben: {allowed}"
-                    )
-    except Exception as e:
-        logger.debug("Specialists-Check übersprungen: %s", e)
-
-    # Friendly-Key-Mapping: error_log / code_snippet / related_files
-    errors = list(raw_context.get("errors") or [])
-    if raw_context.get("error_log"):
-        errors.append(raw_context["error_log"])
-
-    files = list(raw_context.get("files") or [])
-    for p in raw_context.get("related_files") or []:
-        files.append({"path": str(p)})
-
-    task_description = task
-    if raw_context.get("code_snippet"):
-        task_description = f"{task}\n\n```\n{raw_context['code_snippet']}\n```"
+    refused = project_refusal(ctx.agent_id, target)
+    if refused:
+        return ToolResult.fail(refused)
+    task_description, files, errors = map_context(task, raw_context)
 
     background = _bg.wants_background(args, ctx, _is_internal)
     if background:
