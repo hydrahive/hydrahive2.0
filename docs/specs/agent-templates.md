@@ -1,6 +1,6 @@
 # Agenten-Templates – Modellketten, Budgets und Arbeitsweise an einem Ort
 
-Status: **Entwurf zur Freigabe (Till, 14.11.2026)**. Nur Planung, noch kein Code.
+Status: **Freigegeben (Till, 14.11.2026)**, Entscheidungen in Kap. 13. Noch kein Code.
 Demo der Seite: `_work/demo/llm-templates-demo.html` (Projekt-Workspace, kein Teil des Repos).
 
 Verwandt: `agentlink-runtime-profiles.md` (wird abgelöst), `central-configuration.md`,
@@ -135,25 +135,36 @@ Sie bleiben bis zur Aufräum-Etappe in der Datei, damit ein Zurückrollen mögli
 
 Werte im Beispiel sind **Vorschläge**, nicht festgelegt.
 
-### 6.1 Start-Templates (Vorschlag, Till legt die Modelle fest)
+### 6.1 Start-Templates
+
+Startwerte, alle später auf der Seite änderbar (Till 14.11.: „nur an einer Stelle ändern“).
+**Primär** je Template wie in der Tabelle. **Failover** für alle: ChatGPT bzw. Sonnet, und zwar
+jeweils der **andere Anbieter** als die Primärstufe (Claude primär → ChatGPT, ChatGPT primär → Sonnet).
+**Notfall** für alle: MiniMax M3.1.
 
 | Template | Gruppe | Primär | Failover | Notfall |
 |---|---|---|---|---|
-| Buddy | persönlich | Sonnet | ? | ? |
-| Assistant | persönlich | ? | ? | ? |
-| Projekt-Master | Projekte | Opus | gpt-5.6-terra | MiniMax / lokal |
-| Reviewer | Spezialisten | Opus | ? | ? |
-| Security | Spezialisten | Fable | ? | ? |
-| Backend | Spezialisten | Sonnet | ? | ? |
-| Frontend | Spezialisten | Sonnet | ? | ? |
-| Recherche | Spezialisten | ? | ? | ? |
-| Klein & schnell (Übersetzer, Extraktion) | Spezialisten | ? | ? | ? |
-| Modul-Schreiber | Module | ? | ? | ? |
-| Modul-Schnell | Module | ? | ? | ? |
-| Zahnfee | System | ? | ? | ? |
-| Kompaktierung | System | ? | ? | ? |
-| Lehren & Karten | System | ? | ? | ? |
-| Hilfe | System | ? | ? | ? |
+| Buddy | persönlich | Sonnet | ChatGPT | MiniMax M3.1 |
+| Assistant | persönlich | Sonnet | ChatGPT | MiniMax M3.1 |
+| Projekt-Master | Projekte | Opus | ChatGPT | MiniMax M3.1 |
+| Reviewer | Spezialisten | Opus | ChatGPT | MiniMax M3.1 |
+| Security | Spezialisten | Fable | ChatGPT | MiniMax M3.1 |
+| Backend | Spezialisten | Sonnet | ChatGPT | MiniMax M3.1 |
+| Frontend | Spezialisten | Sonnet | ChatGPT | MiniMax M3.1 |
+| Recherche | Spezialisten | Sonnet | ChatGPT | MiniMax M3.1 |
+| Klein & schnell (Übersetzer, Extraktion) | Spezialisten | Sonnet | ChatGPT | MiniMax M3.1 |
+| Modul-Schreiber | Module | Sonnet | ChatGPT | MiniMax M3.1 |
+| Modul-Schnell | Module | Sonnet | ChatGPT | MiniMax M3.1 |
+| Zahnfee | System | Sonnet | ChatGPT | MiniMax M3.1 |
+| Kompaktierung | System | Sonnet | ChatGPT | MiniMax M3.1 |
+| Lehren & Karten | System | Sonnet | ChatGPT | MiniMax M3.1 |
+| Hilfe | System | Sonnet | ChatGPT | MiniMax M3.1 |
+
+Genaue Modell-IDs (Version von Opus/Sonnet/Fable, welches ChatGPT-Modell) wählt der Admin beim
+Einrichten aus der Liste. Im eingebauten Katalog (`llm/_catalog_data.py`) heißt das MiniMax-Modell
+`MiniMax-M3.1-Flash`; ein Modell „M3.1“ ohne Zusatz steht dort nicht. Die Migration (Etappe 3) setzt nur
+IDs, die beim Anbieter tatsächlich verfügbar sind, sonst bleibt die Stufe leer und die Ampel zeigt rot.
+Budgetwerte im Beispiel (Kap. 6) sind Platzhalter, eingestellt wird auf der Seite.
 
 Listenpreise laut `llm/_pricing.py` (je 1 Mio. Tokens, Eingabe/Ausgabe): Fable 5 $10/$50,
 Opus 5 $5/$25, Sonnet 5 $2/$10. Für Opus 5.5 und Fable 5.1 ist kein Preis hinterlegt.
@@ -209,8 +220,9 @@ Fest im Kern, nicht nur im Prompt:
 6. **Security auf Abruf**: Das Security-Template wird nur über einen expliziten Schritt
    („vor Merge prüfen“) oder auf Wunsch gerufen.
 
-Punkte 3–5 werden erst in **einem** Projekt eine Woche gemessen (Tokens je erledigtem Task,
-`ask_agent`-Anteil, Ø Kontext, Fehler/Nacharbeit), dann ausgerollt (Task 3994f6b1, Schritt B/C).
+Die Arbeitsweise gilt nach dem Umbau **für alle Projekte gleich**, weil alle Projekt-Agenten über das
+Template laufen (Till 14.11.). Kein Versuch in einem einzelnen Projekt. Gemessen wird vorher/nachher
+über alle Projekte (Tokens je erledigtem Task, `ask_agent`-Anteil, Ø Kontext, Fehler/Nacharbeit).
 
 ## 10. Oberfläche
 
@@ -225,7 +237,13 @@ LLM-Seite, neuer Reiter **„Agenten-Templates“** (siehe Demo):
 - Agent-Editor: statt Modell/Fallback/Budget nur noch ein Template-Auswahlfeld (+ Link zum Template).
 - Alle Texte über i18n (de/en), Design nach Cockpit-Vorgaben.
 
-Rechte: Templates ändern nur Admins. Nutzer wählen für eigene Agenten aus den vorhandenen Templates.
+Rechte: **Nur Admins** legen Templates an, ändern sie und tragen LLM-Anbieter ein oder bearbeiten sie.
+Nutzer arbeiten mit dem, was der Admin eingestellt hat: Sie wählen für eigene Agenten nur aus den
+vorhandenen Templates und sehen deren Werte nur lesend. Die API prüft das serverseitig.
+
+Modell-Auswahl: Die Dropdowns zeigen **alle** Modelle aller eingetragenen Anbieter, so wie der Katalog
+sie liefert, also auch lokale Ollama-Modelle der jeweiligen Installation. Es gibt keine fest
+eingetragene Liste lokaler Modelle; was eine Installation lokal hat, ist nicht vorhersehbar.
 
 ## 11. Etappen
 
@@ -236,7 +254,7 @@ Rechte: Templates ändern nur Admins. Nutzer wählen für eigene Agenten aus den
 | 3 | Migration der Agenten: Skript schlägt Zuordnung vor, Till bestätigt, Sicherung vorher | Kern + Betrieb | mittel |
 | 4 | Budget aus Template statt Profil, Überschreitung, Antwort als Kurzfassung + Datei | Kern | mittel |
 | 5 | Module auf Template-Rollen umstellen, je Modul eigener PR und Release | Module | groß (viele Repos) |
-| 6 | Arbeitsweise (Kap. 9): Messung in einem Projekt, dann ausrollen | Kern | mittel |
+| 6 | Arbeitsweise (Kap. 9) für alle Projekte, Messung vorher/nachher | Kern | mittel |
 | 7 | Aufräumen: alte Felder aus Agent-Configs entfernen, Profile `quick/standard/deep` löschen | Kern | klein |
 
 Jede Etappe ist einzeln lauffähig. Etappe 1 lohnt sich auch ohne alle weiteren.
@@ -256,9 +274,13 @@ Jede Etappe ist einzeln lauffähig. Etappe 1 lohnt sich auch ohne alle weiteren.
 - Unbekanntes oder fehlendes Template führt nie zu einem Absturz, sondern zu `chat` + Warnung.
 - Zurückholen einer älteren Template-Version stellt den alten Zustand für alle Gebundenen her.
 
-## 13. Offene Fragen
+## 13. Entscheidungen (Till, 14.11.2026)
 
-1. Modelle für die mit „?“ markierten Felder in 6.1.
-2. Versuchsprojekt für die Arbeitsweise (Kap. 9).
-3. Dürfen Nutzer (nicht Admins) eigene Templates anlegen, oder nur Admins?
-4. Notfallstufe „lokal“: welches lokale Modell ist auf .2 dauerhaft verfügbar?
+1. **Startwerte:** Failover für alle ChatGPT bzw. Sonnet (anderer Anbieter als Primär), Notfall für alle
+   MiniMax M3.1. Anpassung später zentral auf der Seite.
+2. **Kein Versuchsprojekt:** Die Arbeitsweise wirkt durch den Umbau automatisch auf alle Projekte.
+3. **Rechte:** Templates und LLM-Anbieter nur durch Admins; Nutzer verwenden, was der Admin einstellt.
+4. **Lokale Modelle:** keine feste Notfall-Liste. Die Dropdowns zeigen alle Modelle aller Anbieter,
+   lokale kommen aus Ollama der jeweiligen Installation.
+5. **Zahlenwerte** (Budget, Sperrzeit, Kurzfassungslänge, Überschreitung) sind auf der Seite
+   einstellbar; die Spec legt nur Startwerte fest. Zielbild der Oberfläche ist die Demo.

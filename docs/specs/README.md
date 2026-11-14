@@ -35,7 +35,7 @@ frühere Teile beschreiben bereits umgesetzte Etappen.
 | [`agent-integrity-layer.md`](agent-integrity-layer.md) | Agent Integrity Layer |  | 2026-09-24 |
 | [`agent-language.md`](agent-language.md) | Spec: Antwortsprache für alle Agenten aus der Buddy-Einstellung |  | 2026-10-11 |
 | [`agent-model-picker.md`](agent-model-picker.md) | Agent-Editor: Modellauswahl ohne Limit, nach Anbieter gruppiert |  | 2026-09-30 |
-| [`agent-templates.md`](agent-templates.md) | Agenten-Templates – Modellketten, Budgets und Arbeitsweise an einem Ort |  | ? |
+| [`agent-templates.md`](agent-templates.md) | Agenten-Templates – Modellketten, Budgets und Arbeitsweise an einem Ort |  | 2026-11-14 |
 | [`agentlink-checkpoint-resume.md`](agentlink-checkpoint-resume.md) | AgentLink Checkpoint and Resume |  | 2026-09-25 |
 | [`agentlink-runtime-profiles.md`](agentlink-runtime-profiles.md) | AgentLink Runtime Profiles |  | 2026-09-25 |
 | [`agentlink-security.md`](agentlink-security.md) | AgentLink: Absicherung |  | 2026-09-29 |
