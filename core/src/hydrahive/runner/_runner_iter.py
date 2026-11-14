@@ -2,7 +2,7 @@
 from __future__ import annotations
 
 import logging
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from typing import AsyncIterator
 
@@ -78,6 +78,8 @@ class IterationResult:
     output_tokens: int
     cache_creation_tokens: int
     cache_read_tokens: int
+    # Modellwechsel dieses Aufrufs (Spec agent-templates.md Kap. 8): [{"from_model", "to_model", "reason"}]
+    switches: list[dict] = field(default_factory=list)
 
 
 async def prepare_history(
@@ -152,6 +154,7 @@ async def stream_llm_call(
     blocks: list[dict] = []
     stop_reason = ""
     used_model = primary_model
+    switches: list[dict] = []
     input_tokens = output_tokens = cache_creation = cache_read = 0
     async for item in call_with_stream_or_fallback(
         models=models, system_prompt=stable_system, volatile_system=volatile_system,
@@ -168,10 +171,11 @@ async def stream_llm_call(
             cache_creation = item.cache_creation_tokens
             cache_read = item.cache_read_tokens
             used_model = item.model or primary_model
+            switches = list(item.switches)
         else:
             yield item
     yield IterationResult(
         blocks=blocks, stop_reason=stop_reason, used_model=used_model,
         input_tokens=input_tokens, output_tokens=output_tokens,
-        cache_creation_tokens=cache_creation, cache_read_tokens=cache_read,
+        cache_creation_tokens=cache_creation, cache_read_tokens=cache_read, switches=switches,
     )

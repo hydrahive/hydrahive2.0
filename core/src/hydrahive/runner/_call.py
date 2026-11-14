@@ -1,45 +1,44 @@
-"""LLM-Call mit Streaming-Versuch + Non-Streaming-Fallback + Modell-Failover.
+"""LLM-Call mit Modellkette: Streaming je Modell, Nicht-Streaming als Rückfall, Wechsel bei Ausfällen.
 
-Yields Events während Streaming. Letztes Yield ist ein `CallResult` (Sentinel)
-mit den finalen Blocks und stop_reason. Caller iteriert events, prüft
-isinstance(item, CallResult) für das Ende.
+Yields Events während Streaming. Letztes Yield ist ein `CallResult` (Sentinel) mit den finalen Blocks und
+stop_reason. Caller iteriert events, prüft isinstance(item, CallResult) für das Ende.
 
-Failover-Strategie:
-- Streaming wird nur auf dem primären Modell versucht (Mid-Stream-Fehler
-  lassen sich nicht zurückrollen — User hätte schon Tokens gesehen).
-- Bei Stream-Fehler ODER Streaming-not-supported wechselt der Pfad auf
-  Non-Streaming und versucht alle Modelle der Reihe nach. Bei
-  Quota/Overload-Fehlern (siehe `_failover.should_failover`) wird das
-  nächste Modell probiert; nicht-failover-würdige Fehler werden raised.
+Kette (Spec agent-templates.md Kap. 8):
+1. Gesperrte Modelle (kurz zuvor Anbieterfehler) werden übersprungen, außer alle sind gesperrt.
+2. Jedes Modell wird gestreamt (Wiederholregeln in `_call_stream.py`).
+   - Anbieterfehler vor dem ersten Text → Modell sperren, nächstes Modell streamen.
+   - Timeout/Verbindungsabbruch nach allen Wiederholversuchen → nächstes Modell streamen.
+   - Leere Antwort (kein Text, kein Werkzeug) → dasselbe Modell einmal erneut, dann nächstes (beim letzten
+     Modell bleibt die leere Antwort stehen, der Runner meldet sie).
+   - Streaming nicht unterstützt, Text schon gesendet oder sonstiger Fehler → Nicht-Streaming (Schritt 3).
+3. Nicht-Streaming ab dem aktuellen Modell, mit Wechsel bei denselben Gründen.
+Jeder Wechsel wird als `ModelSwitch` gemeldet und steht in `CallResult.switches`.
 """
 from __future__ import annotations
 
-import asyncio
+import asyncio  # noqa: F401 — Tests patchen _call.asyncio.sleep (Unter-Module schlafen darüber)
 import logging
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import AsyncIterator
 
-import httpx
-
-from hydrahive.runner._failover import should_failover
-from hydrahive.runner.events import Event, MessageStart, TextBlock, TextDelta
+from hydrahive.runner import _model_cooldown as cooldown
+from hydrahive.runner._call_fallback import call_chain_non_streaming
+from hydrahive.runner._codex_provider import CodexModelNotAllowed, CodexStreamStall  # noqa: F401 — Re-Export
+from hydrahive.runner._call_stream import (  # noqa: F401 — Re-Export (Tests, Aufrufer)
+    _CONNECTION_ERRORS,
+    _STALL_PAUSE,
+    STALL_ATTEMPTS,
+    StreamOutcome,
+    stream_attempts,
+)
+from hydrahive.runner._call_tools import sanitize_blocks, tools_for
+from hydrahive.runner._failover import PROVIDER_CATEGORIES, SWITCH_CATEGORIES
+from hydrahive.runner.context import has_visible_content
+from hydrahive.runner.events import Event, ModelSwitch
 from hydrahive.runner.llm_bridge import call_with_tools
-from hydrahive.runner._codex_provider import CodexModelNotAllowed, CodexStreamStall
-from hydrahive.runner.llm_bridge_stream import StreamingNotSupported, stream_with_tools
+from hydrahive.runner.llm_bridge_stream import StreamingNotSupported, stream_with_tools  # noqa: F401
 
 logger = logging.getLogger(__name__)
-
-# Eine stehende Codex-Verbindung (CodexStreamStall) betrifft die Verbindung, nicht die Anfrage: Der sofortige neue
-# Versuch war in der Messung (hydratest 5.11.2026, 60 Läufe) fast immer erfolgreich. Darum bis zu 5 Stream-Versuche,
-# jeweils neue Verbindung. Andere Fehler behalten ihre bisherige Regel (1 Wiederholung, dann Fallback).
-STALL_ATTEMPTS = 5
-# Verbindungsfehler von httpx (Messung: 2 von 60 echten Anfragen, mit LEERER Meldung) sind dieselbe Sorte Aussetzer
-# wie ein Stall: die Verbindung, nicht die Anfrage. Bewusst NICHT: HTTPStatusError (eine Antwort), UnsupportedProtocol/ProxyError/LocalProtocolError (dauerhaft), PoolTimeout (Überlast).
-_CONNECTION_ERRORS = (
-    CodexStreamStall, httpx.ReadError, httpx.ConnectError, httpx.WriteError, httpx.RemoteProtocolError,
-    httpx.ReadTimeout, httpx.ConnectTimeout, httpx.WriteTimeout,
-)
-_STALL_PAUSE = 0.5
 
 
 @dataclass
@@ -50,68 +49,16 @@ class CallResult:
     output_tokens: int = 0
     cache_creation_tokens: int = 0
     cache_read_tokens: int = 0
-    # Welches Modell tatsächlich genutzt wurde — bei Failover ist primary !=
-    # ausgeführtes. Frontend zeigt das im Bubble-Footer.
+    # Welches Modell tatsächlich genutzt wurde — bei Failover ist primary != ausgeführtes.
     model: str = ""
+    # Modellwechsel in diesem Aufruf: [{"from_model", "to_model", "reason"}]
+    switches: list[dict] = field(default_factory=list)
 
 
-_ALLOWED_FIELDS = {
-    "text": {"type", "text"},
-    "tool_use": {"type", "id", "name", "input"},
-    "thinking": {"type", "thinking", "signature"},
-    "tool_result": {"type", "tool_use_id", "content", "is_error"},
-    # Opaque provider state only; never rendered. Required for stateless Codex
-    # reasoning continuity and prompt-cache efficiency.
-    "codex_reasoning": {"type", "encrypted_content", "model"},
-}
-
-
-def _sanitize_blocks(blocks: list[dict]) -> list[dict]:
-    out: list[dict] = []
-    for b in blocks:
-        btype = b.get("type", "")
-        allowed = _ALLOWED_FIELDS.get(btype)
-        if allowed is None:
-            out.append(b)
-            continue
-        out.append({k: v for k, v in b.items() if k in allowed})
-    return out
-
-
-def _tools_for(model: str, tools: list[dict]) -> list[dict]:
-    """Tools nur an Modelle geben, die Function-Calling können.
-
-    Modelle ohne Tool-Support erfinden sonst Tool-Calls als Text-JSON, das wir
-    (korrekt) nicht ausführen — es landet stumpf im Chat. Das Gate greift PRO
-    MODELL, weil die Fallback-Kette auf ein Modell mit anderer Fähigkeit
-    wechseln kann. Die übergebene Liste wird nie mutiert.
-    """
-    if not tools:
-        return tools
-    from hydrahive.llm.tool_support import model_supports_tools
-    if model_supports_tools(model):
-        return tools
-    logger.info(
-        "Modell %s kann kein Function-Calling — %d Tool-Schemas werden nicht gesendet",
-        model, len(tools),
-    )
-    return []
-
-
-async def _call_with_connection_retry(**kwargs):
-    """Non-Streaming-Aufruf, der Verbindungs-Aussetzer (siehe `_CONNECTION_ERRORS`) bis zu STALL_ATTEMPTS-mal auf
-    frischer Verbindung wiederholt. Messung hydratest 5.11., 150 Läufe: Lauf 127 scheiterte, weil der Fallback ein
-    einzelner Versuch war und selbst in einen Stall lief. Alle anderen Fehler laufen unverändert durch (Failover,
-    Statusfehler, Abbruch von außen)."""
-    for attempt in range(STALL_ATTEMPTS):
-        try:
-            return await call_with_tools(**kwargs)
-        except _CONNECTION_ERRORS as e:
-            if attempt == STALL_ATTEMPTS - 1:
-                raise
-            logger.warning("Fallback-Aufruf (Versuch %d) — retry in %gs: %s: %s",
-                           attempt + 1, _STALL_PAUSE, type(e).__name__, e)
-            await asyncio.sleep(_STALL_PAUSE)
+def _switch(log: list[dict], src: str, dst: str, reason: str) -> ModelSwitch:
+    logger.warning("LLM-Failover %s → %s wegen: %s", src, dst, reason)
+    log.append({"from_model": src, "to_model": dst, "reason": reason})
+    return ModelSwitch(from_model=src, to_model=dst, reason=reason)
 
 
 async def call_with_stream_or_fallback(
@@ -126,102 +73,66 @@ async def call_with_stream_or_fallback(
     temperature: float,
     max_tokens: int,
     reasoning_effort: str | None = None,
+    cooldown_seconds: int = cooldown.DEFAULT_COOLDOWN_SECONDS,
 ) -> AsyncIterator[Event | CallResult]:
-    """Tries streaming on primary; falls back to non-streaming with model failover."""
+    """Modellkette: Streaming je Modell, Nicht-Streaming als Rückfall, Wechsel bei Ausfällen."""
     if not models:
         raise ValueError("models darf nicht leer sein")
 
-    primary = models[0]
-    streamed_ok = False
-    blocks: list[dict] = []
-    stop_reason = ""
-    input_tokens = output_tokens = cache_creation = cache_read = 0
+    switch_log: list[dict] = []
+    chain, skipped = cooldown.available(models)
+    if skipped and models[0] in skipped:
+        yield _switch(switch_log, models[0], chain[0], "cooldown")
+    base = dict(system_prompt=system_prompt, volatile_system=volatile_system, summary_system=summary_system,
+                cache_ttl=cache_ttl, messages=messages, temperature=temperature, max_tokens=max_tokens,
+                reasoning_effort=reasoning_effort)
 
-    _stream_kwargs = dict(
-        model=primary, system_prompt=system_prompt, volatile_system=volatile_system,
-        summary_system=summary_system, cache_ttl=cache_ttl, messages=messages,
-        tools=_tools_for(primary, tools), temperature=temperature, max_tokens=max_tokens,
-        reasoning_effort=reasoning_effort,
-    )
-    # Retry bei transientem Connection-Fehler — aber nur solange noch kein Text ans Frontend geliefert wurde (sonst
-    # würde der User Text doppelt sehen). Stall: bis STALL_ATTEMPTS; sonstige Fehler: 1 Wiederholung (wie bisher).
-    other_retried = False
-    for _attempt in range(STALL_ATTEMPTS):
-        text_sent = False
-        try:
-            async for raw_ev in stream_with_tools(**_stream_kwargs):
-                t = raw_ev.get("type")
-                if t == "message_start":
-                    yield MessageStart()
-                elif t == "text_delta":
-                    yield TextDelta(text=raw_ev.get("text", ""))
-                    text_sent = True
-                elif t == "message_stop":
-                    blocks = raw_ev.get("blocks", [])
-                    stop_reason = raw_ev.get("stop_reason", "")
-                    input_tokens = raw_ev.get("input_tokens", 0)
-                    output_tokens = raw_ev.get("output_tokens", 0)
-                    cache_creation = raw_ev.get("cache_creation_tokens", 0)
-                    cache_read = raw_ev.get("cache_read_tokens", 0)
-                    streamed_ok = True
-                    break
-            break  # kein Fehler — Schleife verlassen
-        except StreamingNotSupported as e:
-            logger.info("Streaming nicht unterstützt: %s — Fallback", e)
-            break
-        except CodexModelNotAllowed:
-            raise
-        except Exception as e:
-            is_stall = isinstance(e, _CONNECTION_ERRORS)
-            can_retry = not text_sent and (
-                (is_stall and _attempt < STALL_ATTEMPTS - 1) or (not is_stall and not other_retried and _attempt == 0))
-            if can_retry:
-                wait = _STALL_PAUSE if is_stall else 1.5
-                logger.warning("Stream-Fehler (Versuch %d) — retry in %gs: %s: %s", _attempt + 1, wait, type(e).__name__, e)
-                other_retried = other_retried or not is_stall
-                await asyncio.sleep(wait)
-            else:
-                logger.warning("Stream-Fehler — Fallback auf non-streaming: %s: %s", type(e).__name__, e)
-                break
+    i = 0
+    empty_retry_done = False
+    while i < len(chain):
+        model = chain[i]
+        has_next = i < len(chain) - 1
+        out = StreamOutcome()
+        kwargs = dict(base, model=model, tools=tools_for(model, tools))
+        async for ev in stream_attempts(stream_with_tools, kwargs, out, has_next=has_next):
+            yield ev
 
-    if streamed_ok:
-        yield CallResult(
-            blocks=_sanitize_blocks(blocks), stop_reason=stop_reason,
-            input_tokens=input_tokens, output_tokens=output_tokens,
-            cache_creation_tokens=cache_creation, cache_read_tokens=cache_read,
-            model=primary,
-        )
-        return
-
-    last_exc: Exception | None = None
-    for i, model in enumerate(models):
-        is_last = i == len(models) - 1
-        try:
-            fallback_blocks, fallback_stop, fallback_usage = await _call_with_connection_retry(
-                model=model, system_prompt=system_prompt, volatile_system=volatile_system,
-                summary_system=summary_system,
-                cache_ttl=cache_ttl, messages=messages, tools=_tools_for(model, tools),
-                temperature=temperature, max_tokens=max_tokens,
-                reasoning_effort=reasoning_effort,
-            )
-        except Exception as e:
-            if should_failover(e) and not is_last:
-                next_model = models[i + 1]
-                logger.warning("LLM-Failover %s → %s wegen: %s", model, next_model, e)
-                last_exc = e
+        if out.ok:
+            visible = has_visible_content(out.blocks) or out.text_sent
+            if visible or (not has_next and empty_retry_done):
+                yield CallResult(blocks=sanitize_blocks(out.blocks), stop_reason=out.stop_reason, model=model,
+                                 switches=switch_log, **out.usage)
+                return
+            if not empty_retry_done:   # auch beim letzten Modell (Task e813b45f)
+                logger.warning("Leere Antwort von %s — ein weiterer Versuch auf demselben Modell", model)
+                empty_retry_done = True
                 continue
-            raise
-        text = "".join(b.get("text", "") for b in fallback_blocks if b.get("type") == "text")
-        if text:
-            yield TextBlock(text=text)
-        yield CallResult(
-            blocks=_sanitize_blocks(fallback_blocks), stop_reason=fallback_stop,
-            input_tokens=fallback_usage.get("input_tokens", 0),
-            output_tokens=fallback_usage.get("output_tokens", 0),
-            cache_creation_tokens=fallback_usage.get("cache_creation_tokens", 0),
-            cache_read_tokens=fallback_usage.get("cache_read_tokens", 0),
-            model=model,
-        )
-        return
+            yield _switch(switch_log, model, chain[i + 1], "empty")
+            i += 1
+            empty_retry_done = False
+            continue
 
-    raise last_exc or RuntimeError("Alle Modelle fehlgeschlagen")
+        if has_next and not out.text_sent and out.reason in SWITCH_CATEGORIES:
+            if out.reason in PROVIDER_CATEGORIES:
+                cooldown.mark_down(model, cooldown_seconds)
+            yield _switch(switch_log, model, chain[i + 1], out.reason)
+            i += 1
+            empty_retry_done = False
+            continue
+        break   # Streaming nicht unterstützt / Text gesendet / sonstiger Fehler → Nicht-Streaming ab hier
+
+    async for item in call_chain_non_streaming(
+        call_with_tools, chain[i:], base, tools, switch_log, cooldown_seconds=cooldown_seconds,
+        make_switch=_switch,
+    ):
+        if isinstance(item, tuple):
+            model, blocks, stop, usage = item
+            yield CallResult(
+                blocks=sanitize_blocks(blocks), stop_reason=stop,
+                input_tokens=usage.get("input_tokens", 0), output_tokens=usage.get("output_tokens", 0),
+                cache_creation_tokens=usage.get("cache_creation_tokens", 0),
+                cache_read_tokens=usage.get("cache_read_tokens", 0),
+                model=model, switches=switch_log,
+            )
+            return
+        yield item

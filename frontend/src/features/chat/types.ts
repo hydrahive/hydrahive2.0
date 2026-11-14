@@ -103,4 +103,5 @@ export type RunnerEvent =
       cache_creation_tokens: number
       cache_read_tokens: number
     }
+  | { type: "model_switch"; from_model: string; to_model: string; reason: string }
   | { type: "error"; message: string; fatal: boolean }

@@ -318,6 +318,7 @@ async def run(
                       "cache_creation_tokens": result.cache_creation_tokens,
                       "cache_read_tokens": result.cache_read_tokens,
                       "model": result.used_model, "stop_reason": result.stop_reason,
+                      **({"model_switches": result.switches} if result.switches else {}),
                       "iteration": iteration + 1,
                       "integrity": integrity_state.audit_metadata()},
         )
