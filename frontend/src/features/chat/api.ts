@@ -194,6 +194,15 @@ export interface ActivityEntry {
   name: string
   project_id: string | null
   current_tool: string | null
+  // Agenten-Büro (Spec agent-office.md §1): Delegations-Hierarchie, Fortschritt, Kurzfassung.
+  parent_session_id?: string | null
+  delegation_id?: string | null
+  iteration?: number
+  max_iterations?: number
+  deadline_at?: number | null
+  last_tool_result_summary?: string
+  owner?: string
+  started_at?: number
 }
 
 /**

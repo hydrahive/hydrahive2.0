@@ -13,6 +13,7 @@ import deLlm from "./locales/de/llm.json"
 import deMcp from "./locales/de/mcp.json"
 import deSystem from "./locales/de/system.json"
 import deDashboard from "./locales/de/dashboard.json"
+import deOffice from "./locales/de/office.json"
 import deHelp from "./locales/de/help.json"
 import deUsers from "./locales/de/users.json"
 import deAccess from "./locales/de/access.json"
@@ -50,6 +51,7 @@ import enLlm from "./locales/en/llm.json"
 import enMcp from "./locales/en/mcp.json"
 import enSystem from "./locales/en/system.json"
 import enDashboard from "./locales/en/dashboard.json"
+import enOffice from "./locales/en/office.json"
 import enHelp from "./locales/en/help.json"
 import enUsers from "./locales/en/users.json"
 import enAccess from "./locales/en/access.json"
@@ -83,7 +85,7 @@ const baseResources = {
   de: {
     common: deCommon, auth: deAuth, nav: deNav, chat: deChat,
     agents: deAgents, projects: deProjects, llm: deLlm, mcp: deMcp,
-    system: deSystem, dashboard: deDashboard, help: deHelp, users: deUsers,
+    system: deSystem, dashboard: deDashboard, office: deOffice, help: deHelp, users: deUsers,
     profile: deProfile, errors: deErrors, plugins: dePlugins, access: deAccess,
     communication: deCommunication, butler: deButler, skills: deSkills,
     credentials: deCredentials, buddy: deBuddy, datamining: deDatamining, memory: deMemory,
@@ -96,7 +98,7 @@ const baseResources = {
   en: {
     common: enCommon, auth: enAuth, nav: enNav, chat: enChat,
     agents: enAgents, projects: enProjects, llm: enLlm, mcp: enMcp,
-    system: enSystem, dashboard: enDashboard, help: enHelp, users: enUsers,
+    system: enSystem, dashboard: enDashboard, office: enOffice, help: enHelp, users: enUsers,
     profile: enProfile, errors: enErrors, plugins: enPlugins, access: enAccess,
     communication: enCommunication, butler: enButler, skills: enSkills,
     credentials: enCredentials, buddy: enBuddy, datamining: enDatamining, memory: enMemory,
@@ -134,7 +136,7 @@ i18n
     resources: mergedResources,
     fallbackLng: "de",
     supportedLngs: SUPPORTED_LANGUAGES.map((l) => l.code),
-    ns: ["common", "auth", "nav", "chat", "agents", "projects", "llm", "mcp", "system", "dashboard", "help", "users", "profile", "errors", "plugins", "communication", "butler", "skills", "credentials", "buddy", "datamining", "memory", "analytics", "containers", "extensions", "federation", "streaming", "vms", "workspace", "zahnfee", "teamchat", "modules", "vault", "archive"],
+    ns: ["common", "auth", "nav", "chat", "agents", "projects", "llm", "mcp", "system", "dashboard", "office", "help", "users", "profile", "errors", "plugins", "communication", "butler", "skills", "credentials", "buddy", "datamining", "memory", "analytics", "containers", "extensions", "federation", "streaming", "vms", "workspace", "zahnfee", "teamchat", "modules", "vault", "archive"],
     defaultNS: "common",
     interpolation: { escapeValue: false },
     detection: {

@@ -8,6 +8,7 @@ import { moduleRoutes } from "@/modules/index.generated"
 interface ModuleRoute { path: string; element: ReactElement }
 const appModuleRoutes = moduleRoutes as ModuleRoute[]
 import { DashboardPage } from "@/features/dashboard/DashboardPage"
+import { OfficePage } from "@/features/office/OfficePage"
 import { SessionDetailPage } from "@/features/analytics/SessionDetailPage"
 import { ChatPage } from "@/features/chat/ChatPage"
 
@@ -79,6 +80,7 @@ export default function App() {
           <Route path="buddy" element={<BuddyPage />} />
           <Route path="buddy/settings" element={<BuddySettingsPage />} />
           <Route path="dashboard" element={<DashboardPage />} />
+          <Route path="office" element={<OfficePage />} />
           <Route path="analytics/session/:sid" element={<SessionDetailPage />} />
           <Route path="werkstatt" element={<WerkstattCockpitPage />} />
           <Route path="werkstatt/:sid" element={<ChatPage />} />
