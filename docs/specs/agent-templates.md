@@ -259,6 +259,9 @@ eingetragene Liste lokaler Modelle; was eine Installation lokal hat, ist nicht v
 
 Jede Etappe ist einzeln lauffähig. Etappe 1 lohnt sich auch ohne alle weiteren.
 
+Baupläne: `docs/plans/agent-templates-e1-failover.md`, `…-e2-kern-seite.md`, `…-e3-migration.md`,
+`…-e4-budget-antwort.md`, `…-e5-module.md`, `…-e6-e7-arbeitsweise-aufraeumen.md`.
+
 ## 12. Akzeptanzkriterien
 
 - Fällt das Primärmodell mit 429, Timeout, Stream-Abbruch oder leerer Antwort aus, antwortet die
