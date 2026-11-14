@@ -77,3 +77,11 @@ def test_langfassung_im_workspace_des_auftraggebers(client, tmp_path):
         agent_config.delete(a["id"])
     assert rep.reports_dir_for_caller("hydrahive") is None
     assert rep.reports_dir_for_caller("hydrahive/../../x") is None
+
+
+def test_auftrag_enthaelt_antwortformat():
+    from hydrahive.agentlink.protocol import ContextBlock, State, TaskBlock
+    from hydrahive.runner.handoff_receiver import _build_user_input
+    text = _build_user_input(State(agent_id="x", task=TaskBlock(type="review", description="prüf"),
+                                   context=ContextBlock()))
+    assert "## Ergebnis" in text and "## Offene Punkte" in text

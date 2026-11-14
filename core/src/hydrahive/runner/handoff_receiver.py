@@ -158,6 +158,10 @@ def _build_user_input(state: State) -> str:
         parts.append(f"\nGit: {state.context.git}")
     if state.agent_id:
         parts.append(f"\n(Auftraggeber: {state.agent_id})")
+    # Antwortformat (Spec agent-templates.md 9.4): Kurzfassung oben, Details darunter. Lange Antworten gehen als
+    # Datei an den Auftraggeber, im Kontext landet nur der Abschnitt „Ergebnis“.
+    parts.append("\nAntworte so: zuerst `## Ergebnis` (2–6 Sätze: was erledigt ist, was nicht), dann `## Belege` "
+                 "(Dateien, Befehle, Testergebnisse), dann `## Offene Punkte`.")
     return "\n".join(parts)
 
 
