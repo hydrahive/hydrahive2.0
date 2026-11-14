@@ -213,5 +213,15 @@
     "chat": "Chat",
     "files": "Files & tasks",
     "label": "Choose area"
+  },
+  "create_warning": {
+    "title": "Project created – please check",
+    "template_fallback_unavailable": "The template \"{{template}}\" lists the fallback model {{model}}. This model is not available here right now. The project still works, but if the main model fails, {{model}} will be skipped.",
+    "template_not_configured": "No model has been set in the template \"{{template}}\" yet. The project agent uses the default model for now.",
+    "general": "Something came up while creating the project that you should check.",
+    "how_to": "How to fix it: open the \"AI models\" page → tab \"Agent templates\" → choose the template. Remove a model marked red or replace it with one from the list, then save. If a provider is missing entirely (e.g. ChatGPT), sign it in first on the \"Providers\" tab.",
+    "open_templates": "Open agent templates",
+    "primary_how_to": "The project was not created. Set an available main model in the template and try again.",
+    "continue": "Continue to project"
   }
 }
