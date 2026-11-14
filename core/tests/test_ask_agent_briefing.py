@@ -78,3 +78,9 @@ def test_cancel_und_fortsetzen_brauchen_kein_briefing():
 def test_block_ohne_bekannt():
     out = build_briefing("T", {"goal": "Z", "deliverable": "L"})
     assert out == "T\n\n## Ziel\nZ\n\n## Liefern\nL"
+
+
+def test_auftrag_traegt_vorgang_der_sitzung(target, posted, tmp_path):
+    from hydrahive.agentlink.runtime_profiles import thread_from_reason, thread_key
+    _run({"agent_id": target["id"], "goal": "Z", "deliverable": "L"}, tmp_path)
+    assert thread_from_reason(posted[0].handoff.reason) == thread_key("s")

@@ -15,7 +15,7 @@ from __future__ import annotations
 import asyncio
 import logging
 
-from hydrahive.agentlink.runtime_profiles import OVERRUN_PROFILE, reason_with_profile
+from hydrahive.agentlink.runtime_profiles import OVERRUN_PROFILE, reason_with_profile, thread_key
 from hydrahive.agentlink import (
     ContextBlock,
     Handoff,
@@ -113,6 +113,8 @@ async def _execute(args: dict, ctx: ToolContext) -> ToolResult:
         try:
             task_reason = reason_with_profile(
                 target, profile, task[:120], resume_token=resume_token,
+                # Plan E6 T4: Folgeaufträge aus derselben Sitzung setzen die Sitzung des Spezialisten fort
+                thread=thread_key(ctx.session_id) if ctx.session_id and not resume_token else None,
             )
         except ValueError as exc:
             return ToolResult.fail(str(exc))
