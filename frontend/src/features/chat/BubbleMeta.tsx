@@ -1,5 +1,6 @@
 import { useTranslation } from "react-i18next"
 import { estimateCostUsd, formatCost } from "./pricing"
+import { readModelSwitches } from "./_modelSwitches"
 
 function formatBubbleTime(iso: string, locale: string): string {
   const d = new Date(iso)
@@ -61,6 +62,7 @@ export function AssistantFooter({ metadata }: { metadata?: Record<string, unknow
     cache_read: meta.cache_read_tokens,
     cache_creation: meta.cache_creation_tokens,
   })
+  const switches = readModelSwitches(metadata)
   if (!hasTokens && !hasModel) return null
   return (
     <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5 text-[10px] text-zinc-500 font-mono tabular-nums">
@@ -81,6 +83,11 @@ export function AssistantFooter({ metadata }: { metadata?: Record<string, unknow
       {showIterations && (
         <span>· {t("bubble_footer.iterations", { n: meta.iteration })}</span>
       )}
+      {switches.map((sw, i) => (
+        <span key={i} className="text-amber-400/80" title={t(`bubble_footer.switch_reason.${sw.reason}`)}>
+          · {t("bubble_footer.model_switch", { from: sw.from_model, to: sw.to_model })}
+        </span>
+      ))}
       {showStopReason && (
         <span className="text-amber-400/70">· {t("bubble_footer.stop_reason", { reason: meta.stop_reason })}</span>
       )}

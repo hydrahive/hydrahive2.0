@@ -137,7 +137,19 @@
     "cache": "Cache {{read}}r / {{create}}c",
     "iterations": "{{n}} Iterationen",
     "stop_reason": "Stop: {{reason}}",
-    "cost_tooltip": "Geschätzte Kosten basierend auf öffentlichen Provider-Preisen pro 1M Tokens. Cache-Read und Cache-Write werden mitgerechnet."
+    "cost_tooltip": "Geschätzte Kosten basierend auf öffentlichen Provider-Preisen pro 1M Tokens. Cache-Read und Cache-Write werden mitgerechnet.",
+    "model_switch": "gewechselt {{from}} → {{to}}",
+    "switch_reason": {
+      "auth": "Anmeldung beim Anbieter fehlgeschlagen",
+      "quota": "Kontingent oder Guthaben erschöpft",
+      "rate_limit": "Anfragelimit erreicht",
+      "overload": "Anbieter überlastet",
+      "timeout": "Zeitüberschreitung",
+      "stream_abort": "Verbindung abgebrochen",
+      "empty": "Leere Antwort",
+      "cooldown": "Modell kurz gesperrt nach Störung",
+      "other": "Störung"
+    }
   },
   "tool_result": {
     "collapsed": "Output ({{chars}} Z., {{lines}} Zeilen) — anzeigen"
