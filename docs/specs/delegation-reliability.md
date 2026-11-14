@@ -110,14 +110,18 @@ Zusätzlich: Dem Auftraggeber beim nächsten Lauf-Ende der Session eine klare, u
 nur „verloren" — bei `paused` mit Resume-Token den Hinweis, dass ein `ask_agent`-Aufruf mit
 `resume_token=...` die begonnene Arbeit fortsetzt (Spiegel zum bestehenden `max_iterations`-Text).
 
-### 3.4 Timeout-Diagnose
+### 3.4 Timeout-Diagnose — bereits erledigt (Fund bei Etappe 3, 14.11. nachts)
 
-`HH_AGENTLINK_RUN_TIMEOUT`/`HH_AGENTLINK_HANDOFF_TIMEOUT` bleiben globale Fallbacks, aber: Templates mit
-umfangreichen Testläufen (z. B. `reviewer`, `backend`) bekommen ein höheres Timeout-Feld im Template
-selbst (`agent-templates.md` kennt schon ein Budget-Kapitel) statt eines einzigen globalen Werts. Diese
-Spec ändert dafür nur die Lesestelle (`effective_timeout` zieht zuerst das Template-Feld, dann den
-globalen Fallback) — die Template-UI/Admin-Oberfläche selbst ist bereits aus den Agenten-Templates-
-Etappen vorhanden.
+Geprüft beim Start dieser Etappe: `agentlink/runtime_profiles.py::effective_budget()` liefert für jeden
+an ein Template gebundenen Agenten bereits `timeout_seconds` aus dessen Template-Budget
+(`agents/templates/_defaults.py`, z. B. `reviewer`/`backend` 1800s statt der globalen 540s) —
+`runner/_handoff_setup.py::prepare_handoff()` reicht das als `PreparedHandoff.timeout_seconds` weiter,
+`handoff_receiver.py::_run_and_reply()` nutzt `run_timeout or settings.agentlink_run_timeout`: der
+globale Fallback (`HH_AGENTLINK_RUN_TIMEOUT`) greift nur noch für Agenten **ohne** gebundenes Template.
+Dieser Mechanismus kam aus den bereits gemergten Agenten-Templates-Etappen (E2–E4, siehe
+`agent-templates.md`), unabhängig von dieser Spec. Verifiziert über `test_runtime_budget_template.py`
+(`test_template_budget_statt_standard_profil`, `test_ungebunden_wie_bisher`). Keine weitere Umsetzung
+nötig — dieser Punkt ist erfüllt, bevor er begonnen wurde.
 
 ## 4. Datenmodell-Änderungen
 
@@ -141,12 +145,14 @@ umgesetzt und eine Weile gelaufen ist — sonst hängt alles noch mehr an einem 
 
 ## 7. Etappen
 
-1. Graceful Shutdown (3.1) + Checkpoint im CancelledError-Pfad (3.2). TDD. Ein PR.
-2. Reconciliation erweitern: `paused` mit Resume-Token wird nicht mehr zu `lost` (3.3) +
-   Hinweistext für den Auftraggeber. TDD. Ein PR.
-3. Timeout aus dem Template statt nur global (3.4). TDD. Ein PR.
-4. Eine Woche beobachten (Messung wie `scripts/measure_delegation.py`, Vorher/Nachher-Vergleich analog
-   zur E6-Messung), dann entscheiden, ob Kapitel 6 (harte Tool-Policy) angegangen wird.
+1. ✅ Graceful Shutdown (3.1) + Checkpoint im CancelledError-Pfad (3.2) — gemergt #718 (14.11.). Etappe
+   3.3 (Reconciliation lässt Checkpoints nicht mehr auf `lost` fallen) ergab sich dabei automatisch,
+   kein Zusatzcode nötig (mit Test verifiziert).
+2. ✅ Timeout aus dem Template statt nur global (3.4) — bereits durch die Agenten-Templates-Etappen
+   erledigt, kein PR nötig (Fund 14.11. nachts, siehe 3.4).
+3. Eine Woche beobachten (Messung wie `scripts/measure_delegation.py`, Vorher/Nachher-Vergleich analog
+   zur E6-Messung, Vorher-Basis: 48 % lost/error/timeout bei 33 Delegationen in 14 Tagen), dann
+   entscheiden, ob Kapitel 6 (harte Tool-Policy) angegangen wird. Frühestens ~21.11.2026.
 
 ## 8. Akzeptanzkriterien
 
