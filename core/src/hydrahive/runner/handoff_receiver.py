@@ -239,18 +239,36 @@ async def _run_and_reply(
         failure = RunFailure("Session läuft bereits — handoff ignoriert")
         logger.warning("handoff_receiver: Session %s läuft bereits — skip", session_id)
     except asyncio.CancelledError:
-        # Worker-Shutdown/Reload: best-effort terminale Antwort posten, dann
-        # re-raise. Ohne das bliebe der State ewig in_progress (Subagent-Zombie).
+        # Worker-Shutdown/Reload: Checkpoint statt Totalverlust (Spec
+        # delegation-reliability.md 3.2). Bisher terminale Fehler-Antwort — die
+        # bereits geleistete Arbeit des Spezialisten war komplett weg, und ohne
+        # Resume-Token musste der Auftraggeber den Auftrag neu formulieren.
+        # Gleicher Mechanismus wie bei max_iterations, nur reason="shutdown".
         logger.warning(
-            "handoff_receiver: Run für Session %s abgebrochen (Stopp/Shutdown) — poste Fehler-Antwort",
+            "handoff_receiver: Run für Session %s abgebrochen (Stopp/Shutdown) — poste Checkpoint",
             session_id,
         )
+        partial_output = _shorten("".join(output_parts), session_id, handoff_db_id, state.agent_id)
+        text = f"{partial_output}\n\nPausiert: Server-Neustart während der Bearbeitung." if partial_output \
+            else "Pausiert: Server-Neustart während der Bearbeitung."
+        checkpoint = checkpoint_finding(
+            resume_token=handoff_db_id, session_id=session_id,
+            remaining_work="Begonnenen Auftrag nach Server-Neustart fortsetzen und Ergebnis verifizieren.",
+            reason="shutdown",
+        )
         try:
-            await asyncio.shield(_post_reply(
-                state, "Abgebrochen (gestoppt oder Server-Neustart)", "error"))
-            db_agent_handoffs.update_status(handoff_db_id, "error")
+            db_agent_handoffs.update_status(handoff_db_id, "paused")
+            record_delegation_result(state, "paused", text, checkpoint)
+            delivered = await asyncio.shield(
+                _post_reply(state, text, "paused", checkpoint=checkpoint))
+            if delivered is False:
+                db_agent_handoffs.update_status(handoff_db_id, "error")
         except Exception:
-            logger.exception("handoff_receiver: Fehler-Antwort bei Cancel fehlgeschlagen")
+            logger.exception("handoff_receiver: Checkpoint-Antwort bei Cancel fehlgeschlagen")
+            try:
+                db_agent_handoffs.update_status(handoff_db_id, "error")
+            except Exception:
+                logger.exception("handoff_receiver: Fehler-Status bei Cancel nicht gesetzt")
         raise
     except Exception as e:
         failure = RunFailure(str(e))

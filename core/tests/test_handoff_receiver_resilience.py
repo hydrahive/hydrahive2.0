@@ -80,22 +80,54 @@ def test_run_timeout_posts_error_reply(monkeypatch):
     assert captured["db_status"] == "error"
 
 
-# --- Cancel/Shutdown: best-effort Antwort + re-raise -----------------------
+# --- Cancel/Shutdown: Checkpoint statt Totalverlust ------------------------
+# Spec delegation-reliability.md 3.2: ein geplanter Server-Stopp während eines
+# laufenden Handoffs pausiert den Auftrag (resume_token) statt ihn mit einer
+# terminalen Fehler-Antwort zu verwerfen — die begonnene Arbeit bleibt nutzbar.
 
-def test_cancelled_run_posts_error_reply_and_reraises(monkeypatch):
+def test_cancelled_run_posts_paused_checkpoint_reply_and_reraises(monkeypatch):
     captured = _capture_reply(monkeypatch)
     monkeypatch.setattr(hr.settings, "agentlink_run_timeout", 30, raising=False)
 
     async def _cancel(session_id, user_input, output_parts):
+        output_parts.append("Teilweise erledigt.")
         raise asyncio.CancelledError()
 
     monkeypatch.setattr(hr, "_consume_run", _cancel)
 
     with pytest.raises(asyncio.CancelledError):
-        asyncio.run(hr._run_and_reply(_state(), "sess-2", "hdb-2"))
+        asyncio.run(hr._run_and_reply(_state(), "sess-2", "hdb-2-abcdefgh"))
 
-    assert captured["status"] == "error"
-    assert captured["db_status"] == "error"
+    assert captured["status"] == "paused"
+    assert captured["db_status"] == "paused"
+    assert captured["checkpoint"].startswith("HH_CHECKPOINT_V1:")
+    assert '"reason":"shutdown"' in captured["checkpoint"]
+    assert "Teilweise erledigt" in captured["output"]
+
+
+def test_cancelled_run_checkpoint_delivery_failure_falls_back_to_error(monkeypatch):
+    """Wie beim max_iterations-Checkpoint: kommt der Checkpoint beim Auftraggeber
+    nicht an, bleibt kein unerreichbares Resume-Token übrig — fällt auf 'error'."""
+    updates: list[str] = []
+
+    async def _cancel(session_id, user_input, output_parts):
+        raise asyncio.CancelledError()
+
+    async def _fail_post(_state, *_a, **_kw):
+        raise RuntimeError("agentlink offline")
+
+    monkeypatch.setattr(hr, "_consume_run", _cancel)
+    monkeypatch.setattr(hr, "_post_reply", _fail_post)
+    monkeypatch.setattr(
+        hr.db_agent_handoffs, "update_status",
+        lambda _handoff_id, status: updates.append(status),
+    )
+    monkeypatch.setattr(hr.settings, "agentlink_run_timeout", 30, raising=False)
+
+    with pytest.raises(asyncio.CancelledError):
+        asyncio.run(hr._run_and_reply(_state(), "sess-2b", "hdb-2b-abcdefgh"))
+
+    assert updates == ["paused", "error"]
 
 
 # --- Erfolg: done-Antwort ---------------------------------------------------
