@@ -86,6 +86,18 @@ class Done:
 
 
 @dataclass
+class ModelSwitch:
+    """Die Modellkette ist auf das nächste Modell gewechselt (Spec agent-templates.md Kap. 8).
+
+    reason: auth | quota | rate_limit | overload | timeout | stream_abort | empty | cooldown
+    """
+    from_model: str
+    to_model: str
+    reason: str
+    type: Literal["model_switch"] = "model_switch"
+
+
+@dataclass
 class Error:
     """A fatal error stopped the run."""
     message: str
@@ -96,5 +108,5 @@ class Error:
 
 Event = (
     CompactionStart | IterationStart | MessageStart | TextDelta | TextBlock |
-    ToolUseStart | ToolConfirmRequired | ToolUseResult | Done | Error
+    ToolUseStart | ToolConfirmRequired | ToolUseResult | ModelSwitch | Done | Error
 )

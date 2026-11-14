@@ -189,7 +189,7 @@ def test_gate_greift_pro_modell_in_der_fallback_kette(monkeypatch):
 
     monkeypatch.setattr(_call, "stream_with_tools", failing_stream)
     monkeypatch.setattr(_call, "call_with_tools", fake_call_with_tools)
-    monkeypatch.setattr(_call, "should_failover", lambda e: True)
+    # TimeoutError ist seit der Modellkette (agent-templates E1) selbst ein Wechselgrund – kein Patch mehr nötig.
 
     async def go():
         async for _ in _call.call_with_stream_or_fallback(
