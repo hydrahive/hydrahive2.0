@@ -45,7 +45,7 @@ export function BindingsTab({ templates }: { templates: AgentTemplate[] }) {
       {msg && <p role="status" className="text-sm text-amber-200">{msg}</p>}
       <div className="max-h-[55vh] overflow-auto rounded-[4px] border border-white/[8%]">
         <table className="w-full text-xs text-zinc-300">
-          <thead className="sticky top-0 bg-[#10141c] text-left text-[10px] uppercase tracking-widest text-[#9aa7bc]">
+          <thead className="sticky top-0 bg-s-box text-left text-[10px] uppercase tracking-widest text-[#9aa7bc]">
             <tr><th className={cell}>{t("bindings.agent")}</th><th className={cell}>{t("bindings.today")}</th>
               <th className={cell}>{t("bindings.template")}</th></tr>
           </thead>
