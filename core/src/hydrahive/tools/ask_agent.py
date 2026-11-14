@@ -15,7 +15,7 @@ from __future__ import annotations
 import asyncio
 import logging
 
-from hydrahive.agentlink.runtime_profiles import reason_with_profile
+from hydrahive.agentlink.runtime_profiles import OVERRUN_PROFILE, reason_with_profile
 from hydrahive.agentlink import (
     ContextBlock,
     Handoff,
@@ -81,7 +81,17 @@ _SCHEMA = {
         "profile": {
             "type": "string",
             "enum": ["quick", "standard", "deep"],
-            "description": "Runtime-Profil für interne Spezialisten. Default: standard.",
+            "description": ("Nur für Spezialisten OHNE Agenten-Template (Altbestand). Mit Template gilt dessen "
+                            "Budget; mehr gibt es nur über overrun."),
+        },
+        "overrun": {
+            "type": "boolean",
+            "description": ("Budget des Ziel-Templates überschreiten (höchstens um die dort erlaubten Prozent). "
+                            "Nur mit overrun_reason."),
+        },
+        "overrun_reason": {
+            "type": "string", "minLength": 10, "maxLength": 500,
+            "description": "Pflicht bei overrun: warum der Auftrag mehr Budget braucht.",
         },
         "resume_token": {
             "type": "string",
@@ -124,6 +134,11 @@ async def _execute(args: dict, ctx: ToolContext) -> ToolResult:
 
     task_type = args.get("task_type") or "feature"
     profile = args.get("profile") or "standard"
+    overrun_reason = (args.get("overrun_reason") or "").strip()
+    if args.get("overrun"):
+        if len(overrun_reason) < 10:
+            return ToolResult.fail("overrun braucht overrun_reason (mindestens 10 Zeichen): warum mehr Budget nötig ist")
+        profile = OVERRUN_PROFILE
     resume_token = args.get("resume_token")
     raw_context = args.get("context") or {}
     required_skills = args.get("required_skills") or []
@@ -197,7 +212,8 @@ async def _execute(args: dict, ctx: ToolContext) -> ToolResult:
         context=ContextBlock(
             files=files,
             git=raw_context.get("git"),
-            errors=errors,
+            errors=errors + ([f"Budget-Überschreitung angefordert: {overrun_reason[:500]}"]
+                             if profile == OVERRUN_PROFILE else []),
         ),
         handoff=Handoff(
             to_agent=routing_target,
