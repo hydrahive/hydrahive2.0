@@ -17,7 +17,7 @@ from hydrahive.db._utils import now_iso
 logger = logging.getLogger(__name__)
 
 __all__ = [
-    "GROUPS", "ResolvedTemplate", "TemplateError",
+    "GROUPS", "ResolvedTemplate", "TemplateError", "check_id", "normalize",
     "delete", "get", "history", "list_templates", "resolve", "resolve_role", "revert", "save",
 ]
 

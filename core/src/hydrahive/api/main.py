@@ -50,6 +50,7 @@ from hydrahive.api.routes.datamining_stats import router as datamining_stats_rou
 from hydrahive.api.routes.datamining_transfer import router as datamining_transfer_router
 from hydrahive.api.routes.external_instances import router as external_instances_router
 from hydrahive.api.routes.llm import router as llm_router
+from hydrahive.api.routes.agent_templates import router as agent_templates_router
 from hydrahive.api.routes.media_backends import router as media_backends_router
 from hydrahive.api.routes.llm_catalog import router as llm_catalog_router
 from hydrahive.api.routes.llm_catalog_ollama import router as llm_catalog_ollama_router
@@ -164,6 +165,7 @@ app.include_router(communication_router)
 app.include_router(communication_whatsapp_router)
 app.include_router(communication_discord_router)
 app.include_router(llm_router)
+app.include_router(agent_templates_router)
 app.include_router(media_backends_router)
 app.include_router(llm_catalog_router)
 app.include_router(llm_catalog_ollama_router)
