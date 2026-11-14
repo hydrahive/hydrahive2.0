@@ -51,6 +51,24 @@ def _kill_group(pgid: int) -> None:
         pass  # Gruppe schon leer
 
 
+async def _spawn_or_kill(spawn) -> asyncio.subprocess.Process:
+    """Prozess starten; ein Stopp WÄHREND des Starts beendet trotzdem die ganze Gruppe.
+
+    Ohne das gab es beim Stopp noch kein `proc`: asyncio/uvloop beenden dann nur die bash selbst (`proc.close()`),
+    ihre Kinder liefen verwaist weiter. Unter Last reichen dafür wenige Millisekunden – Ursache des Wackeltests
+    `test_stopp_beendet_den_befehl[uvloop]` (CI, 14.11.2026)."""
+    task = asyncio.ensure_future(spawn)
+    try:
+        return await asyncio.shield(task)
+    except asyncio.CancelledError:
+        try:
+            proc = await task              # Start zu Ende laufen lassen, damit die Gruppe bekannt ist
+        except BaseException:
+            raise asyncio.CancelledError from None
+        _kill_group(proc.pid)
+        raise
+
+
 class DevLauncher:
     """Spawns subprocesses as the service user inside `cwd`.
 
@@ -83,7 +101,7 @@ class DevLauncher:
     ) -> LaunchResult:
         cwd.mkdir(parents=True, exist_ok=True)
         with tempfile.TemporaryFile() as out, tempfile.TemporaryFile() as err:
-            proc = await asyncio.create_subprocess_shell(
+            proc = await _spawn_or_kill(asyncio.create_subprocess_shell(
                 cmd,
                 cwd=str(cwd),
                 env=env,
@@ -91,7 +109,7 @@ class DevLauncher:
                 stdout=out,
                 stderr=err,
                 start_new_session=True,
-            )
+            ))
             try:
                 await asyncio.wait_for(proc.wait(), timeout=timeout)
             except asyncio.CancelledError:
