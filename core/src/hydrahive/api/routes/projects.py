@@ -12,7 +12,9 @@ from hydrahive.api.routes import _delete_job
 from hydrahive.api.routes._project_route_helpers import (
     ProjectCreate, ProjectUpdate, check_project_access,
 )
+from hydrahive.agents import AgentValidationError
 from hydrahive.projects import ProjectValidationError, config as project_config
+from hydrahive.projects._model_check import TemplateModelUnavailable, template_link
 from hydrahive.projects import audit as project_audit
 from hydrahive.projects import members as project_members
 from hydrahive.projects.public_view import public_view
@@ -58,7 +60,7 @@ def create_project(
     creator, _ = auth
     members = [m if isinstance(m, str) else m.model_dump() for m in req.members]
     try:
-        return public_view(project_config.create(
+        created = project_config.create(
             name=req.name,
             description=req.description,
             members=members,
@@ -66,9 +68,16 @@ def create_project(
             created_by=creator,
             init_git=req.init_git,
             template=req.template or "projekt-master",
-        ))
+        )
     except ProjectValidationError as e:
         raise coded(status.HTTP_400_BAD_REQUEST, "validation_error", message=str(e))
+    except TemplateModelUnavailable as e:
+        raise coded(status.HTTP_400_BAD_REQUEST, "template_primary_unavailable", template=e.template, model=e.model,
+                    link=template_link(e.template))
+    except AgentValidationError as e:
+        raise coded(status.HTTP_400_BAD_REQUEST, "project_agent_invalid", message=str(e))
+    # Warnungen (Ersatzmodell fehlt, Template leer) mit Link – Projekt ist trotzdem angelegt.
+    return {**public_view(created), "warnings": created.get("warnings", [])}
 
 
 @router.get("/{project_id}")
