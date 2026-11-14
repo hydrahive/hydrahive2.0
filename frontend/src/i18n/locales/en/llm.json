@@ -106,5 +106,79 @@
     "resets_at": "Resets",
     "threshold_warning": "Threshold exceeded",
     "threshold_explanation": "Usage has exceeded the threshold. Requests might be throttled."
+  },
+  "tabs": {
+    "providers": "Providers & defaults",
+    "templates": "Agent templates"
+  },
+  "templates": {
+    "title": "Agent templates",
+    "new": "New template",
+    "new_prompt": "ID of the new template (e.g. translator):",
+    "new_invalid": "Invalid or already used ID (a–z, 0–9, hyphen).",
+    "empty": "No template selected.",
+    "legend": "● green = chain reachable · ● yellow = primary model failing or two steps at the same provider · ● red = model missing at provider. Number = bound agents.",
+    "revision": "Version {{n}}",
+    "read_only": "read only (settings are managed by the admin)",
+    "hard_bound": "binding: hard",
+    "on_demand": "On demand only (e.g. security before merge)",
+    "groups": {
+      "personal": "Personal",
+      "projects": "Projects",
+      "specialists": "Specialists",
+      "modules": "Modules",
+      "system": "System"
+    },
+    "health": {
+      "green": "Chain reachable",
+      "yellow": "Primary failing or same provider",
+      "red": "Model missing at provider"
+    },
+    "chain": {
+      "title": "Model chain",
+      "primary": "1 · Primary",
+      "failover": "2 · Failover",
+      "emergency": "3 · Emergency",
+      "unknown": "No configured provider currently offers this model.",
+      "same_provider": "Two steps use the same provider. That does not help with rate limits or account locks."
+    },
+    "budget": {
+      "title": "Budget & replies",
+      "max_iterations": "Iterations",
+      "max_tokens": "Max tokens per reply",
+      "timeout_seconds": "Timeout (seconds)",
+      "compact_threshold_pct": "Compact from (% context)",
+      "cooldown_seconds": "Skip failing model (seconds)",
+      "reasoning_effort": "Reasoning effort",
+      "effort_default": "Model default",
+      "cache_ttl": "Cache duration",
+      "overrun": "Allow overrun up to",
+      "overrun_hint": "then at most {{it}} iterations / {{tok}} tokens, only with a reason"
+    },
+    "reply": {
+      "summary_max_chars": "Summary at most (characters)",
+      "full_report": "Full report",
+      "file": "store as file",
+      "inline": "in context (old)"
+    },
+    "preview": "Saving changes {{n}} bound agents. Changed: {{fields}}.",
+    "bound": "Bound ({{n}})",
+    "bound_none": "No agents bound to this template yet.",
+    "history": "History",
+    "actions": {
+      "save": "Save …",
+      "confirm": "Confirm ({{n}} agents)",
+      "test": "Test run",
+      "revert": "restore"
+    },
+    "test_reason": {
+      "auth": "Authentication failed",
+      "quota": "Quota exhausted",
+      "rate_limit": "Rate limit",
+      "overload": "Overloaded",
+      "timeout": "Timed out",
+      "stream_abort": "Connection dropped",
+      "error": "Error"
+    }
   }
 }

@@ -106,5 +106,79 @@
     "resets_at": "Reset",
     "threshold_warning": "Schwellenwert überschritten",
     "threshold_explanation": "Die Nutzung hat den Schwellenwert überschritten. Anfragen könnten gedrosselt werden."
+  },
+  "tabs": {
+    "providers": "Anbieter & Standards",
+    "templates": "Agenten-Templates"
+  },
+  "templates": {
+    "title": "Agenten-Templates",
+    "new": "Neues Template",
+    "new_prompt": "Kennung des neuen Templates (z. B. uebersetzer):",
+    "new_invalid": "Ungültige oder schon vergebene Kennung (a–z, 0–9, Bindestrich).",
+    "empty": "Kein Template ausgewählt.",
+    "legend": "● grün = Kette erreichbar · ● gelb = Primärmodell gestört oder zwei Stufen beim selben Anbieter · ● rot = Modell fehlt beim Anbieter. Zahl = gebundene Agenten.",
+    "revision": "Version {{n}}",
+    "read_only": "nur lesen (Einstellungen macht der Admin)",
+    "hard_bound": "gebunden: hart",
+    "on_demand": "Nur auf Abruf (z. B. Security vor dem Merge)",
+    "groups": {
+      "personal": "Persönlich",
+      "projects": "Projekte",
+      "specialists": "Spezialisten",
+      "modules": "Module",
+      "system": "System"
+    },
+    "health": {
+      "green": "Kette erreichbar",
+      "yellow": "Primärmodell gestört oder gleicher Anbieter",
+      "red": "Modell fehlt beim Anbieter"
+    },
+    "chain": {
+      "title": "Modellkette",
+      "primary": "1 · Primär",
+      "failover": "2 · Failover",
+      "emergency": "3 · Notfall",
+      "unknown": "Dieses Modell bietet gerade kein eingetragener Anbieter an.",
+      "same_provider": "Zwei Stufen liegen beim selben Anbieter. Bei Limit oder Kontosperre hilft das nicht."
+    },
+    "budget": {
+      "title": "Budget & Antworten",
+      "max_iterations": "Iterationen",
+      "max_tokens": "Max. Tokens je Antwort",
+      "timeout_seconds": "Timeout (Sekunden)",
+      "compact_threshold_pct": "Kompaktieren ab (% Kontext)",
+      "cooldown_seconds": "Gestörtes Modell überspringen (Sekunden)",
+      "reasoning_effort": "Denktiefe",
+      "effort_default": "Modellstandard",
+      "cache_ttl": "Cache-Dauer",
+      "overrun": "Überschreitung erlaubt bis",
+      "overrun_hint": "dann höchstens {{it}} Iterationen / {{tok}} Tokens, nur mit Begründung"
+    },
+    "reply": {
+      "summary_max_chars": "Kurzfassung höchstens (Zeichen)",
+      "full_report": "Langfassung",
+      "file": "als Datei ablegen",
+      "inline": "im Kontext (alt)"
+    },
+    "preview": "Speichern ändert {{n}} gebundene Agenten. Geändert: {{fields}}.",
+    "bound": "Gebunden ({{n}})",
+    "bound_none": "Noch keine Agenten an dieses Template gebunden.",
+    "history": "Verlauf",
+    "actions": {
+      "save": "Speichern …",
+      "confirm": "Bestätigen ({{n}} Agenten)",
+      "test": "Testlauf",
+      "revert": "zurückholen"
+    },
+    "test_reason": {
+      "auth": "Anmeldung fehlgeschlagen",
+      "quota": "Kontingent erschöpft",
+      "rate_limit": "Limit erreicht",
+      "overload": "überlastet",
+      "timeout": "Zeitüberschreitung",
+      "stream_abort": "Verbindung abgebrochen",
+      "error": "Fehler"
+    }
   }
 }

@@ -7,6 +7,7 @@ import { ProviderForm } from "@/features/llm/ProviderForm"
 import { AnthropicUsageCard } from "@/features/llm/AnthropicUsageCard"
 import { DefaultModelsSection } from "@/features/llm/DefaultModelsSection"
 import { MediaBackendsSection } from "@/features/llm/MediaBackendsSection"
+import { TemplatesTab } from "@/features/llm/templates/TemplatesTab"
 import { CockpitButton } from "../CockpitButton"
 import { AdminOverlay } from "./AdminOverlay"
 import { ADMIN_OVERLAY_THEME } from "@/shared/brand/boxThemes"
@@ -20,6 +21,7 @@ export function LlmOverlay({ onClose }: { onClose: () => void }) {
   const [testResult, setTestResult] = useState<{ ok: boolean; msg: string } | null>(null)
   const [showAdd, setShowAdd] = useState(false)
   const [editingIdx, setEditingIdx] = useState<number | null>(null)
+  const [tab, setTab] = useState<"providers" | "templates">("providers")
 
   useEffect(() => { llmApi.getConfig().then(setConfig).catch(() => {}) }, [])
 
@@ -52,7 +54,7 @@ export function LlmOverlay({ onClose }: { onClose: () => void }) {
       eyebrow="Admin"
       title={t("title")}
       onClose={onClose}
-      maxWidthClass="max-w-3xl"
+      maxWidthClass={tab === "templates" ? "max-w-6xl" : "max-w-3xl"}
       headerActions={
         <CockpitButton onClick={() => window.open("/llm/catalog", "_self")}>
           <BookOpen size={13} className="mr-1 inline" />Modell-Catalog
@@ -60,6 +62,16 @@ export function LlmOverlay({ onClose }: { onClose: () => void }) {
       }
     >
       <div className="space-y-6">
+        <div role="tablist" className="flex gap-1 border-b border-white/[8%]">
+          {(["providers", "templates"] as const).map((k) => (
+            <button key={k} type="button" role="tab" aria-selected={tab === k} onClick={() => setTab(k)}
+              className={`-mb-px border-b-2 px-3 py-2 text-sm transition-colors ${
+                tab === k ? "border-[#e8eef8] text-[#e8eef8]" : "border-transparent text-[#9aa7bc] hover:text-[#e8eef8]"}`}>
+              {t(`tabs.${k}`)}
+            </button>
+          ))}
+        </div>
+        {tab === "templates" ? <TemplatesTab /> : <>
         <p className="text-sm text-[#9aa7bc]">{t("subtitle")}</p>
 
         <AnthropicUsageCard />
@@ -111,6 +123,7 @@ export function LlmOverlay({ onClose }: { onClose: () => void }) {
             </span>
           )}
         </div>
+        </>}
       </div>
     </AdminOverlay>
   )
