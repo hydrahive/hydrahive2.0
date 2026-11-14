@@ -15,6 +15,7 @@ from hydrahive.compaction import (
 from hydrahive.db import compaction_events as compaction_events_db
 from hydrahive.db import messages as messages_db
 from hydrahive.runner._call import CallResult, call_with_stream_or_fallback
+from hydrahive.runner._model_cooldown import DEFAULT_COOLDOWN_SECONDS
 from hydrahive.runner._measured_usage import measured_history_tokens
 from hydrahive.runner.events import CompactionStart, Event
 
@@ -146,6 +147,7 @@ async def stream_llm_call(
     temperature: float,
     max_tokens: int,
     reasoning_effort: str | None,
+    cooldown_seconds: int = DEFAULT_COOLDOWN_SECONDS,
 ) -> AsyncIterator[Event | IterationResult]:
     """Macht den LLM-Call und streamt Events. Letzter yield ist genau ein
     `IterationResult`, alle anderen yields sind Events fürs Frontend.
@@ -161,7 +163,7 @@ async def stream_llm_call(
         summary_system=summary_system, cache_ttl=cache_ttl,
         messages=anth_messages, tools=tool_schemas,
         temperature=temperature, max_tokens=max_tokens,
-        reasoning_effort=reasoning_effort,
+        reasoning_effort=reasoning_effort, cooldown_seconds=cooldown_seconds,
     ):
         if isinstance(item, CallResult):
             blocks = item.blocks

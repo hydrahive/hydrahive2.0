@@ -26,7 +26,6 @@ from hydrahive.runner.concurrency import SessionAlreadyRunning, is_running, sess
 from hydrahive.runner.event_bus import bus as event_bus
 from hydrahive.runner.events import Error as RunnerError
 from hydrahive.api.routes._sessions_helpers import check_owner, serialize_message
-from hydrahive.agents._defaults import DEFAULT_COMPACT_THRESHOLD_PCT
 from hydrahive.compaction import (
     compact_session,
     compact_threshold_tokens,
@@ -177,12 +176,14 @@ def get_tokens(
     agent = agent_config.get(s.agent_id)
     history = messages_db.list_for_llm(session_id) if agent else []
     used = total_tokens(history)
-    model = ((s.metadata or {}).get("model_override") or agent["llm_model"]) if agent else ""
+    from hydrahive.runner._run_settings import run_settings
+    rs = run_settings(agent) if agent else None
+    model = ((s.metadata or {}).get("model_override") or rs.primary_model) if rs else ""
     window = context_window_for(model) if agent else 0
     threshold = (
         compact_threshold_tokens(
             model,
-            threshold_pct=int(agent.get("compact_threshold_pct", DEFAULT_COMPACT_THRESHOLD_PCT)),
+            threshold_pct=rs.compact_threshold_pct,
             reserve_tokens=agent.get("compact_reserve_tokens"),
         )
         if agent
@@ -200,7 +201,7 @@ def get_tokens(
         "used": used,
         "context_window": window,
         "compact_threshold": threshold,
-        "model": agent["llm_model"] if agent else None,
+        "model": rs.primary_model if rs else None,
         "message_count": len(history),
         "max_turns": max_turns,
     }
@@ -219,8 +220,10 @@ async def manual_compact(
     agent = agent_config.get(s.agent_id)
     if not agent:
         raise coded(status.HTTP_404_NOT_FOUND, "agent_not_found")
-    compact_model = agent.get("compact_model") or agent["llm_model"]
-    compact_kwargs: dict = {"instructions": instructions}
+    from hydrahive.runner._run_settings import run_settings
+    rs = run_settings(agent)
+    compact_model = rs.compact_model
+    compact_kwargs: dict = {"instructions": instructions, "fallback_models": rs.fallback_models}
     tool_limit = agent.get("compact_tool_result_limit")
     if tool_limit is not None:
         compact_kwargs["tool_result_limit"] = tool_limit

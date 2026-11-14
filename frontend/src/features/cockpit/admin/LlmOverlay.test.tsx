@@ -9,6 +9,7 @@ vi.mock("@/features/llm/AnthropicUsageCard", () => ({ AnthropicUsageCard: () => 
 vi.mock("@/features/llm/DefaultModelsSection", () => ({ DefaultModelsSection: () => <div data-testid="default-models" /> }))
 vi.mock("@/features/llm/MediaBackendsSection", () => ({ MediaBackendsSection: () => <div data-testid="media-backends" /> }))
 vi.mock("@/features/llm/api", () => ({ llmApi: { getConfig: () => new Promise(() => {}) } }))
+vi.mock("@/features/llm/templates/TemplatesTab", () => ({ TemplatesTab: () => <div data-testid="templates-tab" /> }))
 import { LlmOverlay } from "./LlmOverlay"
 
 describe("Admin-Fenster KI-Modelle", () => {
@@ -16,5 +17,12 @@ describe("Admin-Fenster KI-Modelle", () => {
     const html = renderToStaticMarkup(<LlmOverlay onClose={() => {}} />)
     expect(html).toContain('data-testid="media-backends"')
     expect(html.indexOf("default-models")).toBeLessThan(html.indexOf("media-backends"))
+  })
+
+  it("hat die Reiter Anbieter und Agenten-Templates, Start auf Anbieter", () => {
+    const html = renderToStaticMarkup(<LlmOverlay onClose={() => {}} />)
+    expect(html).toContain("tabs.providers")
+    expect(html).toContain("tabs.templates")
+    expect(html).not.toContain('data-testid="templates-tab"')
   })
 })

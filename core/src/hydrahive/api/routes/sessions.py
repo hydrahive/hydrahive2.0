@@ -107,10 +107,15 @@ async def create_handover(
     from hydrahive.handover import create_for_session
     path = await create_for_session(
         session_id,
-        model=agent.get("compact_model") or agent["llm_model"],
+        model=_compact_model(agent),
         tool_result_limit=agent.get("compact_tool_result_limit"),
     )
     return {"written": path is not None}
+
+
+def _compact_model(agent: dict) -> str:
+    from hydrahive.runner._run_settings import run_settings
+    return run_settings(agent).compact_model
 
 
 @router.get("/{session_id}")
