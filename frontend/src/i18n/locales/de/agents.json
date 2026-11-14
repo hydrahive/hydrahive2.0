@@ -167,5 +167,16 @@
   },
   "managed": {
     "hint": "Dieser Agent wird vom Modul „{{module}}“ verwaltet. Werkzeuge, Prompt und Soul legt das Modul fest – hier lässt sich nur das Modell ändern."
+  },
+  "template": {
+    "label": "Agenten-Template",
+    "none": "— kein Template (alt, ungebunden) —",
+    "unknown": "Dieses Template gibt es nicht mehr.",
+    "unbound_hint": "Ungebunden: Modell und Budget stehen noch am Agenten. Mit einem Template kommen sie zentral von der LLM-Seite.",
+    "chain": "Kette",
+    "budget": "Budget",
+    "budget_value": "{{it}} Iterationen · {{tok}} Tokens · {{sec}} s",
+    "managed_hint": "Ändern im Reiter „Agenten-Templates“ der LLM-Seite (nur Admin).",
+    "compaction_bound": "Kompaktierungs-Modell, -Schwelle und Cache-Dauer kommen vom Agenten-Template."
   }
 }

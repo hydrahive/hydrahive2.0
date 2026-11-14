@@ -167,5 +167,16 @@
   },
   "managed": {
     "hint": "This agent is managed by the module “{{module}}”. Tools, prompt and soul are set by the module – only the model can be changed here."
+  },
+  "template": {
+    "label": "Agent template",
+    "none": "— no template (old, unbound) —",
+    "unknown": "This template no longer exists.",
+    "unbound_hint": "Unbound: model and budget are still set on the agent. With a template they come centrally from the LLM page.",
+    "chain": "Chain",
+    "budget": "Budget",
+    "budget_value": "{{it}} iterations · {{tok}} tokens · {{sec}} s",
+    "managed_hint": "Change in the “Agent templates” tab of the LLM page (admin only).",
+    "compaction_bound": "Compaction model, threshold and cache duration come from the agent template."
   }
 }

@@ -180,5 +180,21 @@
       "stream_abort": "Connection dropped",
       "error": "Error"
     }
+  },
+  "bindings": {
+    "view_templates": "Templates",
+    "view_bindings": "Agent assignment",
+    "intro": "Every agent gets a template. Afterwards model, failover and budget only come from there (hard binding). Every affected agent config is backed up before applying; “undo” restores it.",
+    "agent": "Agent",
+    "today": "Today",
+    "template": "Template",
+    "bound_to": "bound: {{id}}",
+    "unsure": "Uncertain suggestion – please check",
+    "apply": "Apply ({{n}})",
+    "confirm": "Bind {{n}} agents to templates? Everything is backed up first.",
+    "done": "{{n}} agents bound. Backup: {{backup}}",
+    "undo": "undo {{backup}}",
+    "undo_confirm": "Restore backup {{backup}}?",
+    "undone": "{{n}} agent configs restored."
   }
 }

@@ -49,3 +49,12 @@ describe("Template-Logik", () => {
     expect(withOverrun(60, 0)).toBe(60)
   })
 })
+
+describe("Zuordnung", () => {
+  it("nur geänderte Zuordnungen werden angewendet", async () => {
+    const { pendingAssignments } = await import("./templateLogic")
+    const rows = [{ id: "a", current_template: null }, { id: "b", current_template: "backend" },
+      { id: "c", current_template: "reviewer" }]
+    expect(pendingAssignments(rows, { a: "buddy", b: "backend", c: "security" })).toEqual({ a: "buddy", c: "security" })
+  })
+})

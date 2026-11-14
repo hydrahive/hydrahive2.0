@@ -3,6 +3,7 @@ import type { Agent } from "./types"
 import type { RegistryModel } from "@/features/llm/api"
 import { AgentModelPicker } from "./_AgentModelPicker"
 import { FallbackModelsSelector } from "./_FallbackModelsSelector"
+import { TemplateBinding } from "./_TemplateBinding"
 
 interface Props {
   draft: Agent
@@ -12,8 +13,11 @@ interface Props {
 
 export function ModelTab({ draft, catalog, onChange }: Props) {
   const { t } = useTranslation("agents")
+  const bound = !!draft.template
   return (
     <div className="space-y-3">
+      <TemplateBinding value={draft.template} onChange={(template) => onChange({ template })} />
+      {bound ? <TemperatureOnly draft={draft} onChange={onChange} /> : <>
       <Field label={t("fields.model")}>
         <AgentModelPicker
           value={draft.llm_model}
@@ -87,7 +91,22 @@ export function ModelTab({ draft, catalog, onChange }: Props) {
           className="w-full"
         />
       </Field>
+      </>}
     </div>
+  )
+}
+
+/** Gebunden: nur noch Temperatur (nicht Teil des Templates). */
+function TemperatureOnly({ draft, onChange }: { draft: Agent; onChange: (patch: Partial<Agent>) => void }) {
+  const { t } = useTranslation("agents")
+  return (
+    <Field label={t("fields.temperature")}>
+      <input
+        type="number" step="0.1" min="0" max="2" value={draft.temperature}
+        onChange={(e) => onChange({ temperature: parseFloat(e.target.value) })}
+        className="w-full px-2 py-1 rounded-md bg-zinc-900 border border-white/[8%] text-xs text-zinc-200"
+      />
+    </Field>
   )
 }
 

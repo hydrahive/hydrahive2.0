@@ -4,6 +4,7 @@ import { useTranslation } from "react-i18next"
 import { useAuthStore } from "@/features/auth/useAuthStore"
 import { llmModelsApi, type RegistryModel } from "@/features/llm/api"
 import { templatesApi } from "./api"
+import { BindingsTab } from "./BindingsTab"
 import { TemplateDetail } from "./TemplateDetail"
 import { TemplateList } from "./TemplateList"
 import { isValidId, newTemplate } from "./templateLogic"
@@ -18,6 +19,7 @@ export function TemplatesTab() {
   const [selected, setSelected] = useState<string | null>(null)
   const [draft, setDraft] = useState<AgentTemplate | undefined>(undefined)
   const [error, setError] = useState<string | null>(null)
+  const [view, setView] = useState<"templates" | "bindings">("templates")
 
   const reload = useCallback(async (keep?: string) => {
     try {
@@ -40,7 +42,20 @@ export function TemplatesTab() {
     setDraft(newTemplate(id, base)); setSelected(id); setError(null)
   }
 
+  const switcher = isAdmin && (
+    <div className="mb-3 flex gap-2 text-xs">
+      {(["templates", "bindings"] as const).map((v) => (
+        <button key={v} type="button" onClick={() => setView(v)}
+          className={`rounded-[4px] px-2.5 py-1 ${view === v ? "bg-white/[8%] text-[#e8eef8]" : "text-[#9aa7bc] hover:bg-white/5"}`}>
+          {t(`bindings.view_${v}`)}
+        </button>
+      ))}
+    </div>
+  )
+  if (isAdmin && view === "bindings") return <div>{switcher}<BindingsTab templates={templates} /></div>
+
   return (
+    <div>{switcher}
     <div className="grid gap-4 md:grid-cols-[220px_1fr]">
       <div className="space-y-3">
         <TemplateList templates={templates} selected={selected} onSelect={(id) => { setDraft(undefined); setSelected(id) }} />
@@ -59,6 +74,7 @@ export function TemplatesTab() {
               isAdmin={isAdmin} onSaved={(id) => { setDraft(undefined); reload(id) }} />
           : <p className="text-sm text-[#9aa7bc]">{t("templates.empty")}</p>}
       </div>
+    </div>
     </div>
   )
 }

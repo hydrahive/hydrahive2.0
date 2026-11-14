@@ -20,6 +20,7 @@ export interface Agent {
   updated_at: string
   project_id?: string | null
   managed_by?: string | null    // verwaltet von Modul (docs/specs/projekt-container-ausfuehrung.md)
+  template?: string | null      // Agenten-Template (docs/specs/agent-templates.md): Modell/Budget kommen von dort
   domain?: string | null
   // Per-Agent Compaction-Settings (#82). Alle optional, Backend backfillt
   // Defaults bei alten Agents.
@@ -46,6 +47,7 @@ export interface Agent {
 
 export type AgentUpdate = Partial<Pick<Agent,
   | "name"
+  | "template"
   | "owner"
   | "llm_model"
   | "fallback_models"

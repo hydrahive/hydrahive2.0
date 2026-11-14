@@ -68,3 +68,13 @@ export function newTemplate(id: string, base?: AgentTemplate): AgentTemplate {
     on_demand: false, description: "", revision: 0,
   }
 }
+
+/** Nur Agenten, deren Zuordnung sich ändert (für „Anwenden“). */
+export function pendingAssignments(
+  rows: { id: string; current_template: string | null }[], choice: Record<string, string>,
+): Record<string, string> {
+  return Object.fromEntries(rows.flatMap((r) => {
+    const tid = choice[r.id]
+    return tid && tid !== r.current_template ? [[r.id, tid]] : []
+  }))
+}

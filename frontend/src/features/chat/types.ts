@@ -64,6 +64,7 @@ export interface AgentBrief {
   reasoning_effort?: string
   status: string
   is_buddy?: boolean
+  template?: string | null   // Agenten-Template (docs/specs/agent-templates.md)
 }
 
 export type RunnerEvent =
