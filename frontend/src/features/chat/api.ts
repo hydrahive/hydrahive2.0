@@ -203,6 +203,7 @@ export interface ActivityEntry {
   last_tool_result_summary?: string
   owner?: string
   started_at?: number
+  template_group?: string
 }
 
 /**

@@ -48,3 +48,53 @@ def test_liefert_tool_calls_der_eigenen_session_neueste_zuerst(client):
     assert [e["tool_name"] for e in body["calls"]] == ["file_read", "shell_exec"]
     assert body["calls"][0]["status"] == "error" and body["calls"][0]["duration_ms"] == 3
     agent_config.delete(a["id"])
+
+
+def test_result_summary_ist_gekuerzt_kein_volltext_leck(client):
+    """Spec agent-office.md §2: nur eine Kurzfassung, kein Nutzdaten-Leck über ~200 Zeichen hinaus."""
+    a = agent_config.create(agent_type="specialist", name="X", llm_model="m", owner="testuser",
+                            temperature=0.7, max_tokens=1024, thinking_budget=0)
+    s = sessions_db.create(agent_id=a["id"], user_id="testuser")
+    from hydrahive.db import messages as messages_db
+    msg = messages_db.append(s.id, "assistant", [{"type": "text", "text": "x"}])
+    c = tools_db.create(message_id=msg.id, tool_name="shell_exec", arguments={"cmd": "ls"},
+                        session_id=s.id, agent_id=a["id"], user_id="testuser")
+    tools_db.finish(c.id, "A" * 5000, status="success", duration_ms=1)
+
+    r = client.get(f"/api/agents/activity/{s.id}/trace", headers=_login(client))
+    body = r.json()
+    assert len(body["calls"][0]["result_summary"]) <= 200
+    agent_config.delete(a["id"])
+
+
+def test_github_link_wird_aus_dem_ergebnis_erkannt(client):
+    """Spec agent-office.md §8.2: PR-/Issue-Link aus dem Tool-Ergebnis fürs Frontend extrahiert."""
+    a = agent_config.create(agent_type="specialist", name="X", llm_model="m", owner="testuser",
+                            temperature=0.7, max_tokens=1024, thinking_budget=0)
+    s = sessions_db.create(agent_id=a["id"], user_id="testuser")
+    from hydrahive.db import messages as messages_db
+    msg = messages_db.append(s.id, "assistant", [{"type": "text", "text": "x"}])
+    c = tools_db.create(message_id=msg.id, tool_name="shell_exec", arguments={"cmd": "gh pr create"},
+                        session_id=s.id, agent_id=a["id"], user_id="testuser")
+    tools_db.finish(c.id, "https://github.com/hydrahive/hydrahive2.0/pull/712", status="success", duration_ms=1)
+
+    r = client.get(f"/api/agents/activity/{s.id}/trace", headers=_login(client))
+    body = r.json()
+    assert body["calls"][0]["github_link"] == "https://github.com/hydrahive/hydrahive2.0/pull/712"
+    agent_config.delete(a["id"])
+
+
+def test_kein_github_link_wenn_keiner_im_ergebnis(client):
+    a = agent_config.create(agent_type="specialist", name="X", llm_model="m", owner="testuser",
+                            temperature=0.7, max_tokens=1024, thinking_budget=0)
+    s = sessions_db.create(agent_id=a["id"], user_id="testuser")
+    from hydrahive.db import messages as messages_db
+    msg = messages_db.append(s.id, "assistant", [{"type": "text", "text": "x"}])
+    c = tools_db.create(message_id=msg.id, tool_name="shell_exec", arguments={"cmd": "ls"},
+                        session_id=s.id, agent_id=a["id"], user_id="testuser")
+    tools_db.finish(c.id, "normale ausgabe ohne link", status="success", duration_ms=1)
+
+    r = client.get(f"/api/agents/activity/{s.id}/trace", headers=_login(client))
+    body = r.json()
+    assert body["calls"][0]["github_link"] is None
+    agent_config.delete(a["id"])

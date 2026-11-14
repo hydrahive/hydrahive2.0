@@ -7,8 +7,14 @@
   "card": {
     "delegated_by": "beauftragt von"
   },
+  "standup": {
+    "total": "{{count}} laufen",
+    "delegated": "{{count}} davon beauftragt",
+    "errored": "{{count}} mit Fehler"
+  },
   "drawer": {
     "close": "Schließen",
-    "empty": "Noch keine Tool-Aufrufe."
+    "empty": "Noch keine Tool-Aufrufe.",
+    "github_link": "PR/Issue öffnen"
   }
 }
