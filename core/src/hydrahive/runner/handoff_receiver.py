@@ -187,6 +187,24 @@ async def _consume_run(
     return None
 
 
+def _shorten(output: str, session_id: str, handoff_db_id: str, caller: str | None = None) -> str:
+    """Kurzfassung + Langfassung als Datei (Spec agent-templates.md 9.4). Grenze aus dem Template des Spezialisten."""
+    from hydrahive.agents import config as agent_config
+    from hydrahive.db import sessions as sessions_db
+    from hydrahive.runner._handoff_report import reports_dir_for_caller, split_reply, summary_limit_for
+    try:
+        try:
+            session = sessions_db.get(session_id)
+            agent = agent_config.get(session.agent_id) if session else None
+        except Exception:  # Sitzung nicht lesbar: Grenze ohne Template
+            agent = None
+        return split_reply(output, key=handoff_db_id, limit=summary_limit_for(agent),
+                           directory=reports_dir_for_caller(caller))
+    except Exception:  # Antwortweg darf nie an der Kürzung scheitern
+        logger.exception("handoff_receiver: Kurzfassung fehlgeschlagen — volle Antwort")
+        return output
+
+
 async def _run_and_reply(
     state: State,
     session_id: str,
@@ -234,7 +252,7 @@ async def _run_and_reply(
         failure = RunFailure(str(e))
         logger.exception("handoff_receiver: Runner-Fehler für Session %s", session_id)
 
-    output = "".join(output_parts)
+    output = _shorten("".join(output_parts), session_id, handoff_db_id, state.agent_id)
     is_checkpoint = bool(failure and failure.kind == "max_iterations")
     if failure:
         label = "Pausiert" if is_checkpoint else "Terminaler Fehler"
