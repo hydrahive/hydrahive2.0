@@ -9,7 +9,7 @@ export const projectsApi = {
   update: (id: string, fields: Partial<ProjectCreate & { status: string; notes: string; tags: string[]; mcp_server_ids: string[]; allowed_plugins: string[]; allowed_specialists: string[] }>) =>
     api.patch<Project>(`/projects/${id}`, fields),
   listFiles: (id: string, path = "") =>
-    api.get<{ path: string; entries: { name: string; type: "file" | "dir"; size: number | null; modified: number }[] }>(`/projects/${id}/files?path=${encodeURIComponent(path)}`),
+    api.get<{ path: string; entries: { name: string; type: "file" | "dir"; size: number | null; modified: number | null; broken?: boolean }[] }>(`/projects/${id}/files?path=${encodeURIComponent(path)}`),
   readFile: async (id: string, path: string) => {
     const { useAuthStore } = await import("@/features/auth/useAuthStore")
     const token = useAuthStore.getState().token
