@@ -115,32 +115,22 @@ def test_create_agent_success(client, admin_headers):
     assert data["name"] == "Fresh Bot"
     assert data["description"] == "A freshly created bot"
     assert data["temperature"] == 0.5
-    assert data["max_iterations"] == 32
-    assert data["handoff_timeout_seconds"] == 540
+    assert data["template"] == "recherche"          # neue Agenten sind immer gebunden (Aufräumen 14.11.2026)
     assert "id" in data
 
 
-def test_create_agent_persists_runtime_settings(client, admin_headers):
-    data = _create_agent(
-        client, admin_headers, name="Deep Specialist",
-        max_tokens=24_000,
-        max_iterations=48,
-        compact_threshold_pct=70,
-        compact_reserve_tokens=20_000,
-        compact_tool_result_limit=4_000,
-        tool_result_max_chars=16_000,
-        cache_ttl="1h",
-        handoff_timeout_seconds=1_200,
-    )
+def test_create_agent_mit_budget_ohne_template_abgelehnt(client, admin_headers):
+    """Aufräumen 14.11.2026: Budget kommt aus dem Agenten-Template, nicht aus dem Antrag."""
+    res = client.post("/api/agents", headers=admin_headers, json={**_CREATE_PAYLOAD, "max_tokens": 24_000})
+    assert res.status_code == 400 and error_code(res) == "agent_needs_template"
 
-    assert data["max_tokens"] == 24_000
-    assert data["max_iterations"] == 48
-    assert data["compact_threshold_pct"] == 70
+
+def test_create_agent_freie_felder_bleiben(client, admin_headers):
+    data = _create_agent(client, admin_headers, name="Deep Specialist", compact_reserve_tokens=20_000,
+                         compact_tool_result_limit=4_000, tool_result_max_chars=16_000)
     assert data["compact_reserve_tokens"] == 20_000
     assert data["compact_tool_result_limit"] == 4_000
     assert data["tool_result_max_chars"] == 16_000
-    assert data["cache_ttl"] == "1h"
-    assert data["handoff_timeout_seconds"] == 1_200
 
 
 def test_create_agent_rejects_excessive_handoff_timeout(client, admin_headers):
@@ -150,7 +140,7 @@ def test_create_agent_rejects_excessive_handoff_timeout(client, admin_headers):
     )
 
     assert res.status_code == 400
-    assert error_code(res) == "validation_error"
+    assert error_code(res) == "agent_needs_template"
 
 
 def test_create_agent_missing_required_fields(client, admin_headers):

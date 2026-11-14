@@ -26,6 +26,7 @@ class RunSettings:
     max_iterations: int
     max_tokens: int
     cooldown_seconds: int
+    free_session_model: bool = True     # Buddy / ungebunden: Sitzungsmodell frei wählbar
 
 
 def run_settings(agent: dict, *, session_budget=None) -> RunSettings:
@@ -40,7 +41,7 @@ def run_settings(agent: dict, *, session_budget=None) -> RunSettings:
             compact_model=agent.get("compact_model") or t.chain[0],
             compact_threshold_pct=t.compact_threshold_pct, cache_ttl=t.cache_ttl,
             reasoning_effort=t.reasoning_effort or None, max_iterations=iterations, max_tokens=tokens,
-            cooldown_seconds=t.cooldown_seconds,
+            cooldown_seconds=t.cooldown_seconds, free_session_model=bool(agent.get("is_buddy")),
         )
     if session_budget is not None:
         iterations, tokens = session_budget.max_iterations, session_budget.max_tokens
@@ -59,7 +60,13 @@ def run_settings(agent: dict, *, session_budget=None) -> RunSettings:
 
 
 def chain_with_override(rs: RunSettings, override: str | None) -> tuple[str, list[str]]:
-    """Primärmodell + Failover; ein Sitzungs-Override setzt sich vor die Kette (ohne Duplikat)."""
+    """Primärmodell + Failover; ein Sitzungs-Override setzt sich vor die Kette (ohne Duplikat).
+
+    Mit Template zählt nur ein Override aus der Kette (Option B, 14.11.2026). Ein älterer, fremder Override
+    (gesetzt vor der Bindung) wird ignoriert statt die Vorgabe zu umgehen. Der Buddy ruft mit template_id=None.
+    """
+    if override and not rs.free_session_model and override not in [rs.primary_model, *rs.fallback_models]:
+        override = None
     if not override or override == rs.primary_model:
         return rs.primary_model, list(rs.fallback_models)
     rest = [m for m in [rs.primary_model, *rs.fallback_models] if m != override]

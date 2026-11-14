@@ -28,24 +28,17 @@ def test_create_specialist_forces_project_and_subsets_tools(monkeypatch):
 
     res = asyncio.run(cs.TOOL.execute(
         {"name": "rust-reviewer",
-         "tools": ["file_read", "shell_exec", "create_specialist", "todo_write"],
-         "max_iterations": 64, "max_tokens": 24_000,
-         "compact_threshold_pct": 70, "handoff_timeout_seconds": 1_200},
+         "tools": ["file_read", "shell_exec", "create_specialist", "todo_write"]},
         _ctx()))
 
-    assert res.success
+    assert res.success, res.error
     assert created["project_id"] == "P"
     assert created["owner"] == "u"
     assert created["agent_type"] == "specialist"
     assert set(created["tools"]) == {"file_read", "shell_exec"}
-    assert created["max_iterations"] == 64
-    assert created["max_tokens"] == 24_000
-    assert created["compact_threshold_pct"] == 70
-    assert created["handoff_timeout_seconds"] == 1_200
-    assert res.output["max_iterations"] == 64
-    assert res.output["handoff_timeout_seconds"] == 1_200
+    assert created["template"] == "reviewer"     # aus dem Namen (Aufräumen 14.11.2026)
     assert "spec-1" in captured["allowed_specialists"]
-    assert {"max_iterations", "max_tokens", "handoff_timeout_seconds"}.issubset(
+    assert not {"max_iterations", "max_tokens", "handoff_timeout_seconds", "llm_model"} & set(
         cs.TOOL.schema["properties"]
     )
 
@@ -101,7 +94,6 @@ def test_create_specialist_mit_template(monkeypatch):
 def test_create_specialist_template_und_modell_abgelehnt(monkeypatch):
     created: dict = {}
     _fake_env(monkeypatch, created)
-    res = asyncio.run(cs.TOOL.execute({"name": "rev", "template": "reviewer", "llm_model": "x",
-                                       "max_iterations": 9}, _ctx()))
+    res = asyncio.run(cs.TOOL.execute({"name": "rev", "llm_model": "x", "max_iterations": 9}, _ctx()))
     assert not res.success and "llm_model" in res.error and "max_iterations" in res.error
     assert created == {}
