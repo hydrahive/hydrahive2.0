@@ -187,6 +187,10 @@
   "delete_specialist": {
     "title": "Delete specialist",
     "hint": "Either to the archive (recommended) or permanently. The project agent itself is not deleted here — that runs through project management.",
-    "button": "Delete specialist"
+    "button": "Delete specialist",
+    "button_for": "Delete {{name}}"
+  },
+  "team": {
+    "disabled_badge": "disabled"
   }
 }

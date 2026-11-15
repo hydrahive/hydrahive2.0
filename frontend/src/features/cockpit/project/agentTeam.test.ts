@@ -1,7 +1,7 @@
 // Plan docs/plans/projekt-cockpit-kompakt.md: Projekt-Team kompakt (höchstens 5, gewählter immer sichtbar).
 import { describe, expect, it } from "vitest"
 import type { AgentBrief } from "@/features/chat/types"
-import { removeAgentFromTeam, teamList, visibleTeam } from "./agentTeam"
+import { removeAgentFromTeam, selectableTeamIds, teamList, visibleTeam } from "./agentTeam"
 
 const a = (id: string, llm_model = "modell-a") => ({ id, name: `Agent ${id}`, llm_model }) as AgentBrief
 const ALLE = Array.from({ length: 15 }, (_, i) => a(`s${i + 1}`, i === 11 ? "besonderes-modell" : "modell-a"))
@@ -15,12 +15,46 @@ describe("teamList", () => {
     expect(ids(team)).not.toContain("unbekannt")
   })
 
-  it("deaktivierte Spezialisten fallen raus, der Projekt-Agent bleibt auch deaktiviert sichtbar", () => {
-    const lead = { ...a("lead"), status: "disabled" } as AgentBrief
+  it("deaktivierte Spezialisten bleiben sichtbar, wandern aber ans Ende (Till 15.11.: nicht mehr ausblenden)", () => {
+    const lead = { ...a("lead"), status: "active" } as AgentBrief
     const aktiv = { ...a("s1"), status: "active" } as AgentBrief
     const deaktiviert = { ...a("s2"), status: "disabled" } as AgentBrief
-    const result = teamList([lead, aktiv, deaktiviert], "lead", ["s1", "s2"])
+    const result = teamList([lead, deaktiviert, aktiv], "lead", ["s1", "s2"])
+    expect(ids(result)).toEqual(["lead", "s1", "s2"])
+  })
+
+  it("mehrere deaktivierte landen alle hinter den aktiven, Reihenfolge untereinander bleibt stabil", () => {
+    const lead = a("lead")
+    const d1 = { ...a("s1"), status: "disabled" } as AgentBrief
+    const aktiv = { ...a("s2"), status: "active" } as AgentBrief
+    const d2 = { ...a("s3"), status: "disabled" } as AgentBrief
+    const result = teamList([lead, d1, aktiv, d2], "lead", ["s1", "s2", "s3"])
+    expect(ids(result)).toEqual(["lead", "s2", "s1", "s3"])
+  })
+
+  it("der Projekt-Agent (Lead) bleibt immer an erster Stelle, auch wenn er deaktiviert ist", () => {
+    const lead = { ...a("lead"), status: "disabled" } as AgentBrief
+    const aktiv = { ...a("s1"), status: "active" } as AgentBrief
+    const result = teamList([lead, aktiv], "lead", ["s1"])
     expect(ids(result)).toEqual(["lead", "s1"])
+  })
+})
+
+describe("selectableTeamIds", () => {
+  it("enthält den Lead und aktive Spezialisten, nicht aber deaktivierte Spezialisten", () => {
+    const lead = { ...a("lead"), status: "active" } as AgentBrief
+    const aktiv = { ...a("s1"), status: "active" } as AgentBrief
+    const deaktiviert = { ...a("s2"), status: "disabled" } as AgentBrief
+    const result = selectableTeamIds([lead, aktiv, deaktiviert], "lead", ["s1", "s2"])
+    expect(result.has("lead")).toBe(true)
+    expect(result.has("s1")).toBe(true)
+    expect(result.has("s2")).toBe(false)
+  })
+
+  it("der Lead ist wählbar, auch wenn er deaktiviert ist", () => {
+    const lead = { ...a("lead"), status: "disabled" } as AgentBrief
+    const result = selectableTeamIds([lead], "lead", [])
+    expect(result.has("lead")).toBe(true)
   })
 })
 
