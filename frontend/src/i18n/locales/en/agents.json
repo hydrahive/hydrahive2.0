@@ -183,5 +183,10 @@
     "reset": "Reset",
     "saved": "Template saved. New calls use it.",
     "save_failed": "Template could not be saved."
+  },
+  "delete_specialist": {
+    "title": "Delete specialist",
+    "hint": "Either to the archive (recommended) or permanently. The project agent itself is not deleted here — that runs through project management.",
+    "button": "Delete specialist"
   }
 }

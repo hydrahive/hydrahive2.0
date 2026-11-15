@@ -14,6 +14,14 @@ describe("teamList", () => {
     expect(team).toHaveLength(16)
     expect(ids(team)).not.toContain("unbekannt")
   })
+
+  it("deaktivierte Spezialisten fallen raus, der Projekt-Agent bleibt auch deaktiviert sichtbar", () => {
+    const lead = { ...a("lead"), status: "disabled" } as AgentBrief
+    const aktiv = { ...a("s1"), status: "active" } as AgentBrief
+    const deaktiviert = { ...a("s2"), status: "disabled" } as AgentBrief
+    const result = teamList([lead, aktiv, deaktiviert], "lead", ["s1", "s2"])
+    expect(ids(result)).toEqual(["lead", "s1"])
+  })
 })
 
 describe("visibleTeam", () => {

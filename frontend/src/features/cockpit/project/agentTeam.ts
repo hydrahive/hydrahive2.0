@@ -1,9 +1,18 @@
 import type { AgentBrief } from "@/features/chat/types"
 
-/** Projekt-Team: Lead zuerst, dann die Spezialisten; doppelte und unbekannte IDs fallen raus. */
+/**
+ * Projekt-Team: Lead zuerst, dann die Spezialisten; doppelte und unbekannte IDs fallen raus.
+ * Deaktivierte Spezialisten (status "disabled") erscheinen nicht in der Liste — sie sind kein
+ * normaler Gesprächspartner mehr, stören aber auch niemanden, der sie noch nicht gelöscht hat.
+ * Der Projekt-Agent (Lead) bleibt immer sichtbar, auch wenn er deaktiviert ist, denn er gehört
+ * fest zum Projekt und sein Status wird woanders verwaltet (ProjectDetailsOverlay/Projekt).
+ */
 export function teamList(agents: AgentBrief[], leadId: string | null | undefined, specialistIds: string[] = []): AgentBrief[] {
   const ids = [...new Set([leadId, ...specialistIds].filter((id): id is string => Boolean(id)))]
-  return ids.map((id) => agents.find((agent) => agent.id === id)).filter((agent): agent is AgentBrief => Boolean(agent))
+  return ids
+    .map((id) => agents.find((agent) => agent.id === id))
+    .filter((agent): agent is AgentBrief => Boolean(agent))
+    .filter((agent) => agent.id === leadId || agent.status !== "disabled")
 }
 
 interface Options {

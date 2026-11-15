@@ -342,6 +342,14 @@ export function ProjectCockpitPage() {
           agentId={editingAgentId}
           onClose={() => setEditingAgentId(null)}
           onSaved={(updated) => setAgents((cur) => cur.map((agent) => agent.id === updated.id ? { ...agent, ...updated } : agent))}
+          onDeleted={(deletedAgentId) => {
+            setAgents((cur) => cur.filter((agent) => agent.id !== deletedAgentId))
+            setEditingAgentId(null)
+            // War der gelöschte Spezialist gerade ausgewählt, zurück auf den Projekt-Agenten.
+            if (activeProjectId && projectAgentId && selectedAgentId === deletedAgentId) {
+              agentSelection.select(activeProjectId, projectAgentId)
+            }
+          }}
         />
       )}
     </CockpitShell>

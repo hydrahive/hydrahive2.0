@@ -5,6 +5,7 @@ import type { Agent, ToolMeta } from "@/features/agents/types"
 import type { AgentBrief } from "@/features/chat/types"
 import { llmModelsApi, type RegistryModel } from "@/features/llm/api"
 import { CockpitButton } from "../CockpitButton"
+import { ProjectAgentDeleteSection } from "./ProjectAgentDeleteSection"
 import { ProjectAgentEditorTabs } from "./ProjectAgentEditorTabs"
 import { useDialog } from "@/shared/dialog/useDialog"
 
@@ -12,9 +13,11 @@ interface Props {
   agentId: string
   onClose: () => void
   onSaved: (agent: AgentBrief) => void
+  /** Spezialist wurde gelöscht/archiviert — Overlay schließen und aus der Team-Liste entfernen. */
+  onDeleted?: (agentId: string) => void
 }
 
-export function ProjectAgentEditOverlay({ agentId, onClose, onSaved }: Props) {
+export function ProjectAgentEditOverlay({ agentId, onClose, onSaved, onDeleted }: Props) {
   const dlg = useDialog()
   const [agent, setAgent] = useState<Agent | null>(null)
   const [draft, setDraft] = useState<Agent | null>(null)
@@ -154,6 +157,10 @@ export function ProjectAgentEditOverlay({ agentId, onClose, onSaved }: Props) {
             soulActive={soulActive}
             onSoulSaved={() => void refreshPromptSource()}
           />
+        ) : null}
+
+        {agent && onDeleted ? (
+          <ProjectAgentDeleteSection agent={agent} onDeleted={() => { onDeleted(agent.id); onClose() }} />
         ) : null}
 
         <footer className="flex shrink-0 items-center gap-2 border-t border-s-rand bg-s-tief px-4 py-3">
