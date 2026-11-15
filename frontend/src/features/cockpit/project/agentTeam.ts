@@ -15,6 +15,29 @@ export function teamList(agents: AgentBrief[], leadId: string | null | undefined
     .filter((agent) => agent.id === leadId || agent.status !== "disabled")
 }
 
+interface AgentDeletedResult {
+  agents: AgentBrief[]
+  /** Neue Auswahl für selectedAgentId — unverändert, außer der gelöschte Agent war gewählt. */
+  selectedAgentId: string | null
+}
+
+/**
+ * Reine Logik für „Spezialist gelöscht“ (ProjectCockpitPage): aus der Agenten-Liste
+ * entfernen und — falls er gerade ausgewählt war — die Auswahl auf den Projekt-Agenten
+ * zurückfallen lassen. Ausgelagert, damit der Rückfall ohne Overlay/State getestet werden kann.
+ */
+export function removeAgentFromTeam(
+  agents: AgentBrief[],
+  deletedAgentId: string,
+  selectedAgentId: string | null,
+  projectAgentId: string | null,
+): AgentDeletedResult {
+  return {
+    agents: agents.filter((agent) => agent.id !== deletedAgentId),
+    selectedAgentId: selectedAgentId === deletedAgentId ? projectAgentId : selectedAgentId,
+  }
+}
+
 interface Options {
   selectedId?: string | null
   expanded: boolean

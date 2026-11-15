@@ -18,36 +18,32 @@ const BASE = { id: "a1", name: "Spezi", owner: "admin", created_by: "admin", llm
 
 afterEach(() => { auth.role = null })
 
+const render = (agent: Agent) => renderToStaticMarkup(
+  <ProjectAgentDeleteSection agent={agent} onDeleted={() => {}} onDeleteStarted={() => {}} />,
+)
+
 describe("ProjectAgentDeleteSection", () => {
   it("Admin + Spezialist: Abschnitt mit Lösch-Knopf sichtbar", () => {
     auth.role = "admin"
-    const html = renderToStaticMarkup(
-      <ProjectAgentDeleteSection agent={{ ...BASE, type: "specialist" } as Agent} onDeleted={() => {}} />,
-    )
+    const html = render({ ...BASE, type: "specialist" } as Agent)
     expect(html).toContain("delete_specialist.title")
     expect(html).toContain("delete_specialist.button")
   })
 
   it("Projekt-Agent (Lead): kein Abschnitt, auch als Admin nicht", () => {
     auth.role = "admin"
-    const html = renderToStaticMarkup(
-      <ProjectAgentDeleteSection agent={{ ...BASE, type: "project" } as Agent} onDeleted={() => {}} />,
-    )
+    const html = render({ ...BASE, type: "project" } as Agent)
     expect(html).toBe("")
   })
 
   it("Spezialist ohne Admin-Rolle: kein Abschnitt", () => {
     auth.role = "user"
-    const html = renderToStaticMarkup(
-      <ProjectAgentDeleteSection agent={{ ...BASE, type: "specialist" } as Agent} onDeleted={() => {}} />,
-    )
+    const html = render({ ...BASE, type: "specialist" } as Agent)
     expect(html).toBe("")
   })
 
   it("Spezialist ohne Rolle (nicht geladen): kein Abschnitt", () => {
-    const html = renderToStaticMarkup(
-      <ProjectAgentDeleteSection agent={{ ...BASE, type: "specialist" } as Agent} onDeleted={() => {}} />,
-    )
+    const html = render({ ...BASE, type: "specialist" } as Agent)
     expect(html).toBe("")
   })
 })
