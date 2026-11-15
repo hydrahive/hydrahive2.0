@@ -24,6 +24,33 @@ export function selectableTeamIds(agents: AgentBrief[], leadId: string | null | 
   return new Set(team.filter((agent) => agent.id === leadId || agent.status !== "disabled").map((agent) => agent.id))
 }
 
+interface SplitTeamResult {
+  /** Lead + aktive Spezialisten — unterliegen dem normalen Limit/der Suche. */
+  active: AgentBrief[]
+  /** Deaktivierte Spezialisten (nie der Lead) — eigene, einklappbare Gruppe. */
+  disabled: AgentBrief[]
+}
+
+/**
+ * Trennt das sortierte Team (teamList) in einen normalen und einen deaktivierten Teil.
+ *
+ * Grund: Zählt man deaktivierte Spezialisten ins normale LIMIT/die Suche mit, verschwinden
+ * sie bei vielen alten Spezialisten (z.B. 10 im DEV-Projekt) hinter „Alle anzeigen“ — ein
+ * unnötiger Extra-Klick, genau für die Agenten, die man wegräumen will (Review zu PR #724).
+ * Der deaktivierte Teil bekommt stattdessen eine eigene, einklappbare Gruppe
+ * (ProjectAgentDisabledGroup) ohne Limit: einmal aufklappen, dann ist jeder mit Papierkorb +
+ * „Ins Archiv starten" in 2 Klicks erreichbar.
+ */
+export function splitTeam(team: AgentBrief[], leadId: string | null | undefined): SplitTeamResult {
+  const active: AgentBrief[] = []
+  const disabled: AgentBrief[] = []
+  for (const agent of team) {
+    if (agent.id === leadId || agent.status !== "disabled") active.push(agent)
+    else disabled.push(agent)
+  }
+  return { active, disabled }
+}
+
 interface AgentDeletedResult {
   agents: AgentBrief[]
   /** Neue Auswahl für selectedAgentId — unverändert, außer der gelöschte Agent war gewählt. */

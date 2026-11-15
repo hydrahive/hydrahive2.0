@@ -16,6 +16,11 @@ interface Props {
  * den vorhandenen DeleteDialog (kind="agent", „Ins Archiv“ vorausgewählt) — kein Umweg über
  * das Bearbeiten-Overlay nötig. Nur für Admins sichtbar (siehe ProjectAgentsPanel), weil die
  * Lösch-Route `DELETE /api/agents/{id}` `require_admin` ist.
+ *
+ * `autoCloseOnDone`: Klick 1 = Papierkorb öffnet den Dialog, Klick 2 = „Ins Archiv starten“ —
+ * danach schließt der Dialog sich selbst, sobald der Auftrag fertig ist (state "done"). Ohne
+ * das wäre ein dritter Klick zum manuellen Schließen nötig, bevor der Agent aus der Liste
+ * verschwindet (onDeleted feuert erst beim Schließen).
  */
 export function ProjectAgentTrashButton({ agentId, agentName, disabled, onDeleted }: Props) {
   const { t } = useTranslation("agents")
@@ -29,7 +34,8 @@ export function ProjectAgentTrashButton({ agentId, agentName, disabled, onDelete
         <Trash2 size={13} />
       </button>
       {deleting && (
-        <DeleteDialog kind="agent" id={agentId} onClose={() => setDeleting(false)} onDeleted={() => onDeleted(agentId)} />
+        <DeleteDialog kind="agent" id={agentId} onClose={() => setDeleting(false)} onDeleted={() => onDeleted(agentId)}
+          autoCloseOnDone />
       )}
     </>
   )

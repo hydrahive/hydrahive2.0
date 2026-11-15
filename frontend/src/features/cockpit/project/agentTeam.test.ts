@@ -1,7 +1,7 @@
 // Plan docs/plans/projekt-cockpit-kompakt.md: Projekt-Team kompakt (höchstens 5, gewählter immer sichtbar).
 import { describe, expect, it } from "vitest"
 import type { AgentBrief } from "@/features/chat/types"
-import { removeAgentFromTeam, selectableTeamIds, teamList, visibleTeam } from "./agentTeam"
+import { removeAgentFromTeam, selectableTeamIds, splitTeam, teamList, visibleTeam } from "./agentTeam"
 
 const a = (id: string, llm_model = "modell-a") => ({ id, name: `Agent ${id}`, llm_model }) as AgentBrief
 const ALLE = Array.from({ length: 15 }, (_, i) => a(`s${i + 1}`, i === 11 ? "besonderes-modell" : "modell-a"))
@@ -83,6 +83,36 @@ describe("visibleTeam", () => {
   it("kleines Team: alles sichtbar, nichts verborgen", () => {
     const klein = teamList([a("lead"), a("x")], "lead", ["x"])
     expect(visibleTeam(klein, { selectedId: "x", expanded: false, query: "", limit: 5 })).toEqual({ shown: klein, hidden: 0 })
+  })
+})
+
+describe("splitTeam", () => {
+  it("trennt aktive (inkl. Lead) von deaktivierten Spezialisten, Reihenfolge bleibt erhalten", () => {
+    const lead = a("lead")
+    const d1 = { ...a("s1"), status: "disabled" } as AgentBrief
+    const aktiv = { ...a("s2"), status: "active" } as AgentBrief
+    const d2 = { ...a("s3"), status: "disabled" } as AgentBrief
+    const result = splitTeam(teamList([lead, d1, aktiv, d2], "lead", ["s1", "s2", "s3"]), "lead")
+    expect(ids(result.active)).toEqual(["lead", "s2"])
+    expect(ids(result.disabled)).toEqual(["s1", "s3"])
+  })
+
+  it("Klickweg-Fall DEV-Projekt: 10 deaktivierte landen alle in der eigenen Gruppe, nicht hinter dem Limit der aktiven Liste", () => {
+    const lead = a("lead")
+    const aktive = Array.from({ length: 6 }, (_, i) => ({ ...a(`a${i + 1}`), status: "active" }) as AgentBrief)
+    const deaktivierte = Array.from({ length: 10 }, (_, i) => ({ ...a(`d${i + 1}`), status: "disabled" }) as AgentBrief)
+    const all = [lead, ...aktive, ...deaktivierte]
+    const ids_ = all.map((x) => x.id === "lead" ? "lead" : x.id)
+    const result = splitTeam(teamList(all, "lead", ids_.filter((id) => id !== "lead")), "lead")
+    expect(result.active).toHaveLength(7) // lead + 6 aktive
+    expect(result.disabled).toHaveLength(10)
+  })
+
+  it("Lead landet nie in der deaktivierten Gruppe, auch wenn er selbst deaktiviert ist", () => {
+    const lead = { ...a("lead"), status: "disabled" } as AgentBrief
+    const result = splitTeam(teamList([lead], "lead", []), "lead")
+    expect(ids(result.active)).toEqual(["lead"])
+    expect(result.disabled).toHaveLength(0)
   })
 })
 

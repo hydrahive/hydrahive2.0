@@ -204,6 +204,7 @@ export function ProjectCockpitPage() {
           >
             <ProjectAgentsPanel
               agents={agents}
+              projectId={activeProjectId}
               projectAgentId={projectAgentId}
               specialistAgentIds={activeProject?.allowed_specialists}
               selectedAgentId={selectedAgentId}

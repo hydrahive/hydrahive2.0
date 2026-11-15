@@ -191,6 +191,7 @@
     "button_for": "Delete {{name}}"
   },
   "team": {
-    "disabled_badge": "disabled"
+    "disabled_badge": "disabled",
+    "disabled_group": "Disabled ({{count}})"
   }
 }
