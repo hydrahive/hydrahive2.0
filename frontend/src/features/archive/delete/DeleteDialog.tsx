@@ -2,7 +2,7 @@ import { useEffect, useState } from "react"
 import { Trash2 } from "lucide-react"
 import { useTranslation } from "react-i18next"
 import { AdminDialog, AdminFeedback } from "@/features/cockpit/admin/ui"
-import { deleteApi, findJob, initialMode, type DeleteJob, type DeleteKind, type DeleteMode, type DeletePreview } from "./api"
+import { deleteApi, findJob, initialMode, shouldAutoClose, type DeleteJob, type DeleteKind, type DeleteMode, type DeletePreview } from "./api"
 import { DeleteProgress } from "./DeleteProgress"
 import { DeleteView } from "./DeleteView"
 
@@ -15,11 +15,20 @@ interface Props {
   /** Beim Schließen, wenn der Auftrag fertig gelöscht hat (Liste neu laden). Erst dann – sonst
    *  verschwände der Dialog mit dem Objekt, bevor man das Ergebnis lesen kann. */
   onDeleted?: () => void
+  /**
+   * Schließt den Dialog automatisch (inkl. onDeleted), sobald der Auftrag fertig ist
+   * (state "done") — ohne den zusätzlichen Klick zum manuellen Schließen. Bei "failed" bleibt
+   * der Dialog trotzdem offen, damit der Fehler sichtbar ist. Default false: die anderen
+   * Aufrufer (Projekt/Nutzer löschen, Einstellungen) verlangen weiter das bewusste Schließen,
+   * um das Ergebnis erst lesen zu können. Für den 1–2-Klick-Löschweg eines Spezialisten aus
+   * der Team-Liste (ProjectAgentTrashButton) reicht „Ins Archiv starten“ + automatisches Zu.
+   */
+  autoCloseOnDone?: boolean
 }
 
 /** Ein Lösch-Dialog für Agent, Projekt, Nutzer und externe Instanz (Spec archiv-system.md, Etappe 2).
  *  Schließen ist jederzeit erlaubt – der Auftrag läuft im Hintergrund weiter. */
-export function DeleteDialog({ kind, id, onClose, onDeleted }: Props) {
+export function DeleteDialog({ kind, id, onClose, onDeleted, autoCloseOnDone = false }: Props) {
   const { t } = useTranslation("archive")
   const [preview, setPreview] = useState<DeletePreview | null>(null)
   const [mode, setMode] = useState<DeleteMode | null>(null)
@@ -52,6 +61,17 @@ export function DeleteDialog({ kind, id, onClose, onDeleted }: Props) {
     let timer = setTimeout(() => { void tick() }, 0)
     return () => { alive = false; clearTimeout(timer) }
   }, [jobId])
+
+  // autoCloseOnDone: sobald der Auftrag fertig ist, schließt der Dialog ohne den sonst nötigen
+  // zweiten Klick. Nicht bei "failed" — der Fehler soll sichtbar bleiben, bis von Hand
+  // geschlossen wird (wie bei allen anderen Aufrufern). shouldAutoClose ist eine reine
+  // Funktion (api.ts), damit die Bedingung ohne React-Rendering testbar ist.
+  useEffect(() => {
+    if (shouldAutoClose(autoCloseOnDone, job)) {
+      onDeleted?.()
+      onClose()
+    }
+  }, [autoCloseOnDone, job, onDeleted, onClose])
 
   const close = () => {
     if (job?.state === "done") onDeleted?.()

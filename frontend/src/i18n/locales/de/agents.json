@@ -187,6 +187,11 @@
   "delete_specialist": {
     "title": "Spezialist löschen",
     "hint": "Wahlweise ins Archiv (empfohlen) oder unwiderruflich. Der Projekt-Agent selbst wird hier nicht gelöscht — das läuft über die Projektverwaltung.",
-    "button": "Spezialist löschen"
+    "button": "Spezialist löschen",
+    "button_for": "{{name}} löschen"
+  },
+  "team": {
+    "disabled_badge": "deaktiviert",
+    "disabled_group": "Deaktiviert ({{count}})"
   }
 }

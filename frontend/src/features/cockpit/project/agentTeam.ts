@@ -1,18 +1,54 @@
 import type { AgentBrief } from "@/features/chat/types"
 
 /**
- * Projekt-Team: Lead zuerst, dann die Spezialisten; doppelte und unbekannte IDs fallen raus.
- * Deaktivierte Spezialisten (status "disabled") erscheinen nicht in der Liste — sie sind kein
- * normaler Gesprächspartner mehr, stören aber auch niemanden, der sie noch nicht gelöscht hat.
- * Der Projekt-Agent (Lead) bleibt immer sichtbar, auch wenn er deaktiviert ist, denn er gehört
- * fest zum Projekt und sein Status wird woanders verwaltet (ProjectDetailsOverlay/Projekt).
+ * Projekt-Team: Lead immer zuerst, dann aktive Spezialisten, dann deaktivierte Spezialisten
+ * ans Ende; doppelte und unbekannte IDs fallen raus.
+ *
+ * Deaktivierte Spezialisten wurden zunächst ganz ausgefiltert (#722) — das Problem war damit
+ * nur verschoben: genau die Agenten, die man wegräumen will, waren unsichtbar (Till 15.11.).
+ * Jetzt bleiben sie sichtbar (ausgegraut, ans Ende sortiert, siehe ProjectAgentsPanel), damit
+ * man sie mit 1–2 Klicks (Papierkorb-Symbol) direkt löschen/archivieren kann.
  */
 export function teamList(agents: AgentBrief[], leadId: string | null | undefined, specialistIds: string[] = []): AgentBrief[] {
   const ids = [...new Set([leadId, ...specialistIds].filter((id): id is string => Boolean(id)))]
-  return ids
-    .map((id) => agents.find((agent) => agent.id === id))
-    .filter((agent): agent is AgentBrief => Boolean(agent))
-    .filter((agent) => agent.id === leadId || agent.status !== "disabled")
+  const found = ids.map((id) => agents.find((agent) => agent.id === id)).filter((agent): agent is AgentBrief => Boolean(agent))
+  const rank = (agent: AgentBrief) => (agent.id === leadId ? 0 : agent.status === "disabled" ? 2 : 1)
+  return [...found].sort((a, b) => rank(a) - rank(b))
+}
+
+/** Nur die wählbaren Teammitglieder: der Lead (unabhängig vom Status) und aktive Spezialisten.
+ *  Ein deaktivierter Spezialist kann laut Runner nicht laufen und darf daher nicht als
+ *  selectedAgentId stehen bleiben, auch wenn er jetzt sichtbar in der Liste steht. */
+export function selectableTeamIds(agents: AgentBrief[], leadId: string | null | undefined, specialistIds: string[] = []): Set<string> {
+  const team = teamList(agents, leadId, specialistIds)
+  return new Set(team.filter((agent) => agent.id === leadId || agent.status !== "disabled").map((agent) => agent.id))
+}
+
+interface SplitTeamResult {
+  /** Lead + aktive Spezialisten — unterliegen dem normalen Limit/der Suche. */
+  active: AgentBrief[]
+  /** Deaktivierte Spezialisten (nie der Lead) — eigene, einklappbare Gruppe. */
+  disabled: AgentBrief[]
+}
+
+/**
+ * Trennt das sortierte Team (teamList) in einen normalen und einen deaktivierten Teil.
+ *
+ * Grund: Zählt man deaktivierte Spezialisten ins normale LIMIT/die Suche mit, verschwinden
+ * sie bei vielen alten Spezialisten (z.B. 10 im DEV-Projekt) hinter „Alle anzeigen“ — ein
+ * unnötiger Extra-Klick, genau für die Agenten, die man wegräumen will (Review zu PR #724).
+ * Der deaktivierte Teil bekommt stattdessen eine eigene, einklappbare Gruppe
+ * (ProjectAgentDisabledGroup) ohne Limit: einmal aufklappen, dann ist jeder mit Papierkorb +
+ * „Ins Archiv starten" in 2 Klicks erreichbar.
+ */
+export function splitTeam(team: AgentBrief[], leadId: string | null | undefined): SplitTeamResult {
+  const active: AgentBrief[] = []
+  const disabled: AgentBrief[] = []
+  for (const agent of team) {
+    if (agent.id === leadId || agent.status !== "disabled") active.push(agent)
+    else disabled.push(agent)
+  }
+  return { active, disabled }
 }
 
 interface AgentDeletedResult {

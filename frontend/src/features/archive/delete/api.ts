@@ -82,3 +82,13 @@ export function findJob(jobs: DeleteJobs, id: string): DeleteJob | null {
   if (jobs.running?.id === id) return jobs.running
   return jobs.queued.find((j) => j.id === id) ?? jobs.done.find((j) => j.id === id) ?? null
 }
+
+/**
+ * Soll der Dialog sich jetzt selbst schließen (inkl. onDeleted)? Nur wenn `autoCloseOnDone`
+ * gesetzt ist UND der Auftrag fertig ist (state "done") — bei "failed" bleibt der Dialog
+ * offen, damit der Fehler sichtbar ist (reine Funktion, ausgelagert aus DeleteDialog, damit
+ * sie ohne React-Rendering testbar ist).
+ */
+export function shouldAutoClose(autoCloseOnDone: boolean, job: DeleteJob | null): boolean {
+  return autoCloseOnDone && job?.state === "done"
+}
