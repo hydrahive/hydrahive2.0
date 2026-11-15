@@ -7,7 +7,11 @@ logger = logging.getLogger(__name__)
 
 
 def project_refusal(calling_agent_id: str, target: str) -> str | None:
-    """Projekt-Agenten dürfen nur freigegebene Spezialisten beauftragen. Fehlertext oder None."""
+    """Projekt-Agenten dürfen nur freigegebene Spezialisten beauftragen. Fehlertext oder None.
+
+    Tote IDs (Agent existiert nicht mehr) zählen bei der Prüfung nicht mit — Altlasten aus
+    der Zeit vor dem Aufräumen beim Löschen (agents/_delete.py:delete) dürfen niemanden
+    aussperren (Review PR #722, Fund 15.11.2026)."""
     try:
         from hydrahive.agents import config as agent_config
         from hydrahive.projects import config as project_config
@@ -16,7 +20,8 @@ def project_refusal(calling_agent_id: str, target: str) -> str | None:
             project_id = calling.get("project_id")
             if project_id:
                 proj = project_config.get(project_id)
-                allowed = proj.get("allowed_specialists", []) if proj else []
+                raw_allowed = proj.get("allowed_specialists", []) if proj else []
+                allowed = [sid for sid in raw_allowed if agent_config.get(sid)]
                 if allowed and target not in allowed:
                     return (f"Specialist '{target}' ist für dieses Projekt nicht freigegeben. "
                             f"Freigegeben: {allowed}")
