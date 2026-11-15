@@ -1,7 +1,7 @@
 // Plan docs/plans/projekt-cockpit-kompakt.md: Projekt-Team kompakt (höchstens 5, gewählter immer sichtbar).
 import { describe, expect, it } from "vitest"
 import type { AgentBrief } from "@/features/chat/types"
-import { teamList, visibleTeam } from "./agentTeam"
+import { removeAgentFromTeam, teamList, visibleTeam } from "./agentTeam"
 
 const a = (id: string, llm_model = "modell-a") => ({ id, name: `Agent ${id}`, llm_model }) as AgentBrief
 const ALLE = Array.from({ length: 15 }, (_, i) => a(`s${i + 1}`, i === 11 ? "besonderes-modell" : "modell-a"))
@@ -13,6 +13,14 @@ describe("teamList", () => {
     expect(team[0].id).toBe("lead")
     expect(team).toHaveLength(16)
     expect(ids(team)).not.toContain("unbekannt")
+  })
+
+  it("deaktivierte Spezialisten fallen raus, der Projekt-Agent bleibt auch deaktiviert sichtbar", () => {
+    const lead = { ...a("lead"), status: "disabled" } as AgentBrief
+    const aktiv = { ...a("s1"), status: "active" } as AgentBrief
+    const deaktiviert = { ...a("s2"), status: "disabled" } as AgentBrief
+    const result = teamList([lead, aktiv, deaktiviert], "lead", ["s1", "s2"])
+    expect(ids(result)).toEqual(["lead", "s1"])
   })
 })
 
@@ -41,5 +49,24 @@ describe("visibleTeam", () => {
   it("kleines Team: alles sichtbar, nichts verborgen", () => {
     const klein = teamList([a("lead"), a("x")], "lead", ["x"])
     expect(visibleTeam(klein, { selectedId: "x", expanded: false, query: "", limit: 5 })).toEqual({ shown: klein, hidden: 0 })
+  })
+})
+
+describe("removeAgentFromTeam", () => {
+  it("entfernt den Agenten aus der Liste, Auswahl bleibt wenn ein anderer gewählt war", () => {
+    const result = removeAgentFromTeam([a("lead"), a("s1"), a("s2")], "s1", "s2", "lead")
+    expect(ids(result.agents)).toEqual(["lead", "s2"])
+    expect(result.selectedAgentId).toBe("s2")
+  })
+
+  it("war der gelöschte Agent ausgewählt, fällt die Auswahl auf den Projekt-Agenten zurück", () => {
+    const result = removeAgentFromTeam([a("lead"), a("s1"), a("s2")], "s1", "s1", "lead")
+    expect(ids(result.agents)).toEqual(["lead", "s2"])
+    expect(result.selectedAgentId).toBe("lead")
+  })
+
+  it("war nichts ausgewählt, bleibt die Auswahl null", () => {
+    const result = removeAgentFromTeam([a("lead"), a("s1")], "s1", null, "lead")
+    expect(result.selectedAgentId).toBeNull()
   })
 })

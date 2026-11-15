@@ -183,5 +183,10 @@
     "reset": "Zurücksetzen",
     "saved": "Template gespeichert. Neue Aufrufe nutzen es.",
     "save_failed": "Template konnte nicht gespeichert werden."
+  },
+  "delete_specialist": {
+    "title": "Spezialist löschen",
+    "hint": "Wahlweise ins Archiv (empfohlen) oder unwiderruflich. Der Projekt-Agent selbst wird hier nicht gelöscht — das läuft über die Projektverwaltung.",
+    "button": "Spezialist löschen"
   }
 }

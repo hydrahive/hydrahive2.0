@@ -20,6 +20,7 @@ import { ProjectServersOverlay } from "./project/ProjectServersOverlay"
 import { ProjectMountsOverlay } from "./project/ProjectMountsOverlay"
 import { ProjectInsightsOverlay, type ProjectInsightView } from "./project/ProjectInsightsOverlay"
 import { ProjectAgentsPanel } from "./project/ProjectAgentsPanel"
+import { removeAgentFromTeam, teamList } from "./project/agentTeam"
 import { useProjectSessionStarter } from "./project/useProjectSessionStarter"
 import { useProjectAgentSelection } from "./project/useProjectAgentSelection"
 import { ProjectAiSettingsPanel } from "./project/ProjectAiSettingsPanel"
@@ -104,7 +105,10 @@ export function ProjectCockpitPage() {
 
   const activeProject = projects.find((p) => p.id === activeProjectId) ?? null
   const projectAgentId = activeProject?.agent_id ?? null
-  const projectTeamIds = new Set([projectAgentId, ...(activeProject?.allowed_specialists ?? [])].filter(Boolean))
+  // Dieselbe Quelle wie die sichtbare Team-Liste (teamList) — ein gespeicherter, inzwischen
+  // deaktivierter Spezialist zählt hier NICHT mehr als wählbares Teammitglied, sonst bliebe
+  // er als selectedAgentId stehen, obwohl er in der Liste gar nicht mehr auftaucht.
+  const projectTeamIds = new Set(teamList(agents, projectAgentId, activeProject?.allowed_specialists).map((a) => a.id))
   const requestedAgentId = activeProjectId ? selectedAgentByProject[activeProjectId] : null
   const selectedAgentId = requestedAgentId && projectTeamIds.has(requestedAgentId) ? requestedAgentId : projectAgentId
   const selectedAgent = agents.find((agent) => agent.id === selectedAgentId) ?? null
@@ -342,6 +346,15 @@ export function ProjectCockpitPage() {
           agentId={editingAgentId}
           onClose={() => setEditingAgentId(null)}
           onSaved={(updated) => setAgents((cur) => cur.map((agent) => agent.id === updated.id ? { ...agent, ...updated } : agent))}
+          onDeleted={(deletedAgentId) => {
+            const result = removeAgentFromTeam(agents, deletedAgentId, selectedAgentId, projectAgentId)
+            setAgents(result.agents)
+            if (activeProjectId && result.selectedAgentId && result.selectedAgentId !== selectedAgentId) {
+              agentSelection.select(activeProjectId, result.selectedAgentId)
+            }
+            // Overlay schließt bereits sich selbst (ProjectAgentEditOverlay ruft onClose nach
+            // onDeleted auf), daher hier kein zusätzliches setEditingAgentId(null).
+          }}
         />
       )}
     </CockpitShell>

@@ -5,16 +5,20 @@ import type { Agent, ToolMeta } from "@/features/agents/types"
 import type { AgentBrief } from "@/features/chat/types"
 import { llmModelsApi, type RegistryModel } from "@/features/llm/api"
 import { CockpitButton } from "../CockpitButton"
+import { ProjectAgentDeleteSection } from "./ProjectAgentDeleteSection"
 import { ProjectAgentEditorTabs } from "./ProjectAgentEditorTabs"
+import { canSaveAgent } from "./projectAgentEditGuards"
 import { useDialog } from "@/shared/dialog/useDialog"
 
 interface Props {
   agentId: string
   onClose: () => void
   onSaved: (agent: AgentBrief) => void
+  /** Spezialist wurde gelöscht/archiviert — Overlay schließen und aus der Team-Liste entfernen. */
+  onDeleted?: (agentId: string) => void
 }
 
-export function ProjectAgentEditOverlay({ agentId, onClose, onSaved }: Props) {
+export function ProjectAgentEditOverlay({ agentId, onClose, onSaved, onDeleted }: Props) {
   const dlg = useDialog()
   const [agent, setAgent] = useState<Agent | null>(null)
   const [draft, setDraft] = useState<Agent | null>(null)
@@ -29,6 +33,9 @@ export function ProjectAgentEditOverlay({ agentId, onClose, onSaved }: Props) {
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [message, setMessage] = useState<string | null>(null)
+  // Läuft (oder lief) ein Lösch-Auftrag für diesen Agenten, bleibt „Speichern“ für den Rest
+  // dieser Overlay-Sitzung gesperrt — siehe ProjectAgentDeleteSection.onDeleteStarted.
+  const [deleteStarted, setDeleteStarted] = useState(false)
 
   useEffect(() => {
     let alive = true
@@ -85,9 +92,9 @@ export function ProjectAgentEditOverlay({ agentId, onClose, onSaved }: Props) {
   }
 
   async function save() {
-    if (!agent || !draft || !draft.name.trim() || !draft.llm_model.trim()) return
-    if (promptDirty && !prompt.trim()) {
-      setError("Der Systemprompt darf nicht leer sein.")
+    if (!agent || !draft) return
+    if (!canSaveAgent({ dirty, saving, deleteStarted, name: draft.name, llmModel: draft.llm_model, promptDirty, prompt })) {
+      if (promptDirty && !prompt.trim()) setError("Der Systemprompt darf nicht leer sein.")
       return
     }
     setSaving(true)
@@ -156,12 +163,27 @@ export function ProjectAgentEditOverlay({ agentId, onClose, onSaved }: Props) {
           />
         ) : null}
 
+        {agent && onDeleted ? (
+          // Schließt hier EINMAL selbst (onClose) — ProjectCockpitPage.onDeleted ruft daher
+          // kein zusätzliches setEditingAgentId(null) mehr auf (sonst doppeltes Schließen).
+          <ProjectAgentDeleteSection
+            agent={agent}
+            onDeleted={() => { onDeleted(agent.id); onClose() }}
+            onDeleteStarted={() => setDeleteStarted(true)}
+          />
+        ) : null}
+
         <footer className="flex shrink-0 items-center gap-2 border-t border-s-rand bg-s-tief px-4 py-3">
           <p className="truncate text-xs text-[#9aa7bc]">Agent-ID: <span className="font-mono">{agentId}</span></p>
           <div className="flex-1" />
           {dirty ? <CockpitButton disabled={saving} onClick={discard}>Verwerfen</CockpitButton> : null}
           <CockpitButton disabled={saving} onClick={onClose}>Schließen</CockpitButton>
-          <CockpitButton tone="primary" disabled={!dirty || saving || !draft?.name.trim() || !draft?.llm_model.trim() || (promptDirty && !prompt.trim())} onClick={() => void save()}>
+          <CockpitButton
+            tone="primary"
+            disabled={!draft || !canSaveAgent({ dirty, saving, deleteStarted, name: draft.name, llmModel: draft.llm_model, promptDirty, prompt })}
+            title={deleteStarted ? "Löschen läuft — Speichern ist gesperrt." : undefined}
+            onClick={() => void save()}
+          >
             {saving ? <RefreshCw size={12} className="mr-1 inline animate-spin" /> : <Check size={12} className="mr-1 inline" />}
             Speichern
           </CockpitButton>
