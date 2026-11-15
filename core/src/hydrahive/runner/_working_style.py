@@ -27,11 +27,28 @@ _SPECIALIST = """## Arbeitsweise (Spezialist)
 - Fehlt dir etwas Wesentliches, sag es in „Offene Punkte“, statt zu raten.
 - Antworte im Format: `## Ergebnis` (2–6 Sätze), `## Belege` (Dateien, Befehle, Testergebnisse), `## Offene Punkte`."""
 
+_WORKSPACE_ORDER = """
+
+## Ordnung im Workspace
+- Shell: `cd` immer mit absolutem Pfad und `|| exit 1`. `a && b || c` ist kein if/else — bei Bedingungen echtes
+  `if` verwenden. Symlinks nur mit absolutem Ziel setzen.
+- Nichts im Workspace-Hauptordner ablegen. Arbeit, Logs und Probeläufe gehören nach `_work/<thema>/` oder `/tmp`.
+  Fertige Worktrees nach dem Merge entfernen.
+- Für Projektarbeit zuerst den passenden Bereichs-Skill laden, wenn es einen gibt (Skills `bereich-…`), statt den
+  ganzen Workspace zu durchsuchen."""
+
 
 def working_style(agent: dict | None) -> str:
-    """Text je Rolle; leer für Agenten ohne festen Ablauf (andere Master-Agenten, unbekannt)."""
+    """Text je Rolle; leer für Agenten ohne festen Ablauf (andere Master-Agenten, unbekannt).
+
+    Buddy, Projekt-Agent und Spezialist bekommen zusätzlich den Abschnitt „Ordnung im Workspace“ (Shell- und
+    Workspace-Regeln) angehängt. Andere Master-Agenten bleiben ohne festen Ablauf.
+    """
     if not agent:
         return ""
     if agent.get("is_buddy"):
-        return _BUDDY
-    return {"project": _PROJECT, "specialist": _SPECIALIST}.get(agent.get("type") or "", "")
+        return _BUDDY + _WORKSPACE_ORDER
+    base = {"project": _PROJECT, "specialist": _SPECIALIST}.get(agent.get("type") or "", "")
+    if not base:
+        return ""
+    return base + _WORKSPACE_ORDER
