@@ -13,6 +13,7 @@ from pathlib import Path
 
 _MAX_MEMORY = 1_073_741_824
 _MAX_FILE = 268_435_456
+_MAX_PROCESSES = 64
 
 
 class DocumentIsolationError(RuntimeError):
@@ -65,9 +66,15 @@ def _sandbox_argv(argv: list[str], root: Path, work: Path) -> list[str]:
     command = _required(argv[0])
     if system == "Linux":
         bwrap, prlimit = _required("bwrap"), _required("prlimit")
+        # RLIMIT_NPROC zählt alle Threads des Benutzers. Außerhalb von bwrap
+        # gesetzt, zählten die Threads des HydraHive-Servers (und jedes anderen
+        # Dienstes unter demselben Benutzer) mit: ab ~64 schlug das Anlegen der
+        # Sandbox fehl („Creating new namespace failed“) und PDFs galten
+        # zufällig als unlesbar. Darum wirkt die Grenze erst in der Sandbox
+        # (eigener User-Namespace) und zählt nur deren Prozesse.
         return [
             prlimit, f"--as={_MAX_MEMORY}", "--cpu=120", f"--fsize={_MAX_FILE}",
-            "--nproc=64", "--nofile=64", "--", bwrap,
+            "--nofile=64", "--", bwrap,
             "--die-with-parent", "--new-session", "--unshare-all", "--cap-drop", "ALL", "--clearenv",
             "--ro-bind", "/usr", "/usr", "--ro-bind-try", "/bin", "/bin",
             "--ro-bind-try", "/lib", "/lib", "--ro-bind-try", "/lib64", "/lib64",
@@ -75,7 +82,7 @@ def _sandbox_argv(argv: list[str], root: Path, work: Path) -> list[str]:
             "--ro-bind", str(root), str(root), "--bind", str(work), str(work),
             "--chdir", str(work), "--setenv", "HOME", str(work), "--setenv", "TMPDIR", str(work),
             "--setenv", "PATH", "/usr/bin:/bin", "--setenv", "LANG", "C.UTF-8",
-            "--", command, *argv[1:],
+            "--", prlimit, f"--nproc={_MAX_PROCESSES}", "--", command, *argv[1:],
         ]
     if system == "Darwin":
         sandbox = [_required("sandbox-exec"), "-f", str(_mac_profile(root, work)), command, *argv[1:]]
