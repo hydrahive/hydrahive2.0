@@ -122,8 +122,18 @@ def reason_with_profile(
     *,
     resume_token: str | None = None,
     thread: str | None = None,
+    caller_depth: int | None = None,
 ) -> str:
-    """Build the backward-compatible, versioned internal reason envelope."""
+    """Build the backward-compatible, versioned internal reason envelope.
+
+    `caller_depth` ist `ctx.origin_depth` des AUFRUFENDEN Laufs (0, falls kein
+    AgentLink-Handoff). Der Empfänger (handoff_receiver) liest die Tiefe wieder
+    aus und startet seinen eigenen Lauf mit `origin=handoff(depth)` — nur so
+    weiß der Ziel-Agent, dass sein Aufrufer selbst schon in einer Kette steckt,
+    und `ask_agent` im Hintergrund dort ebenfalls erlaubt ist (sonst müsste der
+    Ziel-Agent für eigene Sub-Aufträge synchron warten, während sein eigener
+    Aufrufer ebenfalls synchron wartet — die Timeouts summieren sich dann über
+    die Kette, Befund 2026-11-19)."""
     selected = normalize_profile(profile)
     segments = [
         f"hh-target:{target_agent_id}",
@@ -137,6 +147,8 @@ def reason_with_profile(
         if not _THREAD.fullmatch(thread):
             raise ValueError("Ungültiger Vorgangs-Schlüssel")
         segments.append(f"hh-thread:v{RUNTIME_VERSION}:{thread}")
+    if caller_depth:
+        segments.append(f"hh-depth:v{RUNTIME_VERSION}:{int(caller_depth)}")
     # Keep the human-readable reason while preventing task text from injecting
     # additional pipe-delimited control segments.
     encoded_summary = quote(" ".join(task_summary.split()), safe=" -_.")
@@ -198,3 +210,23 @@ def thread_from_reason(reason: str | None) -> str | None:
             return None
         return parts[2] if _THREAD.fullmatch(parts[2]) else None
     return None
+
+
+def depth_from_reason(reason: str | None) -> int:
+    """Kettentiefe des AUFRUFENDEN Laufs aus dem Reason, 0 wenn keiner/ungültig
+    (Chat-Ursprung oder alter Reason ohne hh-depth-Segment — Rückwärtskompatibilität:
+    kein Fehler, nur konservativ 0)."""
+    for segment in (reason or "").split("|"):
+        if segment.startswith("hh-task:"):
+            break
+        if not segment.startswith("hh-depth:"):
+            continue
+        parts = segment.split(":", 2)
+        if len(parts) != 3 or parts[1] != f"v{RUNTIME_VERSION}":
+            return 0
+        try:
+            value = int(parts[2])
+        except ValueError:
+            return 0
+        return value if 0 <= value <= 250 else 0
+    return 0
