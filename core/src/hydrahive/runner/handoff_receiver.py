@@ -31,6 +31,7 @@ from hydrahive.runner._handoff_setup import (
     prepare_handoff,
     rollback_prepared,
 )
+from hydrahive.runner._run_origin import RunOrigin, handoff as handoff_origin
 from hydrahive.settings import settings
 
 logger = logging.getLogger(__name__)
@@ -94,10 +95,18 @@ async def handle(event: WSEvent) -> None:
     prepared = None
     try:
         prepared = prepare_handoff(state, target, reason)
+        # Kettentiefe des Aufrufers (0, falls Chat-Ursprung oder älterer
+        # Reason ohne hh-depth-Segment): unser eigener Lauf bekommt depth + 1,
+        # damit ask_agent in UNSEREM Lauf selbst wieder im Hintergrund
+        # delegieren darf statt synchron zu warten (sonst summieren sich die
+        # Timeouts verschachtelter ask_agent-Ketten, Befund 2026-11-19).
+        from hydrahive.agentlink.runtime_profiles import depth_from_reason
+        caller_depth = depth_from_reason(reason)
         asyncio.create_task(
             _run_and_reply(
                 state, prepared.session_id, prepared.handoff_id,
                 run_timeout=prepared.timeout_seconds, resumed=prepared.resumed,
+                origin=handoff_origin(caller_depth + 1),
             ),
             name=f"handoff-{state.id}",
         )
@@ -167,9 +176,11 @@ def _build_user_input(state: State) -> str:
 
 async def _consume_run(
     session_id: str, user_input: str, output_parts: list[str],
+    *, origin: RunOrigin | None = None,
 ) -> RunFailure | None:
     """Run the agent and preserve structured runner failure metadata."""
     from hydrahive.runner import runner
+    from hydrahive.runner._run_origin import OTHER
     from hydrahive.runner.concurrency import register_task, session_run_guard, unregister_task
     from hydrahive.runner.events import Error
 
@@ -180,7 +191,7 @@ async def _consume_run(
         if current is not None:
             register_task(session_id, current)
         try:
-            async for ev in runner.run(session_id, user_input):
+            async for ev in runner.run(session_id, user_input, origin=origin or OTHER):
                 if hasattr(ev, "text"):
                     output_parts.append(ev.text)
                 elif isinstance(ev, Error):
@@ -216,6 +227,7 @@ async def _run_and_reply(
     *,
     run_timeout: int | None = None,
     resumed: bool = False,
+    origin: RunOrigin | None = None,
 ) -> None:
     from hydrahive.runner.concurrency import SessionAlreadyRunning
 
@@ -226,7 +238,7 @@ async def _run_and_reply(
     effective_timeout = run_timeout or settings.agentlink_run_timeout
     try:
         async with asyncio.timeout(effective_timeout):
-            failure = await _consume_run(session_id, user_input, output_parts)
+            failure = await _consume_run(session_id, user_input, output_parts, origin=origin)
     except TimeoutError:
         # Run lief länger als der Worker tolerieren soll → terminale Fehler-Antwort,
         # damit der Auftraggeber nicht ins Caller-Timeout läuft und kein in_progress-

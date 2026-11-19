@@ -67,7 +67,7 @@ def test_run_timeout_posts_error_reply(monkeypatch):
     captured = _capture_reply(monkeypatch)
     monkeypatch.setattr(hr.settings, "agentlink_run_timeout", 0.05, raising=False)
 
-    async def _hang(session_id, user_input, output_parts):
+    async def _hang(session_id, user_input, output_parts, **_kw):
         await asyncio.sleep(5)
         return None
 
@@ -89,7 +89,7 @@ def test_cancelled_run_posts_paused_checkpoint_reply_and_reraises(monkeypatch):
     captured = _capture_reply(monkeypatch)
     monkeypatch.setattr(hr.settings, "agentlink_run_timeout", 30, raising=False)
 
-    async def _cancel(session_id, user_input, output_parts):
+    async def _cancel(session_id, user_input, output_parts, **_kw):
         output_parts.append("Teilweise erledigt.")
         raise asyncio.CancelledError()
 
@@ -110,7 +110,7 @@ def test_cancelled_run_checkpoint_delivery_failure_falls_back_to_error(monkeypat
     nicht an, bleibt kein unerreichbares Resume-Token übrig — fällt auf 'error'."""
     updates: list[str] = []
 
-    async def _cancel(session_id, user_input, output_parts):
+    async def _cancel(session_id, user_input, output_parts, **_kw):
         raise asyncio.CancelledError()
 
     async def _fail_post(_state, *_a, **_kw):
@@ -152,7 +152,7 @@ def test_error_reply_combines_partial_output_and_terminal_reason(monkeypatch):
     captured = _capture_reply(monkeypatch)
     monkeypatch.setattr(hr.settings, "agentlink_run_timeout", 30, raising=False)
 
-    async def _partial_error(session_id, user_input, output_parts):
+    async def _partial_error(session_id, user_input, output_parts, **_kw):
         output_parts.append("Bisher geprüft: drei Dateien.")
         return hr.RunFailure(
             "Max-Iterationen (16) erreicht ohne Abschluss", kind="max_iterations",
@@ -173,7 +173,7 @@ def test_error_reply_combines_partial_output_and_terminal_reason(monkeypatch):
 def test_failed_checkpoint_delivery_revokes_unreachable_resume_token(monkeypatch):
     updates: list[str] = []
 
-    async def _paused(session_id, user_input, output_parts):
+    async def _paused(session_id, user_input, output_parts, **_kw):
         return hr.RunFailure("Iterationslimit", kind="max_iterations")
 
     async def _fail_post(_state):
@@ -230,7 +230,7 @@ def test_error_reply_bounds_findings_at_live_tool_result_limit(monkeypatch):
 def test_resumed_run_uses_direct_continuation_turn(monkeypatch):
     captured = _capture_reply(monkeypatch)
 
-    async def _ok(session_id, user_input, output_parts):
+    async def _ok(session_id, user_input, output_parts, **_kw):
         captured["user_input"] = user_input
         output_parts.append("Fertig")
         return None
@@ -249,7 +249,7 @@ def test_successful_run_posts_done_reply(monkeypatch):
     captured = _capture_reply(monkeypatch)
     monkeypatch.setattr(hr.settings, "agentlink_run_timeout", 30, raising=False)
 
-    async def _ok(session_id, user_input, output_parts):
+    async def _ok(session_id, user_input, output_parts, **_kw):
         output_parts.append("OK")
         return None
 
@@ -274,7 +274,7 @@ def test_lange_antwort_wird_kurzfassung_mit_datei(monkeypatch, tmp_path):
     monkeypatch.setattr(hr, "record_delegation_result", lambda *a, **k: None)
     long_text = "## Ergebnis\nAlles gut.\n\n## Belege\n" + "x" * 5000 + " ENDE"
 
-    async def _ok(session_id, user_input, output_parts):
+    async def _ok(session_id, user_input, output_parts, **_kw):
         output_parts.append(long_text)
         return None
     monkeypatch.setattr(hr, "_consume_run", _ok)

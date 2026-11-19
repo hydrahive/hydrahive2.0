@@ -124,6 +124,12 @@ async def _execute(args: dict, ctx: ToolContext) -> ToolResult:
                 target, profile, task[:120], resume_token=resume_token,
                 # Plan E6 T4: Folgeaufträge aus derselben Sitzung setzen die Sitzung des Spezialisten fort
                 thread=thread_key(ctx.session_id) if ctx.session_id and not resume_token else None,
+                # Eigene Kettentiefe mitgeben: der Empfänger startet dann mit
+                # origin=handoff(ctx.origin_depth + 1) und darf selbst wieder
+                # im Hintergrund delegieren statt synchron zu warten (sonst
+                # summieren sich Timeouts über verschachtelte ask_agent-Ketten,
+                # Befund 2026-11-19).
+                caller_depth=ctx.origin_depth,
             )
         except ValueError as exc:
             return ToolResult.fail(str(exc))
