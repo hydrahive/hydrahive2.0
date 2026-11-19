@@ -50,7 +50,9 @@ def kick(session_id: str, *, auto: bool = True) -> bool:
 
     Synchron ohne await: is_running-Prüfung, claim und Task-Start laufen im
     Event-Loop ohne Unterbrechung, deshalb kein Doppelstart."""
-    if _start_run is None:
+    from hydrahive.runner import handoff_session
+    chain_open = handoff_session.is_open(session_id)
+    if _start_run is None and not chain_open:
         return False
     if auto and session_id in _paused:
         return False
@@ -66,10 +68,18 @@ def kick(session_id: str, *, auto: bool = True) -> bool:
     ids = [d["id"] for d in claimed]
     depth = max(int(d.get("depth") or 1) for d in claimed)
     try:
-        _start_run(
-            session_id, build_text(claimed),
-            origin=delegation(depth), user_metadata=build_metadata(claimed, depth),
-        )
+        if chain_open:
+            # Beauftragter Agent (Handoff-Kette) wertet im Folgelauf aus;
+            # seine Antwort an den Auftraggeber kommt erst, wenn nichts mehr offen ist.
+            from hydrahive.runner import handoff_chain
+            if not handoff_chain.continue_chain(session_id, build_text(claimed, chain=True), depth=depth):
+                delegations_db.unclaim(ids)
+                return False
+        else:
+            _start_run(
+                session_id, build_text(claimed),
+                origin=delegation(depth), user_metadata=build_metadata(claimed, depth),
+            )
     except concurrency.SessionAlreadyRunning:
         delegations_db.unclaim(ids)
         return False

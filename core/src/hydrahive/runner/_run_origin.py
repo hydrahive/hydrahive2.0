@@ -33,6 +33,8 @@ class RunOrigin:
 
     @property
     def background_allowed(self) -> bool:
+        # Gleiche Liste wie tools/_ask_agent_background.BACKGROUND_ORIGINS (dort
+        # entscheidet ask_agent); Import wäre ein Zyklus, ein Test prüft Gleichheit.
         return self.kind in ("chat", "delegation", "handoff")
 
     @property
