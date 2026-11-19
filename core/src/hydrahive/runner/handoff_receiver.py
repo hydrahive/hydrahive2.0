@@ -31,6 +31,7 @@ from hydrahive.runner._handoff_setup import (
     prepare_handoff,
     rollback_prepared,
 )
+from hydrahive.runner import handoff_chain, handoff_session
 from hydrahive.runner._run_origin import RunOrigin, handoff as handoff_origin
 from hydrahive.settings import settings
 
@@ -102,6 +103,7 @@ async def handle(event: WSEvent) -> None:
         # Timeouts verschachtelter ask_agent-Ketten, Befund 2026-11-19).
         from hydrahive.agentlink.runtime_profiles import depth_from_reason
         caller_depth = depth_from_reason(reason)
+        handoff_session.mark_started(prepared.session_id)
         asyncio.create_task(
             _run_and_reply(
                 state, prepared.session_id, prepared.handoff_id,
@@ -228,10 +230,16 @@ async def _run_and_reply(
     run_timeout: int | None = None,
     resumed: bool = False,
     origin: RunOrigin | None = None,
+    user_input: str | None = None,
 ) -> None:
+    """Ein Lauf des beauftragten Agenten. Hat er danach noch Kind-Aufträge offen
+    (origin handoff, ask_agent im Hintergrund), wird die Antwort zurückgehalten;
+    jedes Kind-Ergebnis startet über continue_chain einen Folgelauf
+    (runner/handoff_session.py, Befund 19.11.2026)."""
     from hydrahive.runner.concurrency import SessionAlreadyRunning
 
-    user_input = "weiter" if resumed else _build_user_input(state)
+    if user_input is None:
+        user_input = "weiter" if resumed else _build_user_input(state)
     output_parts: list[str] = []
     failure: RunFailure | None = None
 
@@ -260,7 +268,13 @@ async def _run_and_reply(
             "handoff_receiver: Run für Session %s abgebrochen (Stopp/Shutdown) — poste Checkpoint",
             session_id,
         )
-        partial_output = _shorten("".join(output_parts), session_id, handoff_db_id, state.agent_id)
+        chain = handoff_session.close_chain(session_id)
+        if chain is not None:
+            handoff_session.cancel_children(session_id)
+        # Kinder werden abgebrochen; ein späteres Fortsetzen (resume_token) läuft
+        # ohne sie weiter und schreibt den Bericht aus dem bisherigen Stand.
+        partial_raw = "".join(output_parts) or (chain.last_output if chain else "")
+        partial_output = _shorten(partial_raw, session_id, handoff_db_id, state.agent_id)
         text = f"{partial_output}\n\nPausiert: Server-Neustart während der Bearbeitung." if partial_output \
             else "Pausiert: Server-Neustart während der Bearbeitung."
         checkpoint = checkpoint_finding(
@@ -286,7 +300,20 @@ async def _run_and_reply(
         failure = RunFailure(str(e))
         logger.exception("handoff_receiver: Runner-Fehler für Session %s", session_id)
 
-    output = _shorten("".join(output_parts), session_id, handoff_db_id, state.agent_id)
+    raw = "".join(output_parts)
+    failure_kind = None if failure is None else (failure.kind or "error")
+    if handoff_chain.hold_reply(state, session_id, handoff_db_id, run_timeout, origin, raw, failure_kind):
+        return
+    chain = handoff_session.close_chain(session_id)  # räumt auch die Startzeit ab
+    if chain and not raw.strip() and chain.last_output:
+        raw = chain.last_output  # Folgelauf ohne Text: letzten Bericht nicht verlieren
+    await _finish(state, session_id, handoff_db_id, raw, failure)
+
+
+async def _finish(state: State, session_id: str, handoff_db_id: str, raw: str,
+                  failure: RunFailure | None) -> None:
+    """Antwort an den Auftraggeber (einmal pro Handoff)."""
+    output = _shorten(raw, session_id, handoff_db_id, state.agent_id)
     is_checkpoint = bool(failure and failure.kind == "max_iterations")
     if failure:
         label = "Pausiert" if is_checkpoint else "Terminaler Fehler"

@@ -20,7 +20,7 @@ MAX_RUNNING_PER_SESSION = 5
 MAX_CHAIN_DEPTH = 3
 
 DESCRIPTION_HINT = (
-    "Im Chat läuft ein Auftrag an einen internen Spezialisten im HINTERGRUND: "
+    "Im Chat (und wenn du selbst per Auftrag läufst) läuft ein Auftrag an einen internen Spezialisten im HINTERGRUND: "
     "das Werkzeug kehrt sofort zurück, das Ergebnis kommt später automatisch als "
     "neue Nachricht und du wirst dann erneut aufgerufen. Warte nicht darauf und "
     "sende denselben Auftrag nicht erneut. Mehrere unabhängige Aufträge kannst du "
@@ -46,12 +46,21 @@ WAIT_SCHEMA = {
 }
 
 
+# Herkünfte, aus denen ask_agent im Hintergrund beauftragt. EINE Quelle für
+# runner/_run_origin.RunOrigin.background_allowed und diese Weiche —
+# test_delegation_chain_handoff prüft Gleichheit. (Befund 19.11.2026: #725
+# setzte nur RunOrigin.background_allowed, das niemand las → wirkungslos.)
+BACKGROUND_ORIGINS = ("chat", "delegation", "handoff")
+
+
 def wants_background(args: dict, ctx: ToolContext, is_internal: bool) -> bool:
-    """Hintergrund nur für interne Spezialisten aus Chat-/Zustell-Läufen,
-    und nur wenn der Agent nicht ausdrücklich warten will."""
+    """Hintergrund nur für interne Spezialisten aus Chat-, Zustell- und
+    Handoff-Läufen, und nur wenn der Agent nicht ausdrücklich warten will.
+    Handoff: Ein beauftragter Projekt-Agent verteilt an Spezialisten, seine
+    Antwort hält runner/handoff_chain zurück, bis alle Kinder fertig sind."""
     if not is_internal or bool(args.get("wait")):
         return False
-    return ctx.origin in ("chat", "delegation")
+    return ctx.origin in BACKGROUND_ORIGINS
 
 
 def refuse_reason(ctx: ToolContext) -> str | None:
@@ -85,12 +94,20 @@ def start(
     delegation_watch.start(row["id"], fut)
     minutes = max(1, round(timeout_seconds / 60))
     logger.info("ask_agent: Hintergrund-Auftrag %s an %s", row["id"], row["target_name"])
+    if ctx.origin == "handoff":
+        # Beauftragter Agent (Kette): kein Nutzer im Chat. Antwort an den
+        # Auftraggeber geht erst raus, wenn nichts mehr offen ist (handoff_chain).
+        follow = ("Vergib unabhängige Teilaufträge jetzt gleich mit, dann beende deinen "
+                  "Lauf mit einer Zeile, was vergeben ist. Dein Abschlussbericht kommt erst, "
+                  "wenn alle Ergebnisse da sind.")
+    else:
+        follow = ("Sag dem Nutzer kurz, was beauftragt wurde, und mach mit anderem weiter "
+                  "oder beende deine Antwort.")
     return ToolResult.ok(
         f"Auftrag {row['id'][-8:]} an {row['target_name']} läuft im Hintergrund "
         f"(Frist ca. {minutes} min). Das Ergebnis kommt automatisch als neue "
         "Nachricht in diese Session, dann wirst du erneut aufgerufen. Warte NICHT "
-        "darauf und sende den Auftrag nicht erneut. Sag dem Nutzer kurz, was "
-        "beauftragt wurde, und mach mit anderem weiter oder beende deine Antwort.",
+        f"darauf und sende den Auftrag nicht erneut. {follow}",
         delegation_id=row["id"], background=True,
     )
 

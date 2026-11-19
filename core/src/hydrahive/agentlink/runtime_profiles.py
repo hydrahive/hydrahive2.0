@@ -19,6 +19,10 @@ _PROFILE_CAPS: dict[str, tuple[int, int, int]] = {
 }
 # Agenten-Templates (Spec agent-templates.md Kap. 7): Ziele mit Template bekommen dessen Budget. „overrun“ heißt:
 # Template-Budget × (1 + overrun_pct/100), nur mit Begründung (Prüfung in ask_agent), gekappt an den Grenzen.
+# Gesamtfrist eines Handoff-Auftrags an einen Agenten, der selbst Spezialisten
+# beauftragen kann (Kette Buddy → Projekt-Agent → Spezialist), inkl. aller
+# Kind-Aufträge und Auswertungsläufe. Till 19.11.2026: 60 min.
+CHAIN_TOTAL_SECONDS = 3600
 TEMPLATE_PROFILE = "template"
 OVERRUN_PROFILE = "overrun"
 _LIMITS = (250, 200_000, 3_600)
@@ -230,3 +234,9 @@ def depth_from_reason(reason: str | None) -> int:
             return 0
         return value if 0 <= value <= 250 else 0
     return 0
+
+
+def can_delegate(agent: dict | None) -> bool:
+    """Kann der Agent selbst per ask_agent beauftragen? Dann wartet sein
+    Auftraggeber bis zur Ketten-Gesamtfrist, nicht nur sein Lauf-Budget."""
+    return bool(agent) and "ask_agent" in (agent.get("tools") or [])

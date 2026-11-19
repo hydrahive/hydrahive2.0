@@ -62,8 +62,11 @@ def _resume_session(state: State, target: dict, reason: str, budget):
 
 
 def _running(session_id: str) -> bool:
+    """Läuft gerade ODER wartet als Handoff-Kette auf Kind-Aufträge (dann
+    gehört die Session noch dem offenen Auftrag, Folgeaufträge bekommen eine neue)."""
+    from hydrahive.runner import handoff_session
     from hydrahive.runner.concurrency import is_running
-    return is_running(session_id)
+    return is_running(session_id) or handoff_session.is_open(session_id)
 
 
 def _continue_session(state: State, target: dict, thread: str, budget):

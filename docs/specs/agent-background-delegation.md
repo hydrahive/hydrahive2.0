@@ -37,8 +37,10 @@ Hänger und stoppt den Lauf. Dann gilt:
 - Paralleles Ausführen mehrerer synchroner Werkzeuge einer Runde.
 - Hintergrund-Modus für externe AgentLink-Agenten und Föderation (`persona@ws`).
   Beide bleiben synchron.
-- Hintergrund-Modus für Discord/WhatsApp/Mail, Zeitpläne, Supervisor-Inject,
-  Voice und Spezialist→Spezialist. Alle diese Wege bleiben synchron wie heute.
+- Hintergrund-Modus für Discord/WhatsApp/Mail, Zeitpläne, Supervisor-Inject
+  und Voice. Diese Wege bleiben synchron wie heute. (Die Kette über Handoff,
+  z. B. Buddy → Projekt-Agent → Spezialist, ist seit 19.11.2026 abgedeckt,
+  siehe Abschnitt „Kette über Handoff“.)
 - Wiederaufnahme laufender Delegationen nach einem Server-Neustart. Sie werden
   als „verloren“ gemeldet.
 
@@ -214,6 +216,52 @@ Delegation muss zur Session gehören.
 Fehler-Injektion in den Tests: AgentLink-Antwort geht verloren (nur DB-Weg),
 `post_state` wirft, Starter wirft `SessionAlreadyRunning`, Timeout, Abbruch
 während des Laufs, fremder Nutzer an der API.
+
+## Kette über Handoff (Nachtrag 19.11.2026, Till: Gesamtfrist 60 min)
+
+**Befund.** Seit der Arbeitsweise aus agent-templates.md §9 beauftragt der Buddy
+den Projekt-Agenten per AgentLink-Handoff. Dessen Lauf hatte keine Hintergrund-
+Herkunft, `ask_agent` wartete synchron auf die Spezialisten. Projekt-Agent-Budget
+1200 s, Spezialist 1800 s: Der Projekt-Agent lief zuerst ab, die Arbeit des
+Spezialisten kam bei niemandem an. 19.11.: 6 Aufträge Buddy → Projekt-Agent,
+5 gescheitert, 0 Hintergrund-Delegationen des Projekt-Agenten. #725 setzte nur
+`RunOrigin.background_allowed`, das nirgends gelesen wurde.
+
+**Verhalten.**
+
+```
+Buddy (chat) ── ask_agent ──▶ Projekt-Agent (Lauf 1, origin=handoff)
+                                 ├─ ask_agent Spezialist A/B  → Hintergrund (agent_delegations)
+                                 └─ Lauf endet: Kinder offen → Antwort ZURÜCKHALTEN, Kette offen
+Spezialist fertig ─▶ delegation_delivery.kick
+                     └─ Kette offen → Folgelauf im Projekt-Agenten (origin=handoff, gleiche Tiefe)
+                          └─ wertet aus, vergibt ggf. weitere Aufträge
+Lauf endet, nichts mehr offen ─▶ EINE Antwort an den Buddy (letzter Bericht)
+```
+
+- Weiche: `tools/_ask_agent_background.BACKGROUND_ORIGINS = ("chat", "delegation",
+  "handoff")`. `RunOrigin.background_allowed` spiegelt die Liste, ein Test prüft
+  Gleichheit.
+- Zustand: `runner/handoff_session.py` (offene Ketten, im Speicher).
+  Ablauf: `runner/handoff_chain.py` (zurückhalten, Folgelauf, Gesamtfrist).
+- Jeder Lauf hat das Template-Budget des Agenten. Für den ganzen Auftrag gilt
+  `CHAIN_TOTAL_SECONDS = 3600` ab Eingang. Danach: Antwort mit bisherigem Stand
+  (Status `error`, Hinweis „Gesamtfrist“), offene Kinder `cancelled`.
+- Der Auftraggeber wartet bei Zielen mit `ask_agent`-Werkzeug
+  `max(Budget, CHAIN_TOTAL_SECONDS) + 60 s`, sonst wie bisher Budget + 60 s.
+- Folgeläufe bleiben auf der Tiefe der Kette (die Grenze ist hier die Gesamtfrist,
+  nicht `MAX_CHAIN_DEPTH`), sonst hätte ein Projekt-Agent nur zwei Runden.
+- Scheitert ein Lauf der Kette (Fehler, Iterationsgrenze), wird sofort
+  geantwortet und offene Kinder werden abgebrochen. Stopp/Shutdown während eines
+  Folgelaufs: Checkpoint-Antwort mit dem letzten Bericht, Kinder abgebrochen.
+- Eine Session mit offener Kette gilt als belegt: Folgeaufträge im selben
+  Vorgang bekommen eine neue Session statt sie zu übernehmen.
+- Server-Neustart: wie bisher, Handoff → `error`, Delegationen → `lost`.
+
+**Tests.** `tests/test_delegation_chain_handoff.py`: Reproduktion (Handoff-Lauf
+delegiert im Hintergrund), ganzer Weg mit EINER Antwort, Kind fertig vor Lauf-Ende,
+Kind-Fehler, Gesamtfrist, Fehler im ersten Lauf, Läufe ohne Kinder unverändert,
+Wartezeit des Auftraggebers, Session-Belegung. Gegentest: ohne Fix scheitern 7 von 10.
 
 ## Akzeptanzkriterien
 
