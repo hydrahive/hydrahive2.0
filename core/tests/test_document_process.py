@@ -1,6 +1,9 @@
 from __future__ import annotations
 
+import platform
+import shutil
 import subprocess
+import threading
 from pathlib import Path
 
 import pytest
@@ -27,6 +30,11 @@ def test_linux_sandbox_has_no_network_read_only_input_and_resource_limits(tmp_pa
     bind = argv.index("--bind")
     assert argv[bind:bind + 3] == ["--bind", str(work), str(work)]
     assert argv[-2:] == ["/usr/bin/pdfinfo", str(root / "input.pdf")]
+    # Prozessgrenze erst IN der Sandbox, nicht vor bwrap (zählt sonst die Threads
+    # des ganzen Server-Benutzers mit, Befund 19.11.2026).
+    outer = argv[:argv.index("/usr/bin/bwrap")]
+    assert not any(a.startswith("--nproc") for a in outer)
+    assert argv[-5:-2] == ["/usr/bin/prlimit", "--nproc=64", "--"]
 
 
 def test_macos_sandbox_denies_by_default_and_allows_only_private_workdir(tmp_path: Path, monkeypatch):
@@ -113,3 +121,30 @@ def test_collect_kills_process_on_timeout():
     with pytest.raises(process.DocumentIsolationError, match="Zeitlimit"):
         process._collect(child, timeout=0.05, max_bytes=1024)
     assert child.poll() is not None
+
+
+@pytest.mark.skipif(
+    platform.system() != "Linux" or not shutil.which("bwrap") or not shutil.which("prlimit"),
+    reason="echte Linux-Sandbox (bwrap/prlimit) nötig",
+)
+def test_real_sandbox_starts_although_server_user_has_many_threads(tmp_path: Path):
+    """Regression: Mit > 64 Threads im Server-Benutzer scheiterte bwrap
+    („Creating new namespace failed“) und jedes PDF galt als unlesbar."""
+    root = tmp_path / "snapshot"
+    work = root / "work"
+    work.mkdir(parents=True)
+    stop = threading.Event()
+    threads = [threading.Thread(target=stop.wait, daemon=True) for _ in range(150)]
+    for thread in threads:
+        thread.start()
+    try:
+        out = process.run(["sh", "-c", "echo sandbox-ok"], 30, root, work, 1000)
+        assert out.strip() == "sandbox-ok"
+        # Die Grenze wirkt weiterhin: innen sind nicht mehr als 64 Prozesse möglich.
+        bomb = "for i in $(seq 1 100); do sleep 5 & done; echo zu-viele"
+        with pytest.raises(process.ProcessFailed):
+            process.run(["sh", "-c", bomb], 30, root, work, 1000)
+    finally:
+        stop.set()
+        for thread in threads:
+            thread.join()
