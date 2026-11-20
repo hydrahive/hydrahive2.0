@@ -233,6 +233,16 @@
       "timeout": "no answer",
       "cancelled": "cancelled",
       "lost": "lost"
+    },
+    "tree": {
+      "show": "Show agent tree (all levels, cost, commands)",
+      "hide": "Hide agent tree",
+      "loading": "Loading agent tree …",
+      "summary": "{{active}} active of {{total}} · running chains cost so far {{cost}} · risky/blocked commands: {{risky}}",
+      "stats": "{{cost}} · {{calls}} AI calls · {{tools}} tools",
+      "flagged": "Risky or blocked commands:",
+      "recent": "Recent commands:",
+      "blocked": "blocked"
     }
   },
   "module_view": {

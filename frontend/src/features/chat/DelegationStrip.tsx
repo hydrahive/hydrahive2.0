@@ -1,8 +1,10 @@
 /* Statusleiste über dem Eingabefeld: laufende Hintergrund-Aufträge (mit
    Dauer, Runden, aktuellem Werkzeug, Abbrechen) und wartende Ergebnisse
    („Jetzt auswerten“). Unsichtbar, wenn nichts läuft und nichts wartet. */
-import { Loader2, Play, Users, X } from "lucide-react"
+import { useState } from "react"
+import { GitBranch, Loader2, Play, Users, X } from "lucide-react"
 import { useTranslation } from "react-i18next"
+import { AgentTreePanel } from "./AgentTreePanel"
 import { delegationsApi } from "./delegationsApi"
 import { useDelegations } from "./useDelegations"
 
@@ -13,7 +15,8 @@ function minutesSince(iso: string, now: number): number {
 export function DelegationStrip({ sessionId, busy }: { sessionId: string | null; busy: boolean }) {
   const { t } = useTranslation("chat")
   const { running, waiting, now, refresh } = useDelegations(sessionId, busy)
-  if (!sessionId || (running.length === 0 && !waiting)) return null
+  const [treeOpen, setTreeOpen] = useState(false)
+  if (!sessionId || (running.length === 0 && !waiting && !treeOpen)) return null
 
   const cancel = async (id: string) => {
     await delegationsApi.cancel(sessionId, id).catch(() => {})
@@ -26,6 +29,11 @@ export function DelegationStrip({ sessionId, busy }: { sessionId: string | null;
 
   return (
     <div className="border-t border-s-rand bg-s-innen px-4 py-1.5 text-xs text-[#c7d2e5] space-y-1">
+      <button onClick={() => setTreeOpen(!treeOpen)}
+        className="flex items-center gap-1 text-zinc-400 hover:text-sky-300 transition-colors">
+        <GitBranch size={12} /> {treeOpen ? t("delegation.tree.hide") : t("delegation.tree.show")}
+      </button>
+      {treeOpen && <AgentTreePanel sessionId={sessionId} onChanged={() => void refresh()} />}
       {running.map((d) => (
         <div key={d.id} className="flex items-center gap-2">
           <Loader2 size={12} className="animate-spin text-sky-300 shrink-0" />

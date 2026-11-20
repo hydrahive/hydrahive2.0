@@ -41,6 +41,17 @@ def list_delegations(
     }
 
 
+@delegations_router.get("/{session_id}/delegations/tree")
+def delegation_tree(
+    session_id: str,
+    auth: Annotated[tuple[str, str], Depends(require_auth)],
+) -> dict:
+    """Alle Ebenen der Aufträge dieser Session mit Kosten und letzten Befehlen (runner/agent_tree.py)."""
+    from hydrahive.runner import agent_tree
+    s = _session(session_id, auth)
+    return agent_tree.build(session_id, s.user_id)
+
+
 @delegations_router.post("/{session_id}/delegations/{delegation_id}/cancel")
 def cancel_delegation(
     session_id: str,

@@ -233,6 +233,16 @@
       "timeout": "keine Antwort",
       "cancelled": "abgebrochen",
       "lost": "verloren"
+    },
+    "tree": {
+      "show": "Agenten-Baum zeigen (alle Ebenen, Kosten, Befehle)",
+      "hide": "Agenten-Baum ausblenden",
+      "loading": "Lade Agenten-Baum …",
+      "summary": "{{active}} aktiv von {{total}} · laufende Ketten kosten bisher {{cost}} · riskante/gesperrte Befehle: {{risky}}",
+      "stats": "{{cost}} · {{calls}} KI-Aufrufe · {{tools}} Werkzeuge",
+      "flagged": "Riskante oder gesperrte Befehle:",
+      "recent": "Letzte Befehle:",
+      "blocked": "gesperrt"
     }
   },
   "module_view": {

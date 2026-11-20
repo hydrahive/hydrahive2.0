@@ -23,8 +23,32 @@ export interface DelegationList {
   paused: boolean
 }
 
+/** Agenten-Baum (core runner/agent_tree.py): alle Ebenen mit Kosten und Befehlen. */
+export interface TreeTool {
+  tool: string
+  label: string
+  status: string
+  at: string
+  risky: boolean
+  blocked: boolean
+}
+
+export interface TreeNode extends Delegation {
+  cost: { calls: number; cost_usd: number; output_tokens: number; model: string | null }
+  recent_tools: TreeTool[]
+  flagged_tools: TreeTool[]
+  tool_count: number
+  children: TreeNode[]
+}
+
+export interface AgentTree {
+  nodes: TreeNode[]
+  summary: { active: number; total: number; cost_usd_active_chains: number; risky_commands: number }
+}
+
 export const delegationsApi = {
   list: (sessionId: string) => api.get<DelegationList>(`/sessions/${sessionId}/delegations`),
+  tree: (sessionId: string) => api.get<AgentTree>(`/sessions/${sessionId}/delegations/tree`),
   cancel: (sessionId: string, delegationId: string) =>
     api.post<{ cancelled: boolean }>(`/sessions/${sessionId}/delegations/${delegationId}/cancel`, {}),
   deliver: (sessionId: string) =>
