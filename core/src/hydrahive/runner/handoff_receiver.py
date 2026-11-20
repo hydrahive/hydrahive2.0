@@ -31,6 +31,7 @@ from hydrahive.runner._handoff_setup import (
     prepare_handoff,
     rollback_prepared,
 )
+from hydrahive.runner import _handoff_acceptance
 from hydrahive.runner import handoff_chain, handoff_session
 from hydrahive.runner._run_origin import RunOrigin, handoff as handoff_origin
 from hydrahive.settings import settings
@@ -321,6 +322,7 @@ async def _finish(state: State, session_id: str, handoff_db_id: str, raw: str,
     elif not output:
         output = "Kein Output"
     status = "paused" if is_checkpoint else "error" if failure else "done"
+    status, output = _handoff_acceptance.apply(handoff_db_id, status, raw, output)
     checkpoint = None
     if is_checkpoint:
         checkpoint = checkpoint_finding(

@@ -8,6 +8,7 @@ from __future__ import annotations
 
 STATUS_LABEL = {
     "done": "fertig",
+    "incomplete": "unvollständig (Kern-Abnahme nicht bestanden)",
     "error": "Fehler",
     "paused": "pausiert (Checkpoint, fortsetzbar)",
     "timeout": "keine Antwort (Zeitüberschreitung)",

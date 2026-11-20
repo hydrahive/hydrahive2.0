@@ -227,6 +227,7 @@
     "status": {
       "running": "läuft",
       "done": "fertig",
+      "incomplete": "unvollständig",
       "error": "Fehler",
       "paused": "pausiert",
       "timeout": "keine Antwort",

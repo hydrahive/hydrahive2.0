@@ -78,7 +78,7 @@ def test_zwei_ebenen_original_kommt_unveraendert_an(spec_agent, session_id, agen
     (tmp_path / "ziele" / "x.md").write_text(ZIEL, encoding="utf-8")
 
     r1 = _send({"agent_id": spec_agent["id"], "task": ORIGINAL, "goal": "g", "deliverable": "d",
-                "ziel_doc": "ziele/x.md"}, _ctx(session_id, tmp_path))
+                "ziel_doc": "ziele/x.md", "abnahme": ["A1"]}, _ctx(session_id, tmp_path))
     assert r1.success, r1.error
     stufe1 = posted[-1].task.description
 
@@ -97,6 +97,7 @@ def test_zwei_ebenen_original_kommt_unveraendert_an(spec_agent, session_id, agen
     assert stufe2["original"].body.startswith(ORIGINAL)       # Tills Text, nicht der des Projekt-Agenten
     assert "Kernpunkt A" in stufe2["original"].body and "Kernpunkt B" in stufe2["original"].body
     assert stufe2["ziel"].body == ZIEL
+    assert stufe2["abnahme"].body == "- A1 Till sieht Y"          # Abnahme reist ebenfalls mit
     assert "Mach X irgendwie." in posted[-1].task.description   # eigener Text darf ergänzen
 
 

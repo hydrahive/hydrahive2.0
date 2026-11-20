@@ -10,6 +10,7 @@ import type { Message } from "./types"
 
 const STATUS_TONE: Record<string, string> = {
   done: "text-emerald-300 border-emerald-400/30 bg-emerald-400/10",
+  incomplete: "text-amber-300 border-amber-400/30 bg-amber-400/10",
   error: "text-rose-300 border-rose-400/30 bg-rose-400/10",
   timeout: "text-amber-300 border-amber-400/30 bg-amber-400/10",
   paused: "text-amber-300 border-amber-400/30 bg-amber-400/10",

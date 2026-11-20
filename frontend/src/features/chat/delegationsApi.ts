@@ -6,7 +6,7 @@ export interface Delegation {
   target_agent_id: string
   target_name: string
   task: string
-  status: "running" | "done" | "error" | "paused" | "timeout" | "cancelled" | "lost"
+  status: "running" | "done" | "incomplete" | "error" | "paused" | "timeout" | "cancelled" | "lost"
   depth: number
   created_at: string
   deadline_at: string
