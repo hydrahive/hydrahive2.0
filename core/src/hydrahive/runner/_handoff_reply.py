@@ -39,6 +39,7 @@ async def post_reply(
             description=(
                 f"Abgeschlossen: {desc[:100]}" if status == "done"
                 else f"Pausiert: {output[-100:]}" if status == "paused"
+                else f"Unvollständig: {output[-100:]}" if status == "incomplete"
                 else f"Fehler: {output[-100:]}"
             ),
             status=protocol_status,

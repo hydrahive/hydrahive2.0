@@ -25,14 +25,22 @@ import re
 from dataclasses import dataclass
 
 MAX_BLOCK_CHARS = 60_000   # Schutz gegen versehentlich riesige Dateien
-_KINDS = ("ziel", "original")
+_KINDS = ("ziel", "abnahme", "original")
 _BLOCK_RE = re.compile(
-    r"<!--hh-(?P<kind>ziel|original) sha=(?P<sha>[0-9a-f]{64})(?: quelle=(?P<src>[^>\n]{0,300}))?-->\n"
+    r"<!--hh-(?P<kind>ziel|abnahme|original) sha=(?P<sha>[0-9a-f]{64})(?: quelle=(?P<src>[^>\n]{0,300}))?-->\n"
     r"(?P<body>.*?)\n<!--/hh-(?P=kind)-->",
     re.S,
 )
 _HEADINGS = {
     "ziel": "## Zieldokument (verbindlich, unverändert vom Kern angehängt)",
+    "abnahme": (
+        "## Abnahme (vom Kern geprüft)\n"
+        "Diese Punkte aus dem Zieldokument muss der Auftrag erfüllen. Dein Bericht MUSS am Ende diese Tabelle "
+        "enthalten, eine Zeile je Punkt, Stand ✅ (erfüllt, am echten System geprüft) oder ❌ (nicht erfüllt), "
+        "Beleg = was du konkret geprüft hast (Befehl, Zahl, Datei:Zeile):\n"
+        "| Punkt | Stand | Beleg |\n"
+        "Fehlt ein Punkt, steht ❌ oder fehlt der Beleg, meldet der Kern den Auftrag als „unvollständig“, nicht als fertig."
+    ),
     "original": "## Originalauftrag (unverändert vom Kern angehängt)",
 }
 
@@ -71,11 +79,12 @@ def strip(text: str) -> str:
     out = text or ""
     for kind in _KINDS:
         out = out.replace(_HEADINGS[kind], "")
-    out = re.sub(r"<!--hh-(ziel|original) sha=[^>]*-->\n.*?\n<!--/hh-\1-->", "", out, flags=re.S)
+    out = re.sub(r"<!--hh-(ziel|abnahme|original) sha=[^>]*-->\n.*?\n<!--/hh-\1-->", "", out, flags=re.S)
     return re.sub(r"\n{3,}", "\n\n", out).strip()
 
 
-def compose(task_text: str, inherited: dict[str, Block], *, ziel: Block | None = None) -> str:
+def compose(task_text: str, inherited: dict[str, Block], *, ziel: Block | None = None,
+            abnahme: Block | None = None) -> str:
     """Endgültiger Auftragstext: eigener Text + Anker-Blöcke (geerbt hat Vorrang, sonst neu).
 
     - Geerbte Blöcke (aus dem eigenen eingehenden Auftrag) werden immer übernommen;
@@ -83,11 +92,16 @@ def compose(task_text: str, inherited: dict[str, Block], *, ziel: Block | None =
     - Ohne geerbten Original-Block ist dieser Auftrag der Ursprung: sein eigener
       Text wird zum Originalauftrag.
     - Ein neues Zieldokument zählt nur, wenn kein Ziel geerbt ist.
+    - Abnahme: ein übergebener Block (bereits gegen Ziel/Erbe geprüft, darf den
+      geerbten Umfang nur einschränken) hat Vorrang, sonst reist der geerbte mit.
     """
     own = strip(task_text)
     blocks: list[Block] = []
     z = inherited.get("ziel") or ziel
     if z is not None:
         blocks.append(z)
+    a = abnahme or inherited.get("abnahme")
+    if a is not None:
+        blocks.append(a)
     blocks.append(inherited.get("original") or Block("original", own))
     return "\n\n".join([own] + [b.render() for b in blocks])

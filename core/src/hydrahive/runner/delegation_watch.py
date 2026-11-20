@@ -41,6 +41,9 @@ def result_from_state(response: State) -> tuple[str, str]:
     proto = response.task.status if response.task else "blocked"
     if proto == "done":
         return "done", bounded_reply(text)
+    desc = response.task.description if response.task else ""
+    if desc.startswith("Unvollständig:"):   # Kern-Abnahme nicht bestanden (runner/_handoff_acceptance.py)
+        return "incomplete", bounded_reply(text)
     return ("paused" if checkpoint else "error"), bounded_reply(text)
 
 

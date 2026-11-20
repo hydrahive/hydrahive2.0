@@ -25,6 +25,7 @@ SCHEMA = {
         "goal": {"type": "string", "maxLength": 2000,
                  "description": "Pflicht: Was am Ende erreicht sein soll (ein Satz, prüfbar)."},
         "ziel_doc": _anchor.ZIEL_DOC_SCHEMA,
+        "abnahme": _anchor.ABNAHME_SCHEMA,
         "known": {"type": "string", "maxLength": 4000,
                   "description": "Was du schon weißt (Befunde, Vermutungen, Ausgeschlossenes) – spart dem Spezialisten "
                                  "das erneute Suchen."},

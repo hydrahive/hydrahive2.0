@@ -11,7 +11,7 @@ from datetime import datetime, timedelta, timezone
 from hydrahive.db._utils import now_iso, uuid7
 from hydrahive.db.connection import db
 
-FINISHED = ("done", "error", "paused", "timeout", "lost")
+FINISHED = ("done", "incomplete", "error", "paused", "timeout", "lost")
 TASK_MAX_CHARS = 500
 
 

@@ -160,10 +160,10 @@ def _remember_anchor(handoff_id: str, state: State) -> None:
         blocks = chain_anchor.extract(state.task.description if state.task else "")
         if not blocks:
             return
-        z, o = blocks.get("ziel"), blocks.get("original")
+        z, o, a = blocks.get("ziel"), blocks.get("original"), blocks.get("abnahme")
         db_agent_handoffs.save_anchor(
             handoff_id, ziel=z.body if z else None, ziel_quelle=z.source if z else None,
-            original=o.body if o else None,
+            original=o.body if o else None, abnahme=a.body if a else None,
         )
     except Exception:
         logger.exception("Ketten-Anker für Handoff %s nicht gespeichert", handoff_id)

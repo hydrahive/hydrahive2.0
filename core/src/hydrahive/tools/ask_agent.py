@@ -106,7 +106,7 @@ async def _execute(args: dict, ctx: ToolContext) -> ToolResult:
         if _is_internal:
             # Ketten-Anker (docs/specs/chain-anchor.md): Ziel + Originalauftrag reisen unverändert mit.
             try:
-                task_description = _anchor.anchor_task(task_description, args, ctx)
+                task_description = _anchor.anchor_task(task_description, args, ctx, target_agent)
             except _anchor.AnchorError as exc:
                 return ToolResult.fail(f"Zieldokument: {exc}")
     files += [{"path": str(p)} for p in (args.get("files") or [])[:50]]
