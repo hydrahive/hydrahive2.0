@@ -42,6 +42,11 @@ class ChainState:
     started: float = field(default_factory=time.monotonic)
     last_output: str = ""
     deadline_task: asyncio.Task | None = None
+    # True, wenn die Gesamtfrist den laufenden Folgelauf abgebrochen hat. Der
+    # CancelledError-Zweig unterscheidet damit Frist von echtem Neustart/Stopp
+    # (Befund 20.11.2026, Auftrag aaab0a25: Frist-Abbruch wurde als
+    # „Server-Neustart“ gemeldet, der Dienst lief durch).
+    deadline_hit: bool = False
 
     def remaining(self) -> float:
         return CHAIN_TOTAL_SECONDS - (time.monotonic() - self.started)
