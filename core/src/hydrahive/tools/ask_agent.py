@@ -164,6 +164,7 @@ async def _execute(args: dict, ctx: ToolContext) -> ToolResult:
     fut = register_pending(sent.id, routing_target)
     wait_timeout = _response_timeout(target_agent, profile)
     if background:
+        wait_timeout = _bg.child_timeout(ctx, wait_timeout)
         return _bg.start_or_fail(
             ctx=ctx, state_id=sent.id, target=target_agent, task=task,
             timeout_seconds=wait_timeout, fut=fut, cancel=cancel_pending,

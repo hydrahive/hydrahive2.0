@@ -257,6 +257,16 @@ Lauf endet, nichts mehr offen ─▶ EINE Antwort an den Buddy (letzter Bericht)
 - Eine Session mit offener Kette gilt als belegt: Folgeaufträge im selben
   Vorgang bekommen eine neue Session statt sie zu übernehmen.
 - Server-Neustart: wie bisher, Handoff → `error`, Delegationen → `lost`.
+- **Kinder leben nie länger als die Kette** (Nachtrag 20.11.2026). Befund
+  19.11. (Auftrag a3bd510c): Bei ~0 s Restzeit vergab der Projekt-Agent noch
+  einen Auftrag „Frist ca. 31 min“, der Sekunden später mit der Kette
+  abgebrochen wurde – der Bericht versprach aber, der Rest sei vergeben.
+  Jetzt: `ask_agent` im Handoff-Lauf kürzt die Frist eines neuen Kindes auf die
+  Restzeit (`handoff_session.remaining_seconds`) und lehnt unter
+  `MIN_CHILD_SECONDS = 300` ab, mit Hinweis „Stand sichern und berichten“.
+  Die Rückmeldung nennt die gekürzte Frist. Chat- und Zustell-Läufe sind nicht
+  betroffen (keine Kette). Tests: `tests/test_handoff_child_deadline.py`
+  (Gegentest ohne Fix: 4 von 6 rot).
 
 **Tests.** `tests/test_delegation_chain_handoff.py`: Reproduktion (Handoff-Lauf
 delegiert im Hintergrund), ganzer Weg mit EINER Antwort, Kind fertig vor Lauf-Ende,

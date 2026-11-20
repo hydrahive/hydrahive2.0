@@ -63,8 +63,36 @@ def wants_background(args: dict, ctx: ToolContext, is_internal: bool) -> bool:
     return ctx.origin in BACKGROUND_ORIGINS
 
 
+# Unter dieser Restzeit der Kette wird nichts mehr vergeben: ein Spezialist
+# braucht Minuten, sonst läuft er sicher in die Gesamtfrist (Befund 19.11.2026).
+MIN_CHILD_SECONDS = 300
+
+
+def chain_remaining(ctx: ToolContext) -> float | None:
+    """Restzeit der Gesamtfrist, wenn dieser Lauf zu einem Handoff-Auftrag gehört."""
+    if ctx.origin != "handoff" or not ctx.session_id:
+        return None
+    from hydrahive.runner import handoff_session
+    return handoff_session.remaining_seconds(ctx.session_id)
+
+
+def child_timeout(ctx: ToolContext, timeout_seconds: int) -> int:
+    """Frist des Kindes höchstens bis zum Ende der Kette (nie länger als die Kette lebt)."""
+    left = chain_remaining(ctx)
+    if left is None:
+        return timeout_seconds
+    return max(1, min(timeout_seconds, int(left)))
+
+
 def refuse_reason(ctx: ToolContext) -> str | None:
     """Grenzen VOR dem Absenden prüfen (sonst liefe der Spezialist umsonst)."""
+    left = chain_remaining(ctx)
+    if left is not None and left < MIN_CHILD_SECONDS:
+        return (
+            f"Gesamtfrist dieses Auftrags fast abgelaufen (noch {max(0, int(left // 60))} min). "
+            "Nicht mehr beauftragen — der Spezialist würde mittendrin abgebrochen. "
+            "Sichere den Stand (committen/pushen) und berichte, was erledigt ist und was fehlt."
+        )
     if ctx.origin_depth + 1 > MAX_CHAIN_DEPTH:
         return (
             f"Automatische Kette zu tief ({MAX_CHAIN_DEPTH} Hintergrund-Runden ohne "
