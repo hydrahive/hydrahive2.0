@@ -64,6 +64,19 @@ def forget(session_id: str) -> None:
     _started.pop(session_id, None)
 
 
+def remaining_seconds(session_id: str) -> float | None:
+    """Restzeit der Gesamtfrist dieses Handoff-Auftrags; None = keine Kette.
+
+    ask_agent kürzt damit die Frist neuer Kind-Aufträge und lehnt ab, wenn
+    zu wenig übrig ist. Befund 19.11.2026 (Auftrag a3bd510c): Der Projekt-Agent
+    vergab bei ~0 s Restzeit einen Auftrag „Frist ca. 31 min“, der Sekunden
+    später mit der Kette abgebrochen wurde."""
+    started = _started.get(session_id)
+    if started is None:
+        return None
+    return CHAIN_TOTAL_SECONDS - (time.monotonic() - started)
+
+
 # session_id → offener Auftrag. Nur im Speicher: Ein Server-Neustart beendet
 # ihn ohnehin (reconcile setzt Handoffs und Delegationen auf error/lost).
 _open: dict[str, ChainState] = {}
