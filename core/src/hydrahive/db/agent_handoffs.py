@@ -122,3 +122,27 @@ def list_active() -> list[dict]:
             "SELECT * FROM agent_handoffs WHERE status = 'running' ORDER BY started_at DESC"
         ).fetchall()
     return rows
+
+
+def save_anchor(handoff_id: str, *, ziel: str | None, ziel_quelle: str | None, original: str | None) -> None:
+    """Anker-Blöcke des eingehenden Auftrags (agentlink/chain_anchor.py) zu diesem Handoff merken."""
+    with db() as conn:
+        conn.execute(
+            "UPDATE agent_handoffs SET anchor_ziel = ?, anchor_ziel_quelle = ?, anchor_original = ? WHERE id = ?",
+            (ziel, ziel_quelle, original, handoff_id),
+        )
+
+
+def anchor_for_session(session_id: str) -> dict | None:
+    """Anker des jüngsten Handoffs, der diese Session gestartet bzw. fortgesetzt hat. None = keine Kette."""
+    if not session_id:
+        return None
+    with db() as conn:
+        row = conn.execute(
+            """SELECT anchor_ziel, anchor_ziel_quelle, anchor_original FROM agent_handoffs
+               WHERE session_id = ? ORDER BY started_at DESC LIMIT 1""",
+            (session_id,),
+        ).fetchone()
+    if row is None or (row[0] is None and row[2] is None):
+        return None
+    return {"ziel": row[0], "ziel_quelle": row[1] or "", "original": row[2]}

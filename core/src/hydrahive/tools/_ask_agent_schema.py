@@ -1,6 +1,7 @@
 """Beschreibung und JSON-Schema des Werkzeugs ask_agent (ausgelagert aus ask_agent.py, 14.11.2026)."""
 from __future__ import annotations
 
+from hydrahive.tools import _ask_agent_anchor as _anchor
 from hydrahive.tools import _ask_agent_background as _bg
 
 DESCRIPTION = (
@@ -23,6 +24,7 @@ SCHEMA = {
         "task": {"type": "string", "description": "Aufgabenbeschreibung für den Ziel-Agenten."},
         "goal": {"type": "string", "maxLength": 2000,
                  "description": "Pflicht: Was am Ende erreicht sein soll (ein Satz, prüfbar)."},
+        "ziel_doc": _anchor.ZIEL_DOC_SCHEMA,
         "known": {"type": "string", "maxLength": 4000,
                   "description": "Was du schon weißt (Befunde, Vermutungen, Ausgeschlossenes) – spart dem Spezialisten "
                                  "das erneute Suchen."},

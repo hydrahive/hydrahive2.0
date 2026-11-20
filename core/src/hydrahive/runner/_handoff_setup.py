@@ -1,6 +1,8 @@
 """Prepare new or resumed AgentLink handoff sessions without starting the run."""
 from __future__ import annotations
 
+import logging
+
 from dataclasses import dataclass
 
 from hydrahive.agentlink.protocol import State
@@ -13,6 +15,8 @@ from hydrahive.agentlink.runtime_profiles import (
 )
 from hydrahive.db import agent_handoffs as db_agent_handoffs
 from hydrahive.db import sessions as sessions_db
+
+logger = logging.getLogger(__name__)
 
 
 class HandoffSetupError(RuntimeError):
@@ -121,6 +125,7 @@ def prepare_handoff(state: State, target: dict, reason: str) -> PreparedHandoff:
             session_id=session.id,
             thread=thread,
         )
+        _remember_anchor(handoff_record["id"], state)
         return PreparedHandoff(
             session_id=session.id,
             handoff_id=handoff_record["id"],
@@ -144,3 +149,21 @@ def rollback_prepared(prepared: PreparedHandoff) -> None:
     db_agent_handoffs.update_status(prepared.handoff_id, "error")
     if prepared.resume_token:
         db_agent_handoffs.restore_paused_claim(prepared.resume_token)
+
+
+def _remember_anchor(handoff_id: str, state: State) -> None:
+    """Zieldokument + Originalauftrag des eingehenden Auftrags für Unteraufträge dieser Session merken.
+
+    Fehler hier dürfen den Handoff nicht verhindern – aber sie bleiben sichtbar (Log)."""
+    from hydrahive.agentlink import chain_anchor
+    try:
+        blocks = chain_anchor.extract(state.task.description if state.task else "")
+        if not blocks:
+            return
+        z, o = blocks.get("ziel"), blocks.get("original")
+        db_agent_handoffs.save_anchor(
+            handoff_id, ziel=z.body if z else None, ziel_quelle=z.source if z else None,
+            original=o.body if o else None,
+        )
+    except Exception:
+        logger.exception("Ketten-Anker für Handoff %s nicht gespeichert", handoff_id)
