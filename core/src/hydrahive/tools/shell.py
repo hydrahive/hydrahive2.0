@@ -3,7 +3,7 @@ from __future__ import annotations
 import logging
 import os
 
-from hydrahive.tools import _launcher_container
+from hydrahive.tools import _launcher_container, _shell_guard
 from hydrahive.tools.base import Tool, ToolContext, ToolResult
 
 logger = logging.getLogger(__name__)
@@ -16,10 +16,9 @@ _DESCRIPTION = (
     "`gh issue create`, `git push` etc. ohne extra Auth. "
     "GITEA_TOKEN ist gesetzt wenn ein Credential für localhost/127.0.0.1 (lokales Gitea) existiert — "
     "für Gitea-Pushes: `git -c http.extraHeader='Authorization: token '\"$GITEA_TOKEN\" push ...`. "
-    "SSH zu konfigurierten Hosts: `ssh user@host 'cmd'` — kein explizites -i nötig wenn "
-    "~/.ssh/config mit IdentityFile eingerichtet ist. "
-    "SSH mit Passwort: `sshpass -p '<pass>' ssh user@host '<cmd>'` — "
-    "Befehle in einem einzigen Aufruf bündeln."
+    "Für Projekt-Agenten und Spezialisten gesperrt (Ablehnung ohne Ausführung): fremde Rechner "
+    "(ssh/scp/rsync host:), sudo/su, Container-exec und Geheimnis-Dateien (/etc/hydrahive2, .ssh, "
+    "/proc/*/environ). Brauchst du so etwas: als Blocker melden."
 )
 
 _SCHEMA = {
@@ -184,6 +183,10 @@ async def _execute(args: dict, ctx: ToolContext) -> ToolResult:
             "mmx speech/tts via shell_exec ist gesperrt — nutze das dedizierte "
             "Tool 'speech' (plugin minimax-creator) oder den /api/tts-Endpoint."
         )
+    guard = _shell_guard.blocked_reason(cmd, ctx.agent_id)
+    if guard:
+        logger.warning("shell_exec gesperrt (Agent %s, Session %s): %s", ctx.agent_id, ctx.session_id, guard[:160])
+        return ToolResult.fail(guard, blocked="guard")
     cmd = _rewrite_cmd(cmd)
     timeout = int(args.get("timeout", 60))
     if timeout < 1 or timeout > 600:
