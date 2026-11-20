@@ -276,12 +276,10 @@ async def _run_and_reply(
         # ohne sie weiter und schreibt den Bericht aus dem bisherigen Stand.
         partial_raw = "".join(output_parts) or (chain.last_output if chain else "")
         partial_output = _shorten(partial_raw, session_id, handoff_db_id, state.agent_id)
-        text = f"{partial_output}\n\nPausiert: Server-Neustart während der Bearbeitung." if partial_output \
-            else "Pausiert: Server-Neustart während der Bearbeitung."
+        label, remaining, reason = handoff_chain.cancel_cause(chain)
+        text = f"{partial_output}\n\nPausiert: {label}" if partial_output else f"Pausiert: {label}"
         checkpoint = checkpoint_finding(
-            resume_token=handoff_db_id, session_id=session_id,
-            remaining_work="Begonnenen Auftrag nach Server-Neustart fortsetzen und Ergebnis verifizieren.",
-            reason="shutdown",
+            resume_token=handoff_db_id, session_id=session_id, remaining_work=remaining, reason=reason,
         )
         try:
             db_agent_handoffs.update_status(handoff_db_id, "paused")

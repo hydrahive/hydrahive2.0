@@ -99,6 +99,7 @@ async def _deadline(session_id: str) -> None:
     if is_running(session_id):
         # Folgelauf läuft gerade: abbrechen. Sein CancelledError-Zweig antwortet
         # mit Checkpoint; die Kette wird dort geschlossen.
+        chain.deadline_hit = True
         handoff_session.cancel_children(session_id)
         cancel_run(session_id)
         return
@@ -111,3 +112,13 @@ async def _deadline(session_id: str) -> None:
     await _finish(chain.state, session_id, chain.handoff_db_id, chain.last_output,
                   RunFailure(f"Gesamtfrist von {minutes} min abgelaufen — {n} Spezialisten-Auftrag/-Aufträge "
                              "abgebrochen. Bisheriger Stand steht oben."))
+
+
+def cancel_cause(chain: handoff_session.ChainState | None) -> tuple[str, str, str]:
+    """Warum wurde der Lauf abgebrochen? (Anzeige, verbleibende Arbeit, Checkpoint-Grund)."""
+    if chain is not None and chain.deadline_hit:
+        minutes = handoff_session.CHAIN_TOTAL_SECONDS // 60
+        return (f"Gesamtfrist von {minutes} min abgelaufen (kein Server-Neustart).",
+                "Begonnenen Auftrag fortsetzen (Frist neu) und Ergebnis verifizieren.", "deadline")
+    return ("Server-Neustart oder Stopp während der Bearbeitung.",
+            "Begonnenen Auftrag nach Server-Neustart fortsetzen und Ergebnis verifizieren.", "shutdown")

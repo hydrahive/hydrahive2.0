@@ -279,3 +279,51 @@ def test_max_iterations_with_running_children_keeps_chain(spec_agent, session_id
 
     asyncio.run(scenario())
     assert replies[0]["status"] == "done" and replies[0]["output"] == "Fertig: alles gebaut."
+
+
+def test_deadline_during_followup_says_deadline_not_restart(spec_agent, session_id, agentlink, starter, tmp_path,
+                                                            monkeypatch):
+    """Befund 20.11.2026 (Auftrag aaab0a25): Die Gesamtfrist brach den laufenden Folgelauf ab; die
+    Meldung lautete „Pausiert: Server-Neustart“, obwohl der Dienst durchlief. Jetzt nennt sie die Frist."""
+    from hydrahive.runner import handoff_chain
+    from hydrahive.runner.concurrency import register_task, session_run_guard, unregister_task
+    posted, futures = agentlink
+    replies, runs = _wire_chain(monkeypatch, session_id, spec_agent, tmp_path)
+    checkpoints: list[dict] = []
+    real_cp = hr.checkpoint_finding
+    monkeypatch.setattr(hr, "checkpoint_finding", lambda **kw: checkpoints.append(kw) or real_cp(**kw))
+    monkeypatch.setattr(hr, "record_delegation_result", lambda *a, **k: None)
+    first = hr._consume_run
+
+    async def slow_followup(sid, user_input, output_parts, *, origin=None):
+        if runs:                       # Folgelauf: hängt, bis die Frist ihn abbricht
+            runs.append(user_input)
+            output_parts.append("Zwischenstand Folgelauf.")
+            async with session_run_guard(sid):      # wie der echte _consume_run
+                register_task(sid, asyncio.current_task())
+                try:
+                    await asyncio.sleep(30)
+                finally:
+                    unregister_task(sid)
+        return await first(sid, user_input, output_parts, origin=origin)
+
+    monkeypatch.setattr(hr, "_consume_run", slow_followup)
+
+    async def scenario():
+        handoff_session.mark_started(session_id)
+        await hr._run_and_reply(_incoming(), session_id, "01a1f969-2615-7454-a176-da68cb5a2599", run_timeout=30, origin=origin_handoff(1))
+        chain = handoff_session.get(session_id)
+        assert chain is not None
+        next(iter(futures.values())).set_result(_reply("Kind fertig."))
+        from hydrahive.runner.concurrency import is_running
+        await _settle(lambda: is_running(session_id), timeout=5)
+        monkeypatch.setattr(handoff_session.ChainState, "remaining", lambda self: 0.0)
+        chain.deadline_task.cancel()
+        chain.deadline_task = asyncio.create_task(handoff_chain._deadline(session_id))
+        await _settle(lambda: len(replies) == 1, timeout=5)
+
+    asyncio.run(scenario())
+    assert replies[0]["status"] == "paused"
+    assert replies[0]["output"].endswith("Pausiert: Gesamtfrist von 60 min abgelaufen (kein Server-Neustart).")
+    assert "Neustart oder Stopp" not in replies[0]["output"]
+    assert checkpoints[-1]["reason"] == "deadline"
