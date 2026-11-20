@@ -26,6 +26,7 @@ from hydrahive.agentlink import (
     register_pending,
 )
 from hydrahive.settings import settings
+from hydrahive.tools import _ask_agent_anchor as _anchor
 from hydrahive.tools import _ask_agent_background as _bg
 from hydrahive.tools._ask_agent_prepare import (
     build_briefing,
@@ -102,6 +103,12 @@ async def _execute(args: dict, ctx: ToolContext) -> ToolResult:
     task_description, files, errors = map_context(task, raw_context)
     if not args.get("resume_token"):
         task_description = build_briefing(task_description, args)
+        if _is_internal:
+            # Ketten-Anker (docs/specs/chain-anchor.md): Ziel + Originalauftrag reisen unverändert mit.
+            try:
+                task_description = _anchor.anchor_task(task_description, args, ctx)
+            except _anchor.AnchorError as exc:
+                return ToolResult.fail(f"Zieldokument: {exc}")
     files += [{"path": str(p)} for p in (args.get("files") or [])[:50]]
 
     background = _bg.wants_background(args, ctx, _is_internal)
