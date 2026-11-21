@@ -56,3 +56,18 @@ export function draftToPatch(draft: CatalogDraft): CatalogSettingsPatch | null {
     excluded_projects: draft.excluded_projects,
   }
 }
+
+/** Codes aus ``last_error`` (Backend, kommagetrennt) → Text-ID unter ``catalog.reason``.
+ *  ``source_failed:idea`` zählt als ``source_failed``. Unbekannte Codes bleiben roh (textId null). */
+export const REASON_CODES = [
+  "peer_catalog_not_accepted", "hub_unreachable", "peer_unknown", "peer_signature_invalid", "peer_expired",
+  "peer_rate_limited", "peer_replay", "peer_payload_too_large", "hub_bad_ack", "sync_failed", "source_failed",
+] as const
+
+export function reasonTexts(lastError: string | null): { textId: string | null; raw: string }[] {
+  if (!lastError) return []
+  return lastError.split(",").map(s => s.trim()).filter(Boolean).map(raw => {
+    const base = raw.split(":")[0]
+    return { textId: (REASON_CODES as readonly string[]).includes(base) ? `catalog.reason.${base}` : null, raw }
+  })
+}

@@ -1,6 +1,6 @@
 import { useTranslation } from "react-i18next"
 import { CatalogSwitch } from "./_CatalogSwitch"
-import { INTERVAL_MAX, INTERVAL_MIN, isDirty, parseInterval, toggleIn, type CatalogDraft } from "./_catalogSync"
+import { INTERVAL_MAX, INTERVAL_MIN, isDirty, parseInterval, reasonTexts, toggleIn, type CatalogDraft } from "./_catalogSync"
 import type { CatalogSettings } from "./types"
 
 interface Props {
@@ -14,6 +14,10 @@ interface Props {
   onChange: (next: CatalogDraft) => void
   onSave: () => void
   onReset: () => void
+  /** „Jetzt abgleichen“: läuft gerade / Ergebnis des letzten Klicks (ok · inactive · Code). */
+  syncing?: boolean
+  syncResult?: string
+  onSyncNow?: () => void
 }
 
 const chip = (on: boolean) =>
@@ -97,7 +101,23 @@ export function CatalogSyncForm(p: Props) {
         <p className="text-zinc-400">{t("catalog.status_label")}</p>
         <p className="text-zinc-500">{t("catalog.last_ok")} <span className="text-zinc-300">{fmt(settings.last_ok_at)}</span></p>
         <p className="text-zinc-500">{t("catalog.last_push")} <span className="text-zinc-300">{fmt(settings.last_push_at)}</span></p>
-        {settings.last_error && <p className="text-red-400">{t("catalog.last_error")} {settings.last_error}</p>}
+        <p className="text-zinc-500">{t("catalog.last_full")} <span className="text-zinc-300">{fmt(settings.last_full_at)}</span></p>
+        {settings.last_error && (
+          <p className="text-red-400" data-part="last-error">
+            {t("catalog.last_error")} {reasonTexts(settings.last_error).map(x => (x.textId ? t(x.textId) : x.raw)).join(" · ")}
+          </p>
+        )}
+        {p.onSyncNow && (
+          <div className="flex items-center gap-2 pt-1.5">
+            <button type="button" onClick={p.onSyncNow} disabled={p.syncing || dirty}
+              title={dirty ? t("catalog.sync_now_hint") : undefined}
+              className="px-2.5 py-1 rounded-lg text-xs border border-violet-500/40 text-violet-200 hover:bg-violet-600/20 disabled:opacity-40">
+              {p.syncing ? t("catalog.syncing") : t("catalog.sync_now")}
+            </button>
+            {p.syncResult === "ok" && <span className="text-emerald-400">{t("catalog.sync_now_ok")}</span>}
+            {p.syncResult === "inactive" && <span className="text-amber-400">{t("catalog.sync_now_inactive")}</span>}
+          </div>
+        )}
       </div>
 
       <div className="flex items-center gap-2">

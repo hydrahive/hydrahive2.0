@@ -14,7 +14,7 @@ interface Props {
 }
 
 // Föderations-Katalog (docs/specs/federation-catalog.md §Oberfläche, „Auf dem Client“):
-// Abschnitt „Katalog-Sync“. Etappe 1: nur Einstellungen, kein Versand.
+// Abschnitt „Katalog-Sync“: Einstellungen, Status und „Jetzt abgleichen“ (Etappe 3).
 export function CatalogSyncSection({ reloadKey }: Props) {
   const { t } = useTranslation("federation")
   const [settings, setSettings] = useState<CatalogSettings | null>(null)
@@ -24,6 +24,8 @@ export function CatalogSyncSection({ reloadKey }: Props) {
   const [error, setError] = useState("")
   const [saving, setSaving] = useState(false)
   const [saved, setSaved] = useState(false)
+  const [syncing, setSyncing] = useState(false)
+  const [syncResult, setSyncResult] = useState("")
 
   // Bei jedem reloadKey neu laden. Der Entwurf bleibt, wenn schon einer existiert (ungespeicherte Eingaben).
   useEffect(() => {
@@ -65,6 +67,21 @@ export function CatalogSyncSection({ reloadKey }: Props) {
     }
   }
 
+  async function syncNow() {
+    setSyncing(true)
+    setSyncResult("")
+    setError("")
+    try {
+      const r = await catalogApi.syncNow()
+      setSettings(r.settings)
+      setSyncResult(r.result)
+    } catch (e) {
+      setError(e instanceof Error ? e.message : t("peers.error"))
+    } finally {
+      setSyncing(false)
+    }
+  }
+
   return (
     <div className="space-y-3">
       <div className="flex items-center gap-2">
@@ -84,6 +101,9 @@ export function CatalogSyncSection({ reloadKey }: Props) {
           onChange={next => { setDraft(next); setSaved(false) }}
           onSave={save}
           onReset={() => { setDraft(toDraft(settings)); setSaved(false); setError("") }}
+          syncing={syncing}
+          syncResult={syncResult}
+          onSyncNow={syncNow}
         />
       ) : (
         <div className="text-xs text-zinc-500 py-3 text-center">{error || t("loading")}</div>

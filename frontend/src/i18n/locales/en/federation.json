@@ -172,6 +172,25 @@
     "saved": "Saved",
     "reset": "Discard",
     "load_error": "Could not load catalog settings.",
-    "switch_hub_confirm": "{{from}} is already the hub. Switch to {{to}}? The catalog will then be fully re-synced."
+    "switch_hub_confirm": "{{from}} is already the hub. Switch to {{to}}? The catalog will then be fully re-synced.",
+    "last_full": "Last full reconciliation:",
+    "sync_now": "Sync now",
+    "syncing": "Syncing …",
+    "sync_now_ok": "Synced",
+    "sync_now_inactive": "Nothing sent: sync is off, no active hub or no user selected.",
+    "sync_now_hint": "Save your changes first.",
+    "reason": {
+      "peer_catalog_not_accepted": "The hub does not accept the catalog yet (turn on “Accept catalog” there).",
+      "hub_unreachable": "Hub not reachable.",
+      "peer_unknown": "The hub does not know this server or has blocked it.",
+      "peer_signature_invalid": "The hub rejects the signature (check the pairing).",
+      "peer_expired": "The hub rejects the message as too old (check the clock).",
+      "peer_rate_limited": "The hub is throttling (too many messages), the next run will retry.",
+      "peer_replay": "The hub rejects the message number, the next run will retry.",
+      "peer_payload_too_large": "Message too large for the hub.",
+      "hub_bad_ack": "The hub did not acknowledge correctly.",
+      "sync_failed": "Sync failed (details in the server log).",
+      "source_failed": "A data source (ideas or tasks) could not be read."
+    }
   }
 }
