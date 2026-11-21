@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react"
+import { useEffect, useState } from "react"
 import { useTranslation } from "react-i18next"
 import { RefreshCw } from "lucide-react"
 import { catalogApi } from "./api"
@@ -25,18 +25,19 @@ export function CatalogSyncSection({ reloadKey }: Props) {
   const [saving, setSaving] = useState(false)
   const [saved, setSaved] = useState(false)
 
-  const load = useCallback(async () => {
-    try {
-      const s = await catalogApi.getSettings()
-      setSettings(s)
-      setDraft(prev => prev ?? toDraft(s))
-      setError("")
-    } catch (e) {
-      setError(e instanceof Error ? e.message : t("catalog.load_error"))
-    }
-  }, [t])
-
-  useEffect(() => { load() }, [load, reloadKey])
+  // Bei jedem reloadKey neu laden. Der Entwurf bleibt, wenn schon einer existiert (ungespeicherte Eingaben).
+  useEffect(() => {
+    let cancelled = false
+    catalogApi.getSettings()
+      .then(s => {
+        if (cancelled) return
+        setSettings(s)
+        setDraft(prev => prev ?? toDraft(s))
+        setError("")
+      })
+      .catch(e => { if (!cancelled) setError(e instanceof Error ? e.message : t("catalog.load_error")) })
+    return () => { cancelled = true }
+  }, [t, reloadKey])
 
   useEffect(() => {
     usersApi.list().then(list => setUsers(list.map(u => u.username).sort())).catch(() => {})
