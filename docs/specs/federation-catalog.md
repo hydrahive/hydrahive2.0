@@ -27,7 +27,7 @@ für die Metadaten.
 
 `instance-identity.md` legt für **Datamining** fest (Till, 11./12.10.): **nichts
 kopieren**, jeder Server behält sein Datamining, Abfrage **live** in beide Richtungen.
-Ein Abgleich wäre „zu extrem“.
+Dort heißt es: „Ein Abgleich der Datenbanken wäre zu viel.“
 
 Für **Ideen und Tasks** hat Till ausdrücklich **Sync** gewünscht (alle paar Minuten
 und sofort bei einer neuen Aufgabe). Das ist kein Widerspruch, denn die Daten sind
@@ -88,20 +88,36 @@ Kern über `ModuleContext` an, so wie heute `register_job` und `register_butler_
 ```
 ctx.register_catalog_source(
     kind="task" | "idea",
-    list_changed(username, since_iso, limit) -> [Metadaten],   # nach updated_at sortiert
-    list_ids(username) -> [id],                                # für den Abgleich gelöschter Einträge
+    list_changed(username, after: (updated_at, item_id) | None, limit) -> [Metadaten],
+        # sortiert nach (updated_at, item_id); liefert Zeilen mit (updated_at, item_id) > after
+    list_versions(username) -> [(item_id, updated_at)],        # für den stündlichen Abgleich
     get_full(username, item_id) -> {Metadaten + description/body (+ Anmerkungen bei Ideen)} | None,
+    query(usernames, project, status, q, limit, offset) -> [Metadaten],  # nur auf dem Hub, eigene Einträge
 )
 ```
 
-Zusätzlich ruft das Modul nach jedem erfolgreichen `create`/`update`/`delete`
-`ctx.catalog_changed(kind, username, item_id)` auf. Das ist der Auslöser für den
+`updated_at` bleibt ein **undurchsichtiger Wert der jeweiligen Quelle**. Tasks
+speichern sekundengenau (`…T10:00:00Z`, `tasks/backend/service.py`), Ideen
+mikrosekundengenau (`…T10:00:00.500000Z`, `scratchpad/backend/store.py`). Als
+Strings sortieren die beiden Formate nicht richtig gegeneinander
+(`"…00.500000Z" < "…00Z"`). Deshalb gibt es **einen Cursor je `kind`** und es wird
+nie über Arten hinweg verglichen (siehe Ablauf 2).
+
+Zusätzlich ruft das Modul nach **jedem** erfolgreichen Schreiben, das `updated_at`
+setzt oder eine Zeile anlegt oder löscht, `ctx.catalog_changed(kind, username, item_id)` auf. Das ist der Auslöser für den
 sofortigen Push (siehe Ablauf). Die Funktion kehrt sofort zurück und wirft nie. Ist
 Federation aus oder kein Hub gesetzt, passiert nichts.
 
-Betroffene Stellen in den Modulen: `tasks/backend/service.py` (`create_task`,
-`update_task`, `delete_task`), `scratchpad/backend/store.py` (`create`, `update`,
-`delete`). Ohne diese Anmeldung erscheint die Datenart einfach nicht im Katalog.
+Betroffene Stellen (Stand Modul-Repo 21.11.2026): `tasks/backend/service.py`
+(`create_task`, `update_task`, `delete_task`), `scratchpad/backend/store.py`
+(`create`, `update`, `delete`), `scratchpad/backend/notes.py` (Anmerkung setzt
+`updated_at`), `scratchpad/backend/board_link.py`, `scratchpad/backend/task_link.py`
+(legt einen Task direkt an und ändert den Ideenstatus) sowie
+`tickets/backend/task_link.py` (INSERT in `module_tasks`). `service.py`/`store.py`
+haben kein `ctx`. Das Modul hinterlegt deshalb in `register(ctx)` eine Referenz, die
+diese Stellen nutzen. Fehlt ein Aufruf, kommt die Änderung trotzdem an, aber erst
+mit dem nächsten Timer-Lauf. Ohne die Anmeldung als Quelle erscheint die Datenart
+nicht im Katalog.
 
 **Metadaten** sind genau diese Felder:
 
@@ -124,14 +140,24 @@ selbst angeben.
 ## Datenmodell (neue Migration)
 
 Neue Kern-Migration analog zu `053_federation_peers.sql`, Dateiname
-`0NN_federation_catalog.sql` mit der nächsten freien Nummer (Stand main `beef4841`: 062).
+`062_federation_catalog.sql`. Das ist die nächste freie Nummer, geprüft gegen main
+`beef4841`, alle Remote-Branches und offenen PRs am 21.11.2026. Vor dem Anlegen noch
+einmal gegen main prüfen.
+
+**Reihenfolge in der Datei:** Erst alle `CREATE TABLE/INDEX IF NOT EXISTS`, die beiden
+`ALTER TABLE` und den Teil-Index ganz ans Ende. Der Migrations-Runner
+(`db/migrations.py`) markiert eine Migration bei „duplicate column name“ als komplett
+angewendet. Ein Abbruch nach dem ersten `ALTER` würde sonst die übrigen Tabellen für
+immer verhindern. Alternativ werden die `ALTER`s in eine eigene Migration 063 ausgelagert.
 
 ### Erweiterung `federation_peers`
 
 ```
+-- ganz am Ende der Migration
 ALTER TABLE federation_peers ADD COLUMN is_hub INTEGER NOT NULL DEFAULT 0;
 ALTER TABLE federation_peers ADD COLUMN catalog_accept INTEGER NOT NULL DEFAULT 0;
-CREATE UNIQUE INDEX idx_federation_peers_single_hub ON federation_peers (is_hub) WHERE is_hub = 1;
+CREATE UNIQUE INDEX IF NOT EXISTS idx_federation_peers_single_hub
+    ON federation_peers (is_hub) WHERE is_hub = 1;
 ```
 
 - `is_hub` (wird **auf dem Client** gesetzt): Dieser Partner ist mein Hub. Der
@@ -142,16 +168,22 @@ CREATE UNIQUE INDEX idx_federation_peers_single_hub ON federation_peers (is_hub)
   `instance-identity.md` und zu den Agent-Freigaben in `server-peering.md`.
 
 Eine Spalte statt einer eigenen Tabelle, weil die Hub-Eigenschaft genau einen Partner
-betrifft und mit ihm gelöscht wird. Wird der Partner gesperrt (`blocked`), ruht der
-Sync ohne weitere Logik.
+betrifft und mit ihm gelöscht wird. Der Client sendet nur, wenn der Hub-Partner
+`status = 'active'` hat. Ist er gesperrt (`blocked`), ruht der Sync. Ein Server, der
+selbst Katalog-Daten annimmt (`catalog_accept = 1` bei irgendeinem Partner), kann
+keinen Hub setzen und umgekehrt. Die Einstellungs-Routen lehnen das mit `409` ab.
 
 ### Client-Seite
 
 `federation_catalog_settings` (eine Zeile)
 - `enabled` (0/1, Standard 0): Opt-in des Admins für diesen Server
 - `interval_seconds` (Standard 300, erlaubt 60–3600)
-- `cursor_updated_at`: höchstes `updated_at`, das der Hub bestätigt hat
 - `seq`: laufende Nummer der letzten gesendeten Nachricht
+
+`federation_catalog_cursors` (je Nutzer und Art)
+- `username`, `kind` — Primärschlüssel
+- `cursor_updated_at`: `updated_at` des letzten **vollständig bestätigten** Laufs, im
+  Format der Quelle; wird nur mit Werten derselben Art verglichen
 - `last_push_at`, `last_ok_at`, `last_full_at`, `last_error`
 
 `federation_catalog_users`
@@ -170,10 +202,15 @@ Sync ohne weitere Logik.
 - `created_at`, `updated_at` (vom Ursprung), `received_at` (Hub)
 - `snapshot_body`, `snapshot_at`: zuletzt live nachgeladener Volltext (siehe Nachladen), sonst leer
 - Indizes: `(owner, status)`, `(peer_id, project_name)`, `(updated_at)`;
-  Volltextsuche über `title` mit FTS5 (`federation_catalog_fts`, nur Titel)
+  Volltextsuche über `title` mit FTS5: `federation_catalog_fts` als
+  External-Content-Tabelle (`content='federation_catalog_items'`) mit
+  Insert/Update/Delete-Triggern. Die Löschung per `ON DELETE CASCADE` löst die
+  Delete-Trigger aus. Eine eigenständige FTS-Tabelle würde beim Entfernen eines
+  Partners verwaiste Zeilen behalten.
 
 `federation_catalog_sources`
-- `peer_id` (PK, FK), `last_seq`, `last_push_at`, `last_full_at`, `item_count`
+- `peer_id` (PK, FK `federation_peers` ON DELETE CASCADE), `last_seq`, `interval_seconds`
+  (vom Client gemeldet), `last_push_at`, `last_full_at`, `item_count`
 
 Gelöschte Einträge werden auf dem Hub **entfernt**, nicht als Grabstein behalten.
 
@@ -198,9 +235,25 @@ Die Reihenfolge von 2–4 ist egal. Bis der Hub annimmt, bekommt der Client
 
 ### 2. Sync-Trigger
 
-**Timer: alle 300 s (5 min).** Ein Kern-Job (`register_job`-Mechanik,
-`interval_seconds = 300`, `initial_delay_seconds = 60`) schickt alles, was sich seit
-`cursor_updated_at` geändert hat.
+**Timer: alle 300 s (5 min).** Ein eigener Kern-Loop, gestartet in
+`api/lifespan.py` nach dem Muster der vorhandenen `run_loop`-Tasks mit Stop-Event
+(z. B. `zahnfee_scheduler.run_loop`). `ModuleContext.register_job` gibt es nur für
+Module und legt das Intervall fest. Der Loop liest `interval_seconds` dagegen bei
+jedem Durchlauf aus den Einstellungen, damit Änderungen ohne Neustart wirken. Erster
+Lauf 60 s nach dem Start.
+
+**Cursor-Verfahren (je Nutzer und Art):**
+1. Der Lauf startet bei `updated_at >= cursor_updated_at`, also **einschließlich**
+   des Cursorwerts. Die zuletzt bestätigte Zeitstufe wird damit jedes Mal noch einmal
+   mitgeschickt. Das ist gewollt: Tasks sind nur sekundengenau, und eine zweite
+   Änderung in derselben Sekunde ginge mit `>` verloren. Der Upsert auf dem Hub ist
+   idempotent, doppelte Einträge schaden nicht.
+2. Innerhalb eines Laufs wird nach `(updated_at, item_id)` geblättert (Keyset,
+   `list_changed(after=…)`), in Nachrichten zu höchstens 500 Einträgen. So entsteht
+   auch bei mehr als 500 Einträgen mit gleichem `updated_at` keine Endlosschleife.
+3. Erst wenn **alle** Nachrichten des Laufs bestätigt sind, setzt der Client
+   `cursor_updated_at` auf das höchste gesendete `updated_at` dieser Art. Bricht der
+   Lauf ab, bleibt der Cursor stehen und der nächste Lauf wiederholt ihn.
 
 Begründung für 5 Minuten:
 - Den sofortigen Fall deckt der Event-Push ab. Der Timer ist nur das Sicherheitsnetz
@@ -210,8 +263,10 @@ Begründung für 5 Minuten:
   (Lebenszeichen, setzt `last_seen`). Bei 10 Clients sind das 2 Anfragen pro Minute
   am Hub, weit unter dem Rate-Limit (30/min pro Partner).
 - Es passt zur Nachrichten-Frische `MAX_AGE_SECONDS = 300` in `peer_protocol.py`:
-  Ein Hub, der länger als ein Intervall nichts gehört hat, kann den Client als
-  „nicht aktuell“ markieren (siehe Oberfläche).
+  Der Client meldet sein `interval_seconds` in jedem Push mit. Hat der Hub länger
+  als **zwei** Intervalle nichts gehört, markiert er den Client als „nicht aktuell“
+  (siehe Oberfläche). Zwei statt eins, damit ein einzelner verspäteter Lauf keinen
+  Fehlalarm auslöst.
 - Einstellbar ist 60–3600 s. Weniger als 60 s ist nicht sinnvoll, weil der
   Event-Push schneller ist.
 
@@ -222,11 +277,14 @@ hintereinander, geht trotzdem nur eine Nachricht raus. Schlägt der Push fehl, g
 Timer-Lauf schickt alles mit. So entsteht kein Wiederholungssturm, wenn der Hub
 offline ist.
 
-**Abgleich gelöschter Einträge: stündlich.** Der Delta-Push sieht Löschungen nicht,
-weil gelöschte Zeilen kein `updated_at` mehr haben. Deshalb schickt jeder zwölfte
-Timer-Lauf (oder einer, der mehr als 60 min nach `last_full_at` kommt) zusätzlich die
-vollständige ID-Liste je Nutzer und Art (`full_ids`). Der Hub entfernt alles, was
-dort fehlt. Eine Löschung, die einen Event-Push auslöst, wird sofort als `deleted`
+**Abgleich: stündlich.** Der Delta-Push sieht Löschungen nicht, weil gelöschte
+Zeilen kein `updated_at` mehr haben. Deshalb schickt jeder zwölfte Timer-Lauf (oder
+einer, der mehr als 60 min nach `last_full_at` kommt) zusätzlich die vollständige
+Liste `(item_id, updated_at)` je Nutzer und Art (`full_versions`). Der Hub entfernt
+alles, was dort fehlt. Fehlen ihm Einträge oder ist sein `updated_at` ein anderes,
+antwortet er mit `resync: [{username, kind}]`. Der Client setzt für diese Paare den
+Cursor zurück und schickt sie im nächsten Lauf vollständig. Damit repariert der
+Abgleich auch verpasste Änderungen, nicht nur Löschungen. Eine Löschung, die einen Event-Push auslöst, wird sofort als `deleted`
 mitgeschickt. Der stündliche Abgleich fängt nur verpasste Löschungen auf.
 
 **Nutzer- oder Projektauswahl geändert, Hub gewechselt:** Der Cursor wird
@@ -243,10 +301,11 @@ zurückgesetzt, der nächste Lauf ist ein voller Abgleich.
   "msg_id": "<uuid>",
   "from": "<fingerprint>",
   "seq": 4711,
+  "interval_seconds": 300,
   "issued_at": 1795000000,
   "items":   [ {Metadaten}, … ],          # höchstens 500 je Nachricht
   "deleted": [ {"kind": "task", "item_id": "…"}, … ],
-  "full_ids": { "till": { "task": ["…"], "idea": ["…"] } } | null
+  "full_versions": { "till": { "task": [["<id>", "<updated_at>"], …], "idea": […] } } | null
 }
 ```
 
@@ -256,7 +315,10 @@ Der Hub prüft in dieser Reihenfolge und lehnt jeweils ohne Details nach außen 
 2. `catalog_accept = 1` für diesen Partner, sonst `peer_catalog_not_accepted`
 3. `seq` > `last_seq` des Partners, sonst `peer_replay`. Damit braucht der
    Replay-Schutz für Katalog-Nachrichten **keine** Zeile in `federation_peer_tasks`,
-   die sonst alle 5 Minuten wachsen würde.
+   die sonst alle 5 Minuten wachsen würde. Die Ablehnung enthält ausnahmsweise
+   `last_seq`, damit ein Client nach einem Backup-Restore auf `last_seq + 1` springen
+   kann. Das ist unbedenklich, denn der Absender ist zu diesem Zeitpunkt schon als
+   gekoppelter Partner mit gültiger Signatur geprüft.
 4. Rate-Limit pro Partner (eigener Zähler, 30/min) und Größenlimit (nginx 1 MB,
    höchstens 500 Einträge, Titel ≤ 300 Zeichen)
 5. Felder gültig: `kind` ∈ {task, idea}, Status aus der jeweiligen Liste. Ungültige
@@ -265,8 +327,8 @@ Der Hub prüft in dieser Reihenfolge und lehnt jeweils ohne Details nach außen 
 Danach schreibt der Hub per Upsert in `federation_catalog_items`. Eine Zeile wird nur
 überschrieben, wenn das neue `updated_at` ≥ dem gespeicherten ist. Ändert sich
 `updated_at`, wird `snapshot_body` als veraltet markiert. Antwort `200` mit
-`{"ack_seq": 4711, "ack_updated_at": "<max updated_at>"}`. Erst mit dieser Antwort
-setzt der Client seinen Cursor weiter. Gehen Nachrichten verloren, kommen sie also
+`{"ack_seq": 4711, "resync": [] }`. Der Cursor wird erst weitergesetzt, wenn alle
+Nachrichten des Laufs bestätigt sind (Ablauf 2). Gehen Nachrichten verloren, kommen sie also
 beim nächsten Lauf noch einmal.
 
 Bei mehr als 500 Änderungen schickt der Client mehrere Nachrichten nacheinander mit
@@ -284,12 +346,18 @@ steigender `seq`, jede wird einzeln bestätigt.
 3. Der Client prüft: Absender ist **sein Hub** (`is_hub = 1`) und `active`, Signatur
    gültig, frisch, Sync `enabled`. `owner` steht in `federation_catalog_users`, das
    Projekt ist nicht ausgeschlossen, und der Eintrag gehört wirklich `owner`. Fehlt
-   eine dieser Bedingungen, kommt `404` ohne Angabe, ob es den Eintrag gibt.
+   eine dieser Bedingungen, kommt nach außen **immer `404`** ohne Code und ohne Angabe,
+   ob es den Eintrag gibt. Der genaue Grund (`peer_not_hub`, `peer_catalog_disabled`,
+   Nutzer/Projekt ausgeschlossen, unbekannt) geht nur ins Audit. Replay-Schutz:
+   `msg_id` wird für die Frischezeit (`MAX_AGE_SECONDS`) im Speicher gehalten,
+   eine Wiederholung bekommt ebenfalls `404`.
 4. Der Client antwortet **synchron** (kein Auftrag im AgentLink, wie die
    Datamining-Abfrage in `instance-identity.md`) mit `get_full(...)`: Metadaten,
-   Beschreibung bzw. Ideentext und bei Ideen die Anmerkungen, höchstens 200 kB
-   (`MAX_TEXT`). Die Antwort ist selbst signiert (`kind: "catalog_item"`, Header
-   `X-HH-Signature`), damit der Hub auch den Rückweg prüfen kann. `send_signed`
+   Beschreibung bzw. Ideentext und bei Ideen die Anmerkungen, gekürzt auf
+   `MAX_TEXT` (200 000 Zeichen). Die Antwort ist selbst signiert
+   (`kind: "catalog_item"`, Header `X-HH-Signature`) und wiederholt die `msg_id` der
+   Anfrage (`in_reply_to`). Der Hub prüft Signatur, Frische und dass `in_reply_to`
+   seine eigene offene Anfrage ist. `send_signed`
    signiert heute nur die Anfrage, deshalb braucht es hier eine kleine Ergänzung.
 5. Der Hub zeigt den Volltext, aktualisiert die Metadaten der Zeile und speichert
    den Text als `snapshot_body` mit `snapshot_at`.
@@ -314,8 +382,9 @@ mit der Katalog-Zeile auch der Snapshot (spätestens beim stündlichen Abgleich)
 - `verify_incoming` prüft heute fest `task_id`. Es bekommt einen Parameter für das
   ID-Feld (`id_field="task_id"` als Standard, `"msg_id"` für Katalog-Nachrichten).
   Bestehende Aufrufe für `task`/`reply` bleiben unverändert.
-- Neue Fehlercodes: `peer_catalog_not_accepted`, `peer_not_hub`,
-  `peer_catalog_disabled`.
+- Neue Fehlercodes: `peer_catalog_not_accepted` (nach außen an den Client, damit er
+  den Grund anzeigen kann), `peer_not_hub` und `peer_catalog_disabled` (nur im Audit,
+  nach außen `404`, siehe Ablauf 4).
 
 ## Sicherheit
 
@@ -340,7 +409,7 @@ Grundlage wie in `server-peering.md`, ohne Abschwächung:
   Namen ablegen und keine fremden Einträge überschreiben, weil der Schlüssel
   `peer_id` enthält.
 - **Nachladen nur durch den eigenen Hub**: Ein anderer gekoppelter Partner kann
-  `catalog_fetch` nicht nutzen (`peer_not_hub`). Damit wird die Server-Kopplung nicht
+  `catalog_fetch` nicht nutzen (nach außen `404`, im Audit `peer_not_hub`). Damit wird die Server-Kopplung nicht
   zum allgemeinen Lesezugang auf Tasks.
 - **Sensible Projekte**: Der Admin kann Projekte ausschließen. Titel und Text aus
   ausgeschlossenen Projekten verlassen den Server weder beim Push noch beim Nachladen.
@@ -367,7 +436,11 @@ Client:
 Hub:
 - `PUT /api/federation/peers/{id}/catalog` `{accept}` (Admin)
 - `GET /api/federation/catalog?instance=&project=&status=&kind=&q=&limit=&offset=`
-  (seitenweise; enthält die eigenen lokalen Einträge des Hubs mit dessen Instanznamen)
+  (seitenweise; enthält die eigenen lokalen Einträge des Hubs mit dessen Instanznamen.
+  Ist „dieser Server“ im Filter, fragt der Hub die eigenen Quellen über `query(...)`
+  mit `limit + offset` ab, mischt nach `updated_at` absteigend mit den Katalogzeilen
+  und schneidet die Seite aus. Bei den erwarteten Mengen von wenigen Tausend
+  Einträgen reicht das, eine gemeinsame Tabelle ist nicht nötig.)
 - `GET /api/federation/catalog/{peer_id}/{kind}/{item_id}` (Metadaten + live nachgeladener Volltext oder Snapshot mit Offline-Hinweis)
 
 Signiert, nur Tailnet:
@@ -436,7 +509,11 @@ Texte über i18n (`federation.json` de/en), Hilfe in `help/{de,en}/federation.md
 7. Detailansicht auf dem Hub lädt die Beschreibung live vom Client. Ist der Client
    aus, kommt nach ≤ 10 s Snapshot bzw. Metadaten mit „zuletzt gesehen am …“.
 8. Gefälschte Signatur, falsche oder alte `seq`, abgelaufene Nachricht,
-   `catalog_fetch` von einem Partner, der nicht Hub ist → abgelehnt und im Audit.
+   `catalog_fetch` von einem Partner, der nicht Hub ist (nach außen `404`) → abgelehnt
+   und mit Grund im Audit.
+8a. Eine Idee und ein Task, die in derselben Sekunde geändert werden, und zwei
+    Änderungen desselben Tasks in derselben Sekunde kommen alle am Hub an (Test für
+    das Cursor-Verfahren).
 9. `/api/peering/catalog/*` von außerhalb des Tailnets → 403.
 10. Einträge aus einem ausgeschlossenen Projekt und von nicht ausgewählten Nutzern
     erscheinen nie am Hub und sind auch per Fetch nicht abrufbar.

@@ -112,6 +112,7 @@ Kein gemeinsames Geheimnis, kein Passwort über die Leitung.
 ## Nicht-Ziele (vorerst)
 
 - Datenabgleich zwischen Servern (Projekte, Memory, Dateien) – siehe `workstation-client.md`
+  (Ausnahme: Metadaten von Ideen und Tasks über einen Hub, siehe `federation-catalog.md`)
 - Mehr als Agenten-Aufträge (z. B. Tools des anderen Servers direkt aufrufen)
 - Kopplung ohne Tailscale über das offene Internet
 
