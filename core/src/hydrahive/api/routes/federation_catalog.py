@@ -138,3 +138,17 @@ def put_catalog_settings(body: CatalogSettingsBody, _: _Admin) -> dict:
     safe_refresh_gate()
 
     return _settings_response()
+
+
+@router.post("/catalog/sync-now")
+async def catalog_sync_now(_: _Admin) -> dict:
+    """Voller Abgleich sofort (Spec §API). Läuft unter derselben Sperre wie Timer
+    und Event-Push. ``result``: ``ok`` · ``inactive`` (Sync aus/kein Hub, kein
+    Netzverkehr) · Fehlercode des Laufs, z. B. ``peer_catalog_not_accepted``."""
+    import asyncio
+
+    from hydrahive.federation import catalog_sync
+
+    result = await catalog_sync.sync(full=True, reason="manual")
+    logger.info("Föderations-Katalog: Abgleich von Hand → %s", result)
+    return {"result": result, "settings": await asyncio.to_thread(_settings_response)}

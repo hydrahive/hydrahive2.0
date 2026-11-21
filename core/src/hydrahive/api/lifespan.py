@@ -235,6 +235,9 @@ async def lifespan(app: FastAPI):
     from hydrahive.modules import jobs as module_jobs
     module_jobs_stop = asyncio.Event()
     module_job_tasks = module_jobs.start_all(module_jobs_stop)
+    from hydrahive.federation import catalog_runner  # Föderations-Katalog: Timer + Event-Push
+    catalog_stop = asyncio.Event()
+    catalog_tasks = catalog_runner.start(catalog_stop)
 
     mail_stop: asyncio.Event | None = None
     mail_task: asyncio.Task[None] | None = None
@@ -307,6 +310,7 @@ async def lifespan(app: FastAPI):
     compute_monitor_stop.set()
     scheduled_tasks_stop.set()
     module_jobs_stop.set()
+    catalog_stop.set()
     if mail_stop is not None:
         mail_stop.set()
     # Laufenden eingehenden Handoffs kurz Zeit geben, einen Checkpoint zu posten
@@ -322,6 +326,7 @@ async def lifespan(app: FastAPI):
         compute_monitor_task,
         scheduled_tasks_task,
         *module_job_tasks,
+        *catalog_tasks,
     ]
     if mail_task is not None:
         shutdown_tasks.append(mail_task)
