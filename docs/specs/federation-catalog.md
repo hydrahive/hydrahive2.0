@@ -90,7 +90,7 @@ ctx.register_catalog_source(
     kind="task" | "idea",
     list_changed(username, after: (updated_at, item_id) | None, limit) -> [Metadaten],
         # sortiert nach (updated_at, item_id); liefert Zeilen mit (updated_at, item_id) > after
-    list_versions(username) -> [(item_id, updated_at)],        # für den stündlichen Abgleich
+    list_versions(username) -> [(item_id, updated_at, project_id)],  # für den stündlichen Abgleich
     get_full(username, item_id) -> {Metadaten + description/body (+ Anmerkungen bei Ideen)} | None,
     query(usernames, project, status, q, limit, offset) -> [Metadaten],  # nur auf dem Hub, eigene Einträge
 )
@@ -148,7 +148,11 @@ einmal gegen main prüfen.
 `ALTER TABLE` und den Teil-Index ganz ans Ende. Der Migrations-Runner
 (`db/migrations.py`) markiert eine Migration bei „duplicate column name“ als komplett
 angewendet. Ein Abbruch nach dem ersten `ALTER` würde sonst die übrigen Tabellen für
-immer verhindern. Alternativ werden die `ALTER`s in eine eigene Migration 063 ausgelagert.
+immer verhindern. Zusätzlich steht die ganze Migration in `BEGIN; … COMMIT;`, denn DDL
+ist in SQLite transaktional. Ein Abbruch zwischen den beiden `ALTER`s hinterlässt dann
+gar nichts, und der nächste Start wendet die Migration vollständig an. Vor der
+Umsetzung prüfen, ob `db/migrations.py` Migrationen schon selbst in eine Transaktion
+fasst. Dann entfällt das eigene `BEGIN`.
 
 ### Erweiterung `federation_peers`
 
@@ -179,12 +183,15 @@ keinen Hub setzen und umgekehrt. Die Einstellungs-Routen lehnen das mit `409` ab
 - `enabled` (0/1, Standard 0): Opt-in des Admins für diesen Server
 - `interval_seconds` (Standard 300, erlaubt 60–3600)
 - `seq`: laufende Nummer der letzten gesendeten Nachricht
+- `last_push_at`, `last_ok_at`, `last_full_at`, `last_error`
 
 `federation_catalog_cursors` (je Nutzer und Art)
 - `username`, `kind` — Primärschlüssel
 - `cursor_updated_at`: `updated_at` des letzten **vollständig bestätigten** Laufs, im
   Format der Quelle; wird nur mit Werten derselben Art verglichen
-- `last_push_at`, `last_ok_at`, `last_full_at`, `last_error`
+
+Status des Clients (`last_push_at`, `last_ok_at`, `last_full_at`, `last_error`) steht
+**einmal** in `federation_catalog_settings`, nicht je Cursor.
 
 `federation_catalog_users`
 - `username`: Nutzer, deren Ideen und Tasks gesynct werden. Standard: **leer**, es
@@ -207,6 +214,11 @@ keinen Hub setzen und umgekehrt. Die Einstellungs-Routen lehnen das mit `409` ab
   Insert/Update/Delete-Triggern. Die Löschung per `ON DELETE CASCADE` löst die
   Delete-Trigger aus. Eine eigenständige FTS-Tabelle würde beim Entfernen eines
   Partners verwaiste Zeilen behalten.
+
+`federation_catalog_rejected`
+- `peer_id` (FK ON DELETE CASCADE), `kind`, `item_id`, `updated_at`, `reason` —
+  Primärschlüssel `(peer_id, kind, item_id)`. Vom Hub verworfene Einträge, damit der
+  stündliche Abgleich sie nicht immer wieder anfordert.
 
 `federation_catalog_sources`
 - `peer_id` (PK, FK `federation_peers` ON DELETE CASCADE), `last_seq`, `interval_seconds`
@@ -254,6 +266,11 @@ Lauf 60 s nach dem Start.
 3. Erst wenn **alle** Nachrichten des Laufs bestätigt sind, setzt der Client
    `cursor_updated_at` auf das höchste gesendete `updated_at` dieser Art. Bricht der
    Lauf ab, bleibt der Cursor stehen und der nächste Lauf wiederholt ihn.
+4. Timer-Lauf und Event-Push teilen sich **eine Sperre**: Es läuft immer nur ein
+   Versand, Nachrichten gehen streng nacheinander raus (sonst könnte eine spätere
+   `seq` vor einer früheren ankommen → `peer_replay`). Zwischen den Nachrichten eines
+   Laufs liegen mindestens 2 s, damit ein großer Erstabgleich nicht ins Rate-Limit
+   (30/min) läuft.
 
 Begründung für 5 Minuten:
 - Den sofortigen Fall deckt der Event-Push ab. Der Timer ist nur das Sicherheitsnetz
@@ -280,12 +297,22 @@ offline ist.
 **Abgleich: stündlich.** Der Delta-Push sieht Löschungen nicht, weil gelöschte
 Zeilen kein `updated_at` mehr haben. Deshalb schickt jeder zwölfte Timer-Lauf (oder
 einer, der mehr als 60 min nach `last_full_at` kommt) zusätzlich die vollständige
-Liste `(item_id, updated_at)` je Nutzer und Art (`full_versions`). Der Hub entfernt
-alles, was dort fehlt. Fehlen ihm Einträge oder ist sein `updated_at` ein anderes,
-antwortet er mit `resync: [{username, kind}]`. Der Client setzt für diese Paare den
-Cursor zurück und schickt sie im nächsten Lauf vollständig. Damit repariert der
-Abgleich auch verpasste Änderungen, nicht nur Löschungen. Eine Löschung, die einen Event-Push auslöst, wird sofort als `deleted`
-mitgeschickt. Der stündliche Abgleich fängt nur verpasste Löschungen auf.
+Liste `(item_id, updated_at)` je Nutzer und Art (`full_versions`). Sie enthält
+**genau die Einträge, die auch gepusht werden**: Der Client filtert sie mit derselben
+Regel wie beim Push (ausgewählte Nutzer, `project_id` nicht ausgeschlossen, dafür
+liefert `list_versions` die `project_id` mit). IDs und Zeitstempel aus
+ausgeschlossenen Projekten verlassen den Server also auch hier nicht.
+
+Der Hub entfernt alles, was in der Liste fehlt. Fehlen ihm Einträge oder ist sein
+`updated_at` ein anderes, antwortet er mit `resync: [{username, kind}]`. Der Client
+setzt für diese Paare den Cursor zurück und schickt sie im nächsten Lauf vollständig.
+Einträge, die der Hub bei Prüfschritt 5 verworfen hat, merkt er sich je Partner mit
+ihrem `updated_at` (`federation_catalog_rejected`). Sie lösen **kein** `resync` aus,
+solange sich ihr `updated_at` nicht ändert. So entsteht keine stündliche
+Dauerschleife.
+
+Eine Löschung, die einen Event-Push auslöst, wird sofort als `deleted` mitgeschickt.
+Der stündliche Abgleich fängt verpasste Löschungen **und** verpasste Änderungen auf.
 
 **Nutzer- oder Projektauswahl geändert, Hub gewechselt:** Der Cursor wird
 zurückgesetzt, der nächste Lauf ist ein voller Abgleich.
