@@ -74,6 +74,7 @@ def set_hub(peer_id: str, is_hub: bool) -> dict | None:
         )
         if bool(peer["is_hub"]) != is_hub:
             conn.execute("DELETE FROM federation_catalog_cursors")
+            conn.execute("UPDATE federation_catalog_settings SET last_full_at = NULL WHERE id = 1")
         row = conn.execute("SELECT * FROM federation_peers WHERE id = ?", (peer_id,)).fetchone()
     return _row(row)
 
@@ -179,6 +180,9 @@ def set_excluded_projects(project_ids: list[str]) -> list[str]:
 
 def reset_all_cursors() -> None:
     """Voller Abgleich beim nächsten Lauf (Spec Ablauf 2: Hub-Wechsel oder
-    Auswahländerung setzt den Cursor zurück)."""
+    Auswahländerung setzt den Cursor zurück). ``last_full_at`` leeren, damit der
+    nächste Timer-Lauf auch die Versionsliste schickt und Abgewähltes sofort
+    vom Hub verschwindet, nicht erst bis zu 60 min später."""
     with db() as conn:
         conn.execute("DELETE FROM federation_catalog_cursors")
+        conn.execute("UPDATE federation_catalog_settings SET last_full_at = NULL WHERE id = 1")

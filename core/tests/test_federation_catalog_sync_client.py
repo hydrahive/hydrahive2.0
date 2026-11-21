@@ -89,7 +89,10 @@ async def test_ak4_hub_offline_naechster_lauf_holt_nach(env):
 
 # --- AK 5: Löschung per Event und per Abgleich -----------------------------------
 
-async def test_ak5_geloeschter_task_per_event(env):
+async def test_ak5_geloeschter_task_per_event(env, client, admin_headers):
+    """Ohne ausgeschlossene Projekte sofort als deleted (mit: siehe test_federation_catalog_review737)."""
+    from tests.test_federation_catalog_e1 import _settings_body
+    client.put("/api/federation/catalog/settings", headers=admin_headers, json=_settings_body(excluded_projects=[]))
     env["tasks"].put("t-1", T0)
     env["tasks"].put("t-2", T0)
     await catalog_sync.sync()
@@ -121,11 +124,12 @@ async def test_abgleich_und_push_ohne_ausgeschlossene_projekte(env):
     assert [i["item_id"] for p in sent for i in p["items"]] == ["t-ok"]
     assert sent[-1]["full_versions"]["testuser"]["task"] == [["t-ok", T0]]
     assert set(hub_rows(env["peer"]["id"])) == {("task", "t-ok")}
-    # Eintrag wandert in ein ausgeschlossenes Projekt → per Event als gelöscht
+    # Eintrag wandert in ein ausgeschlossenes Projekt → per Event-Abgleich entfernt, ohne seine ID
+    env["hub"].sent.clear()
     env["tasks"].put("t-ok", T1, project_id="proj-geheim")
     await catalog_sync.sync(pairs={("testuser", "task")}, entries=[("task", "testuser", "t-ok")], heartbeat=False)
     assert hub_rows(env["peer"]["id"]) == {}
-    assert "t-geheim" not in str(env["hub"].sent)
+    assert "t-geheim" not in str(env["hub"].sent) and "t-ok" not in str(env["hub"].sent)
 
 
 async def test_abgleich_bei_kaputter_quelle_schickt_keine_liste(env):

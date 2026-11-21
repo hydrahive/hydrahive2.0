@@ -86,7 +86,8 @@ def _collect_full(cfg: client_db.SyncConfig, plan: Plan) -> None:
     """Abgleich: (item_id, updated_at) je Nutzer und Art, gefiltert wie der Push.
 
     Scheitert eine Quelle, geht in diesem Lauf KEINE Liste raus — der Hub würde
-    sonst alle Einträge dieser Art löschen.
+    sonst alle Einträge dieser Art löschen. Eine Art ganz ohne Quelle (Modul
+    lädt nicht) fehlt in der Liste; der Hub gleicht sie dann nicht ab.
     """
     full: dict[str, dict[str, list[list[str]]]] = {}
     for username in cfg.users:
@@ -108,21 +109,39 @@ def _collect_full(cfg: client_db.SyncConfig, plan: Plan) -> None:
     plan.full_versions = full
 
 
-def _collect_deleted(cfg: client_db.SyncConfig, entries: list[tuple[str, str, str]], plan: Plan) -> None:
-    """Event-Push: gemeldete Einträge, die weg sind oder jetzt in einem
-    ausgeschlossenen Projekt liegen, sofort als ``deleted`` (nur Art + ID)."""
+def _collect_deleted(cfg: client_db.SyncConfig, entries: list[tuple[str, str, str]], plan: Plan) -> bool:
+    """Event-Push: gemeldete Einträge, die es nicht mehr gibt, sofort entfernen.
+
+    Ohne ausgeschlossene Projekte gehen sie als ``deleted`` (nur Art + ID) raus.
+    Sind Projekte ausgeschlossen, ist das Projekt eines gelöschten Eintrags nicht
+    mehr bekannt, und seine ID darf den Server nicht verlassen (Spec §Ablauf 2).
+    Dann liefert die Funktion True: der Lauf schickt stattdessen die
+    Abgleichsliste, die nur nicht ausgeschlossene Einträge enthält — der Hub
+    entfernt den Eintrag trotzdem sofort. Dasselbe gilt für einen Eintrag, der
+    noch existiert, aber jetzt in einem ausgeschlossenen Projekt liegt (er war
+    vielleicht schon am Hub). Einträge aus ausgeschlossenen Projekten lösen nie
+    ein ``deleted`` mit ihrer ID aus.
+    """
     seen: set[tuple[str, str]] = set()
+    need_full = False
     for kind, username, item_id in entries:
         source = catalog_sources.get_source(kind)
         if source is None or (kind, item_id) in seen:
             continue
         try:
-            full = source.get_full(username, item_id)
+            current = source.get_full(username, item_id)
         except Exception:
             continue
-        if full is None or (isinstance(full, dict) and full.get("project_id") in cfg.excluded_projects):
-            seen.add((kind, item_id))
+        if current is not None:
+            if isinstance(current, dict) and current.get("project_id") in cfg.excluded_projects:
+                need_full = True   # evtl. gerade ins ausgeschlossene Projekt verschoben
+            continue
+        seen.add((kind, item_id))
+        if cfg.excluded_projects:
+            need_full = True
+        else:
             plan.deleted.append({"kind": kind, "item_id": item_id})
+    return need_full
 
 
 def build_plan(
@@ -133,7 +152,7 @@ def build_plan(
     full: bool = False,
 ) -> Plan:
     plan = Plan()
-    _collect_deleted(cfg, list(entries), plan)
+    full = _collect_deleted(cfg, list(entries), plan) or full
     _collect_changed(cfg, pairs, plan)
     if full:
         _collect_full(cfg, plan)

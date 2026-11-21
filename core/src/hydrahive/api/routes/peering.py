@@ -7,6 +7,7 @@ Fehler nach außen nur als Code, Details stehen im eigenen Log.
 """
 from __future__ import annotations
 
+import asyncio
 import json
 import logging
 
@@ -92,9 +93,13 @@ async def receive_catalog_push(request: Request):
     try:
         verified = await _read(request, "catalog_push", id_field="msg_id")
         peer_name = verified.peer["name"]
-        return catalog_hub.accept_push(verified.peer, verified.payload)
+        # DB-Arbeit (Transaktion mit Schreibsperre, bis 500 Upserts) nicht im Event-Loop
+        return await asyncio.to_thread(catalog_hub.accept_push, verified.peer, verified.payload)
     except proto.PeerRejected as exc:
-        catalog_hub.audit(peer_name, f"Push abgelehnt: {exc.code} ({exc})", severity="warning")
+        detail = str(exc)[:200]  # Absender-Header kann vor der Signaturprüfung beliebig lang sein
+        await asyncio.to_thread(
+            catalog_hub.audit, peer_name, f"Push abgelehnt: {exc.code} ({detail})", severity="warning",
+        )
         response = _rejected(exc)
         if isinstance(exc, catalog_hub.CatalogReplay):
             response = JSONResponse(

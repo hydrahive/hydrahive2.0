@@ -130,12 +130,16 @@ def apply_push(
 def _reconcile(conn, peer_id: str, full: dict[tuple[str, str], dict[str, str]], res: PushResult) -> None:
     """Stündlicher Abgleich: Hub entfernt, was fehlt; Abweichungen → resync.
 
-    Paare (owner, kind), die gar nicht in der Liste stehen, gelten als leer: der
-    Client hat den Nutzer abgewählt oder die Art hat dort keine Quelle mehr.
+    Abgeglichen werden nur Arten, die in der Liste vorkommen (bei irgendeinem
+    Nutzer, auch als leere Liste). Fehlt eine Art ganz, hat der Client dafür
+    gerade keine Quelle (Modul lädt nicht) — dann bleibt sie unangetastet statt
+    alles zu löschen. Innerhalb einer gelisteten Art gilt ein fehlender Nutzer
+    als leer (abgewählt).
     """
-    stored = conn.execute(
+    kinds = {kind for (_o, kind) in full}
+    stored = [r for r in conn.execute(
         "SELECT kind, item_id, owner, updated_at FROM federation_catalog_items WHERE peer_id = ?", (peer_id,),
-    ).fetchall()
+    ).fetchall() if r["kind"] in kinds]
     listed = {(kind, item_id) for (_o, kind), versions in full.items() for item_id in versions}
     for r in stored:
         if (r["kind"], r["item_id"]) not in listed:
@@ -146,7 +150,7 @@ def _reconcile(conn, peer_id: str, full: dict[tuple[str, str], dict[str, str]], 
     for r in conn.execute(
         "SELECT kind, item_id FROM federation_catalog_rejected WHERE peer_id = ?", (peer_id,),
     ).fetchall():
-        if (r["kind"], r["item_id"]) not in listed:
+        if r["kind"] in kinds and (r["kind"], r["item_id"]) not in listed:
             conn.execute(
                 "DELETE FROM federation_catalog_rejected WHERE peer_id = ? AND kind = ? AND item_id = ?",
                 (peer_id, r["kind"], r["item_id"]),

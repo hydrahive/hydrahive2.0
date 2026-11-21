@@ -14,6 +14,7 @@ hat (leere Lebenszeichen alle 5 min würden das Log sonst fluten).
 from __future__ import annotations
 
 import logging
+import threading
 import time
 from typing import Any
 
@@ -37,6 +38,7 @@ STATUSES = {
 _RATE_MAX = 30
 _RATE_WINDOW_S = 60.0
 _rate: dict[str, list[float]] = {}  # eigener Zähler, getrennt von peer_inbound (Aufträge)
+_rate_lock = threading.Lock()       # accept_push läuft in Worker-Threads
 
 
 class CatalogReplay(proto.PeerRejected):
@@ -56,11 +58,12 @@ def audit(peer_name: str, message: str, *, severity: str = "info") -> None:
 
 def _rate_ok(peer_id: str) -> bool:
     now = time.monotonic()
-    hits = [t for t in _rate.get(peer_id, []) if now - t < _RATE_WINDOW_S]
-    ok = len(hits) < _RATE_MAX
-    if ok:
-        hits.append(now)
-    _rate[peer_id] = hits
+    with _rate_lock:
+        hits = [t for t in _rate.get(peer_id, []) if now - t < _RATE_WINDOW_S]
+        ok = len(hits) < _RATE_MAX
+        if ok:
+            hits.append(now)
+        _rate[peer_id] = hits
     return ok
 
 

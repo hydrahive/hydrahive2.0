@@ -75,8 +75,10 @@ def test_ak3_echte_zeiten_bleiben_unter_15_s():
     assert catalog_runner.BUNDLE + catalog_runner.POLL < 15
 
 
-async def test_event_loeschung_geht_sofort_als_deleted(fast):
+async def test_event_loeschung_geht_sofort_als_deleted(fast, client, admin_headers):
     env = fast
+    client.put("/api/federation/catalog/settings", headers=admin_headers, json=_settings_body(excluded_projects=[]))
+    catalog_changes.refresh_gate()
     env["tasks"].put("t-1", T0)
     await catalog_sync.sync()
     del env["tasks"].rows["t-1"]
