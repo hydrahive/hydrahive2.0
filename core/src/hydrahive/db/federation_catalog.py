@@ -41,22 +41,56 @@ def any_accepting() -> list[dict]:
     return [_row(r) for r in rows]
 
 
-def set_hub(peer_id: str, is_hub: bool) -> dict:
-    with db() as conn:
+class CatalogConflict(Exception):
+    """Hub-/Annahme-Regel verletzt; die Route macht daraus ein 409 mit Code."""
+
+    def __init__(self, code: str, **params: Any) -> None:
+        super().__init__(code)
+        self.code = code
+        self.params = params
+
+
+def set_hub(peer_id: str, is_hub: bool) -> dict | None:
+    """Hub-Markierung setzen. Prüfen und Schreiben in EINER Transaktion mit
+    Schreibsperre (BEGIN IMMEDIATE): zwei gleichzeitige Anfragen können so weder
+    zwei Hubs noch Hub + Annehmen erzeugen. Cursor nur bei echter Änderung leeren
+    (Spec Ablauf 2: Hub-Wechsel → voller Abgleich). None = Partner unbekannt."""
+    with db(immediate=True) as conn:
+        peer = conn.execute("SELECT * FROM federation_peers WHERE id = ?", (peer_id,)).fetchone()
+        if not peer:
+            return None
+        if is_hub:
+            if peer["status"] != "active":
+                raise CatalogConflict("peer_not_active")
+            if conn.execute("SELECT 1 FROM federation_peers WHERE catalog_accept = 1 LIMIT 1").fetchone():
+                raise CatalogConflict("catalog_hub_conflict")
+            other = conn.execute(
+                "SELECT name FROM federation_peers WHERE is_hub = 1 AND id != ? LIMIT 1", (peer_id,),
+            ).fetchone()
+            if other:
+                raise CatalogConflict("catalog_hub_exists", name=other["name"])
         conn.execute(
-            "UPDATE federation_peers SET is_hub = ? WHERE id = ?",
-            (1 if is_hub else 0, peer_id),
+            "UPDATE federation_peers SET is_hub = ? WHERE id = ?", (1 if is_hub else 0, peer_id),
         )
+        if bool(peer["is_hub"]) != is_hub:
+            conn.execute("DELETE FROM federation_catalog_cursors")
         row = conn.execute("SELECT * FROM federation_peers WHERE id = ?", (peer_id,)).fetchone()
-    reset_all_cursors()
     return _row(row)
 
 
-def set_catalog_accept(peer_id: str, accept: bool) -> dict:
-    with db() as conn:
+def set_catalog_accept(peer_id: str, accept: bool) -> dict | None:
+    """Annahme setzen, atomar gegen gleichzeitiges Setzen eines Hubs."""
+    with db(immediate=True) as conn:
+        peer = conn.execute("SELECT * FROM federation_peers WHERE id = ?", (peer_id,)).fetchone()
+        if not peer:
+            return None
+        if accept:
+            if peer["status"] != "active":
+                raise CatalogConflict("peer_not_active")
+            if conn.execute("SELECT 1 FROM federation_peers WHERE is_hub = 1 LIMIT 1").fetchone():
+                raise CatalogConflict("catalog_hub_conflict")
         conn.execute(
-            "UPDATE federation_peers SET catalog_accept = ? WHERE id = ?",
-            (1 if accept else 0, peer_id),
+            "UPDATE federation_peers SET catalog_accept = ? WHERE id = ?", (1 if accept else 0, peer_id),
         )
         row = conn.execute("SELECT * FROM federation_peers WHERE id = ?", (peer_id,)).fetchone()
     return _row(row)

@@ -171,6 +171,7 @@
     "saving": "Speichert …",
     "saved": "Gespeichert",
     "reset": "Verwerfen",
-    "load_error": "Katalog-Einstellungen konnten nicht geladen werden."
+    "load_error": "Katalog-Einstellungen konnten nicht geladen werden.",
+    "switch_hub_confirm": "{{from}} ist bereits Hub. Auf {{to}} wechseln? Der Katalog wird danach vollständig neu abgeglichen."
   }
 }

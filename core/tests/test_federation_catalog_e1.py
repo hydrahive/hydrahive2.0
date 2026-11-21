@@ -24,8 +24,18 @@ def _add_active_peer(client, admin_headers, name: str = "vps") -> dict:
 
 
 def _cleanup(client, admin_headers):
+    from hydrahive.db.connection import db
+
     for p in client.get("/api/federation/peers", headers=admin_headers).json():
         client.delete(f"/api/federation/peers/{p['id']}", headers=admin_headers)
+    # Katalog-Zustand zurücksetzen: Die Tests teilen sich eine DB (auch unter xdist),
+    # sonst hängt z. B. test_get_settings_defaults von der Reihenfolge ab.
+    with db() as conn:
+        for table in (
+            "federation_catalog_settings", "federation_catalog_users",
+            "federation_catalog_excluded_projects", "federation_catalog_cursors",
+        ):
+            conn.execute(f"DELETE FROM {table}")
 
 
 @pytest.fixture(autouse=True)

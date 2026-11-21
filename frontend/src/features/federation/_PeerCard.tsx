@@ -7,6 +7,8 @@ import type { Peer } from "./types"
 
 interface Props {
   peer: Peer
+  /** Anderer Partner, der schon Hub ist (Spec §Ablauf 1.2: Oberfläche fragt nach und wechselt). */
+  currentHub?: Peer | null
   agents: { id: string; name: string; autoTools: boolean }[]
   onChange: () => void
 }
@@ -17,7 +19,7 @@ const DOT: Record<Peer["status"], string> = {
   blocked: "bg-red-500",
 }
 
-export function PeerCard({ peer, agents, onChange }: Props) {
+export function PeerCard({ peer, currentHub, agents, onChange }: Props) {
   const { t } = useTranslation("federation")
   const [fp, setFp] = useState("")
   const [error, setError] = useState("")
@@ -112,7 +114,14 @@ export function PeerCard({ peer, agents, onChange }: Props) {
 
       <PeerCatalogToggles
         peer={peer}
-        onSetHub={next => run(() => peersApi.setHub(peer.id, next))}
+        onSetHub={next => {
+          if (!next || !currentHub) return run(() => peersApi.setHub(peer.id, next))
+          if (!confirm(t("catalog.switch_hub_confirm", { from: currentHub.name, to: peer.name }))) return
+          run(async () => {
+            await peersApi.setHub(currentHub.id, false)
+            await peersApi.setHub(peer.id, true)
+          })
+        }}
         onSetAccept={next => run(() => peersApi.setCatalogAccept(peer.id, next))}
       />
 

@@ -171,6 +171,7 @@
     "saving": "Saving …",
     "saved": "Saved",
     "reset": "Discard",
-    "load_error": "Could not load catalog settings."
+    "load_error": "Could not load catalog settings.",
+    "switch_hub_confirm": "{{from}} is already the hub. Switch to {{to}}? The catalog will then be fully re-synced."
   }
 }

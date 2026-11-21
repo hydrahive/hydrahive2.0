@@ -117,7 +117,7 @@ describe("Texte de/en", () => {
       "sync_subtitle", "sync_toggle", "sync_hint", "hub_label", "hub_none", "hub_inactive", "accepting_label",
       "interval_label", "interval_hint", "interval_invalid", "users_label", "users_empty", "users_none_selected",
       "projects_label", "projects_empty", "status_label", "last_ok", "last_push", "last_error", "never", "save",
-      "saving", "saved", "reset", "load_error"]
+      "saving", "saved", "reset", "load_error", "switch_hub_confirm"]
     for (const k of used) {
       expect(deFed.catalog).toHaveProperty(k)
       expect(enFed.catalog).toHaveProperty(k)

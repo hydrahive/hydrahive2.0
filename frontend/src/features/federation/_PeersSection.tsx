@@ -61,7 +61,10 @@ export function PeersSection() {
           </div>
         ) : (
           <div className="space-y-2">
-            {peers.map(p => <PeerCard key={p.id} peer={p} agents={agents} onChange={load} />)}
+            {peers.map(p => (
+              <PeerCard key={p.id} peer={p} agents={agents} onChange={load}
+                currentHub={peers.find(o => o.is_hub && o.id !== p.id) ?? null} />
+            ))}
           </div>
         )}
 

@@ -6,7 +6,6 @@ ruft bewusst kein `send_signed`/`httpx` auf und startet keinen Hintergrund-Task.
 from __future__ import annotations
 
 import logging
-import re
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, status
@@ -25,8 +24,6 @@ router = APIRouter(prefix="/api/federation", tags=["federation"])
 
 _Admin = Annotated[tuple[str, str], Depends(require_admin)]
 
-_USERNAME_RE = re.compile(r"^[A-Za-z0-9._@-]{1,64}$")
-
 
 class HubBody(BaseModel):
     is_hub: bool
@@ -42,11 +39,13 @@ class CatalogSettingsBody(BaseModel):
     users: list[str] = Field(default_factory=list, max_length=200)
     excluded_projects: list[str] = Field(default_factory=list, max_length=500)
 
+    # Kein Zeichen-Muster: Nutzernamen sind bei der Anlage frei (routes/users.py).
+    # Maßgeblich ist die Prüfung gegen list_users() in put_catalog_settings.
     @field_validator("users")
     @classmethod
     def _check_users(cls, value: list[str]) -> list[str]:
         for u in value:
-            if not _USERNAME_RE.match(u):
+            if not (1 <= len(u) <= 128):
                 raise ValueError(f"ungültiger Nutzername: {u}")
         return value
 
@@ -82,15 +81,12 @@ def _settings_response() -> dict:
 @router.put("/peers/{peer_id}/hub")
 def set_hub(peer_id: str, body: HubBody, _: _Admin) -> dict:
     peer = _peer_or_404(peer_id)
-    if body.is_hub:
-        if peer["status"] != "active":
-            raise coded(status.HTTP_409_CONFLICT, "peer_not_active")
-        if catalog_db.any_accepting():
-            raise coded(status.HTTP_409_CONFLICT, "catalog_hub_conflict")
-        existing = catalog_db.any_hub()
-        if existing and existing["id"] != peer_id:
-            raise coded(status.HTTP_409_CONFLICT, "catalog_hub_exists", name=existing["name"])
-    updated = catalog_db.set_hub(peer_id, body.is_hub)
+    try:
+        updated = catalog_db.set_hub(peer_id, body.is_hub)
+    except catalog_db.CatalogConflict as c:
+        raise coded(status.HTTP_409_CONFLICT, c.code, **c.params) from c
+    if updated is None:  # zwischen Prüfung und Schreiben gelöscht
+        raise coded(status.HTTP_404_NOT_FOUND, "peer_not_found")
     logger.info(
         "Föderations-Katalog: Hub-Markierung für Partner '%s' auf %s gesetzt",
         peer["name"], body.is_hub,
@@ -101,12 +97,12 @@ def set_hub(peer_id: str, body: HubBody, _: _Admin) -> dict:
 @router.put("/peers/{peer_id}/catalog")
 def set_catalog_accept(peer_id: str, body: CatalogAcceptBody, _: _Admin) -> dict:
     peer = _peer_or_404(peer_id)
-    if body.accept:
-        if peer["status"] != "active":
-            raise coded(status.HTTP_409_CONFLICT, "peer_not_active")
-        if catalog_db.any_hub():
-            raise coded(status.HTTP_409_CONFLICT, "catalog_hub_conflict")
-    updated = catalog_db.set_catalog_accept(peer_id, body.accept)
+    try:
+        updated = catalog_db.set_catalog_accept(peer_id, body.accept)
+    except catalog_db.CatalogConflict as c:
+        raise coded(status.HTTP_409_CONFLICT, c.code, **c.params) from c
+    if updated is None:
+        raise coded(status.HTTP_404_NOT_FOUND, "peer_not_found")
     logger.info(
         "Föderations-Katalog: Annahme von Partner '%s' auf %s gesetzt",
         peer["name"], body.accept,
