@@ -1,6 +1,7 @@
 # Gemeinsame Taskpflege: Tasks und Ideen aller Instanzen im eigenen Projekt
 
-**Stand:** 21.11.2026 · **Status:** Entwurf, Entscheidungen Till 21.11. eingearbeitet, bereit für Review
+**Stand:** 21.11.2026 · **Status:** Entwurf, alle Entscheidungen Till 21.11. eingearbeitet (inkl. Antworten auf
+die offenen Fragen), bereit für Review
 **Baut auf:** `federation-catalog.md` (Etappen 1–3 gemergt: #734, #736, Module #416, #737;
 Etappe 4 Backend auf Branch `feat/federation-catalog-e4-backend`)
 **Verwandt:** `server-peering.md`, Module `tasks` (`SPEC-HISTORY.md`, `SPEC-PAGINATION.md`)
@@ -33,6 +34,21 @@ ist es genauso.
 2. **Projekt-Zuordnung über den gleichen Projektnamen**, im Cockpit korrigierbar.
 3. **Ideen gleich mit**, nicht nur Tasks.
 
+Antworten auf die offenen Fragen dieser Spec (Till, 21.11.2026 abends):
+
+4. **Agenten sehen fremde Einträge und ändern nur Status und Notiz.** Titel, Text und
+   Priorität ändern nur Menschen (siehe §Agenten-Werkzeuge).
+5. **Ideentext aus der Ferne änderbar, der Ursprung sichert die alte Fassung als
+   Anmerkung** (siehe §Änderung mit Vergleichswert).
+6. **Knopf „Projekt hier anlegen“ unter „Nicht zugeordnet“: ja.** Er legt nur ein
+   leeres lokales Projekt mit dem Namen an (siehe §Projekte, die es nur auf einer
+   Seite gibt).
+7. **Ein gemeinsamer Schalter „Gemeinsame Taskpflege“** für Teilen und Anzeigen. Keine
+   Instanz zeigt nur, ohne zu teilen, oder umgekehrt (siehe §Schalter).
+8. **Fremde Einträge standardmäßig anzeigen**, sobald der Schalter an ist (Filter
+   „Alle Instanzen“ ist Standard, siehe §Oberfläche).
+9. **Warteschlange: 7 Tage bis „verworfen“** (siehe §Warteschlange).
+
 Damit entfällt das Nicht-Ziel „Gesamtkatalog auf den Clients“ aus
 `federation-catalog.md`. Das Nicht-Ziel „Bearbeiten über Server“ wird für Tasks und
 Ideen ebenfalls aufgehoben (dort angepasst).
@@ -64,8 +80,12 @@ Je Instanz, in Föderation → Katalog (Admin):
 
 | Schalter | Feld | Wirkung |
 |---|---|---|
-| **„Gemeinsame Taskpflege“** | `federation_catalog_settings.shared` | Eigene (synchronisierte) Einträge dürfen an die anderen Instanzen weitergegeben werden **und** diese Instanz zeigt fremde Einträge in ihren Projekten. Beide Richtungen in einem Schalter. |
+| **„Gemeinsame Taskpflege“** | `federation_catalog_settings.shared` | Eigene (synchronisierte) Einträge dürfen an die anderen Instanzen weitergegeben werden **und** diese Instanz zeigt fremde Einträge in ihren Projekten. Beide Richtungen in einem Schalter (Entscheidung 7), es gibt keinen getrennten Schalter nur fürs Anzeigen oder nur fürs Teilen. |
 | **„Bearbeiten durch andere Instanzen erlauben“** | `federation_catalog_settings.remote_edits` | Eigene Einträge dürfen von anderen Instanzen geändert werden (nur mit `shared`). |
+
+„Bearbeiten durch andere Instanzen erlauben“ ist kein zweiter Teilen-Schalter, sondern
+ein zusätzlicher Schutz für Schreibzugriffe von außen: Mit `shared` allein sind die
+eigenen Einträge anderswo sichtbar, aber nicht änderbar.
 
 Der Client meldet beide Werte in jedem `catalog_push` mit (neue Felder `shared`,
 `remote_edits`). Der Hub speichert sie in `federation_catalog_sources`. Auf dem Hub
@@ -238,9 +258,30 @@ Ursprungsprojekt. Dort kann der Nutzer je Ursprungsprojekt:
 
 - ein eigenes Projekt wählen (manuelle Zuordnung),
 - „nicht anzeigen“ wählen (die Einträge bleiben nur im Katalog sichtbar),
-- zurück auf „automatisch (gleicher Name)“ stellen.
+- zurück auf „automatisch (gleicher Name)“ stellen,
+- **„Projekt hier anlegen“** (Entscheidung 6, siehe unten).
 
 Projekte selbst werden **nicht** synchronisiert und nie automatisch angelegt.
+
+**Knopf „Projekt hier anlegen“:**
+
+- Er steht nur bei Ursprungsprojekten mit dem Hinweis „kein gleichnamiges Projekt“.
+  Bei „mehrdeutig“ oder wenn ein gleichnamiges Projekt existiert, in dem der Nutzer
+  nicht Mitglied ist, fehlt er. Dort hilft nur die manuelle Zuordnung oder ein Admin,
+  der den Nutzer als Mitglied einträgt.
+- Er legt über die **bestehende** Route `POST /api/projects` ein leeres lokales
+  Projekt an: `name` = `project_name` des Ursprungs (getrimmt), `members` = der
+  angemeldete Nutzer, sonst die Standardwerte (Standard-Template, kein Git, keine
+  Repos, keine Beschreibung). Es wird nichts vom Ursprungsprojekt übernommen, weder
+  Dateien noch Mitglieder noch Einstellungen. Eine neue Kern-Route gibt es dafür nicht.
+- Projekte anlegen darf heute nur ein Admin (`require_admin`). Das bleibt so: Der Knopf
+  erscheint nur für Admins. Andere Nutzer sehen stattdessen den Hinweis „Ein Admin kann
+  das Projekt hier anlegen“.
+- Danach greift die automatische Zuordnung über den gleichen Namen, die Einträge
+  erscheinen im neuen Projekt ohne weitere Zuordnung. Eine manuelle Zuordnung für
+  dieses Ursprungsprojekt wird dabei nicht angelegt.
+- Schlägt das Anlegen fehl (z. B. ungültiger Name), zeigt die Oberfläche den Fehler der
+  Route an und es bleibt bei „nicht zugeordnet“.
 
 ### Korrektur im Cockpit
 
@@ -309,8 +350,10 @@ heute `404`.
   in derselben Liste, sortiert wie eigene. Jede fremde Zeile trägt ein Herkunftsabzeichen
   mit dem Instanznamen (z. B. „hydrahome“) und als Tooltip „Stand vom …, zuletzt
   gesehen am …“. Ist der Eintrag `stale`, ist das Abzeichen grau mit „nicht aktuell“.
-- Filter-Chip **„Nur diese Instanz / Alle Instanzen“** (Standard: alle). Die Auswahl
-  merkt sich die Oberfläche je Modul.
+- Filter-Chip **„Nur diese Instanz / Alle Instanzen“**. Standard ist „Alle
+  Instanzen“ (Entscheidung 8): Ist „Gemeinsame Taskpflege“ an, erscheinen fremde
+  Einträge sofort, ohne Klick. Die Auswahl merkt sich die Oberfläche je Modul, eine
+  bewusst gewählte „Nur diese Instanz“ bleibt also bestehen.
 - Die Detailansicht lädt den Volltext live. Ist der Ursprung nicht erreichbar, zeigt
   sie den Snapshot des Hubs mit „Stand vom …“ oder nur die Metadaten mit „<instanz>
   zuletzt gesehen am …“. Ist der Hub selbst nicht erreichbar: Metadaten aus der Kopie
@@ -344,23 +387,27 @@ heute `404`.
 
 | | Task | Idee |
 |---|---|---|
-| Titel | ja | ja |
+| Titel | ja (nur Menschen) | ja (nur Menschen) |
 | Status | ja | ja |
-| Priorität | ja | – |
-| Beschreibung / Ideentext | ja (ganzer Text) | ja (ganzer Text) |
+| Priorität | ja (nur Menschen) | – |
+| Beschreibung / Ideentext | ja, ganzer Text (nur Menschen) | ja, ganzer Text (nur Menschen), alte Fassung wird Anmerkung |
 | Notiz/Anmerkung hinzufügen | ja (`note`, wie `TaskUpdate.note`) | ja |
 | Anmerkung löschen | – | nein |
 | Projekt ändern | nein | nein |
 | Löschen | nein | nein |
 | Neu anlegen auf fremder Instanz | nein | nein |
 
+„Nur Menschen“ (Entscheidung 4): Ändert ein Agent einen fremden Eintrag, sind nur
+Status und Notiz/Anmerkung erlaubt (siehe §Agenten-Werkzeuge).
+
 Projekt ändern und Löschen bleiben dem Ursprung vorbehalten. Wer einen fremden
 Eintrag loswerden will, setzt ihn auf `cancelled` bzw. `dropped`.
 
 ### Änderung mit Vergleichswert (Ursprung entscheidet)
 
-Jede Änderung trägt eine `op_id` (UUID) und je Feld den Wert, den der Nutzer gesehen
-hat, und den neuen Wert:
+Jede Änderung trägt eine `op_id` (UUID), die Art des Urhebers `actor_type`
+(`"user"` aus Oberfläche/Modul-Route, `"agent"` aus einem Werkzeug) und je Feld den
+Wert, den der Nutzer gesehen hat, und den neuen Wert:
 
 ```
 "changes": {
@@ -380,18 +427,38 @@ Der Ursprung (`apply_edit`) entscheidet **je Feld**:
 
 Ergebnis `applied` (alles übernommen), `partial` (mit Liste der Konfliktfelder und
 ihren aktuellen Werten) oder `rejected` (Grund: `not_found`, `not_owner`,
-`not_shared`, `excluded`, `remote_edits_off`, `not_editable`, `invalid`). Dazu immer
-die aktuellen Metadaten des Eintrags.
+`not_shared`, `excluded`, `remote_edits_off`, `not_editable`, `agent_field_not_allowed`,
+`invalid`). Dazu immer die aktuellen Metadaten des Eintrags.
+
+Mit `actor_type = "agent"` und einem anderen Feld als `status` oder `note` lehnt der
+Ursprung die **ganze** Änderung mit `agent_field_not_allowed` ab, ohne Teilübernahme.
+Die bearbeitende Instanz verhindert solche Änderungen schon vorher (Werkzeuge bieten
+die Felder nicht an). Die Prüfung beim Ursprung ist die zweite Sicherung, falls eine
+Instanz das anders hält.
 
 So hängt die Entscheidung nicht an `updated_at`. Das ist wichtig, weil Tasks nur
 sekundengenau speichern und zwei Änderungen in derselben Sekunde nicht
 unterscheidbar wären.
 
-Der Ursprung schreibt wie bei einer lokalen Änderung: Tasks sichern die alte Fassung
-im Verlauf (`module_tasks_history`), `updated_at` wird gesetzt, `catalog_changed`
-löst den normalen Push aus. In den Verlauf bzw. das Audit kommt als Urheber
-`<username>@<instanz>` (z. B. `till@hydrahome`). Gleiche Feldprüfungen wie die lokale
-API (Status aus der Liste, Titellänge, `MAX_TEXT`).
+Der Ursprung schreibt wie bei einer lokalen Änderung: `updated_at` wird gesetzt,
+`catalog_changed` löst den normalen Push aus. Gleiche Feldprüfungen wie die lokale
+API (Status aus der Liste, Titellänge, `MAX_TEXT` bzw. `MAX_BODY`). Als Urheber gilt
+`<username>@<instanz>` (z. B. `till@hydrahome`, Instanzname = `via_name` vom Hub):
+
+- **Tasks** sichern die alte Fassung von Titel und Beschreibung wie bisher im Verlauf
+  (`module_tasks_history`). Damit der Urheber dort steht, bekommt die Tabelle eine
+  Spalte `actor` (TEXT, leer bei lokalen Änderungen) und für Fern-Änderungen
+  `source = 'remote'` (Modul-Migration in Etappe G4).
+- **Ideen** haben keinen Verlauf (Entscheidung 5). Ändert eine Fern-Änderung den
+  Ideentext, schreibt der Ursprung **in derselben Transaktion** die alte Fassung als
+  Anmerkung an die Idee: `author = "system"`, `agent_name` = Urheber, Text
+  „Frühere Fassung, ersetzt durch <urheber> am <Datum>:“ und darunter der alte Text.
+  Die Anmerkung wird über `notes.insert` geschrieben, deshalb gilt für sie die Grenze
+  des Ideentexts (`MAX_BODY`, 50 000 Zeichen) statt `MAX_NOTE`. Keine Anmerkung, wenn
+  der alte Text leer ist oder alter und neuer Text gleich sind (z. B. Wiederholung mit
+  derselben `op_id`, die ohnehin nichts ändert). Die Anmerkung bleibt wie jeder Volltext
+  beim Ursprung und wird nie gepusht. Titeländerungen an Ideen erzeugen keine Anmerkung.
+- Im Audit stehen Urheber und `actor_type`.
 
 Die `op_id` merkt sich der Ursprung 30 Tage (`federation_catalog_applied_ops`). Kommt
 dieselbe `op_id` noch einmal (Antwort ging verloren, Warteschlange wiederholt),
@@ -401,14 +468,14 @@ antwortet er mit dem gespeicherten Ergebnis und ändert nichts.
 
 1. Das Modul ruft `ctx.catalog_foreign_edit(...)`. Der Kern schreibt die Änderung in
    die **Warteschlange** `federation_catalog_outbox` von C (`op_id`, `origin_fp`,
-   `kind`, `item_id`, `owner`, `changes`, `created_at`, `state = pending`).
+   `kind`, `item_id`, `owner`, `actor_type`, `changes`, `created_at`, `state = pending`).
 2. Sofort danach (ohne 10-s-Bündelung, der Nutzer wartet) schickt C unter der
    gemeinsamen Sperre signiert `POST https://<hub>/api/peering/catalog/edit`
-   `{"kind": "catalog_edit", "msg_id", "from", "seq", "issued_at", "op_id", "origin_fp", "item_kind", "item_id", "owner", "changes"}`.
+   `{"kind": "catalog_edit", "msg_id", "from", "seq", "issued_at", "op_id", "origin_fp", "item_kind", "item_id", "owner", "actor_type", "changes"}`.
 3. Der Hub prüft Verteilungsregel, `owner` ∈ `pull_users` von C und dass O
    `remote_edits` meldet. Dann leitet er weiter:
    - O ist ein Client: signiert `POST https://<O>/api/peering/catalog/apply`
-     `{"kind": "catalog_apply", "msg_id", "from", "issued_at", "op_id", "via": "<C-fp>", "via_name", "item_kind", "item_id", "owner", "changes"}`,
+     `{"kind": "catalog_apply", "msg_id", "from", "issued_at", "op_id", "via": "<C-fp>", "via_name", "item_kind", "item_id", "owner", "actor_type", "changes"}`,
      Timeout 8 s.
    - O ist der Hub: lokal über `apply_edit`.
 4. O prüft wie bei `catalog_fetch` (Absender ist sein Hub, `active`, Signatur,
@@ -439,7 +506,8 @@ eigene Warteschlange und schickt `catalog_apply` direkt an O.
 - Mehrere wartende Änderungen am selben Eintrag gehen einzeln in Reihenfolge raus.
   Der Vergleichswert der späteren ist der Zielwert der früheren, deshalb passen sie
   zusammen.
-- Nach **7 Tagen** ohne Erfolg wird eine Änderung `expired`. Der Nutzer sieht sie in
+- Nach **7 Tagen** ohne Erfolg (Entscheidung 9, gezählt ab `created_at`) wird eine
+  Änderung `expired`. Der Nutzer sieht sie in
   der Zeile („nicht übertragen, verworfen“) und im Katalog-Reiter, mit Knopf
   „erneut versuchen“ oder „verwerfen“.
 - Löscht oder schließt der Ursprung den Eintrag inzwischen aus, kommt `rejected`.
@@ -461,24 +529,29 @@ Konflikt.
 ## Agenten-Werkzeuge `task_*` und `idea_*`
 
 Problem 2 aus `federation-catalog.md` („Agenten legen Tasks doppelt an“) löst sich nur,
-wenn auch Agenten fremde Einträge sehen. Vorschlag:
+wenn auch Agenten fremde Einträge sehen. Entschieden (Entscheidung 4): Agenten
+**sehen** fremde Einträge und **ändern nur Status und Notiz**. Titel, Text und
+Priorität ändern nur Menschen.
 
 - **`task_list` / `idea_list`** zeigen fremde Einträge im Projekt mit an
   (Kennzeichen `@<instanz>` in der Zeile, z. B. `a1b2c3d4 @hydrahome [open] Titel`).
-  Neuer Parameter `instances`: `"all"` (Standard, wenn `shared` an ist) oder
-  `"local"`. Gleiche Projekt-Zuordnung wie in der Oberfläche
+  Neuer Parameter `instances`: `"all"` (Standard, wenn `shared` an ist, passend zu
+  Entscheidung 8) oder `"local"`. Gleiche Projekt-Zuordnung wie in der Oberfläche
   (`ctx.project_id` → zugeordnete fremde Einträge).
 - **`task_read` / `idea_read`** lösen auch fremde Kurz-IDs auf. Passt eine Kurz-ID auf
   einen eigenen und einen fremden Eintrag, kommt die bestehende Mehrdeutigkeitsmeldung
   von `_ids.resolve` mit beiden Treffern. Volltext über `catalog_read`.
-- **`task_write` / `idea_write`** auf einen fremden Eintrag: dieselben Felder und
-  derselbe Weg wie in der Oberfläche (Vergleichswert = der Stand, den das Werkzeug
-  gerade aus der Kopie liest). Ergebnis als Text: „übernommen“, „wartet auf
-  <instanz>“ oder „Konflikt: …“. Neue Einträge legen Werkzeuge immer lokal an.
+- **`task_write` / `idea_write`** auf einen fremden Eintrag: nur `status` und
+  `note` (bei Ideen die Anmerkung), über denselben Weg wie die Oberfläche mit
+  `actor_type = "agent"` (Vergleichswert = der Stand, den das Werkzeug gerade aus der
+  Kopie liest). Enthält der Aufruf zusätzlich Titel, Beschreibung/Text oder Priorität,
+  lehnt das Werkzeug den **ganzen** Aufruf ab, bevor etwas in die Warteschlange geht,
+  mit `foreign_field_not_allowed` und dem Hinweis „Bei Einträgen anderer Instanzen
+  ändern Agenten nur Status und Notiz, Titel und Text ändert ein Mensch.“ Ergebnis
+  sonst als Text: „übernommen“, „wartet auf <instanz>“ oder „Konflikt: …“. Neue
+  Einträge legen Werkzeuge immer lokal an.
 - **`task_delete`** auf einen fremden Eintrag: abgelehnt mit
   `foreign_delete_not_allowed` und Hinweis auf `cancelled`.
-
-Ob Agenten fremde Einträge **ändern** dürfen oder nur sehen, ist offene Frage 1.
 
 ## Datenmodell (neue Kern-Migration)
 
@@ -494,7 +567,7 @@ Auf jeder Instanz:
 - `federation_catalog_project_map`: `username`, `origin_fp`, `origin_project_id`
   (PK aus allen drei), `target` (`hidden` oder lokale `project_id`), `updated_at`
 - `federation_catalog_outbox`: `op_id` (PK), `username`, `origin_fp`, `kind`,
-  `item_id`, `changes` (JSON), `state` (`pending`/`done`/`conflict`/`rejected`/`expired`),
+  `item_id`, `owner`, `actor_type` (`user`/`agent`), `changes` (JSON), `state` (`pending`/`done`/`conflict`/`rejected`/`expired`),
   `result` (JSON), `attempts`, `created_at`, `last_try_at`; Index `(state, created_at)`
 - `federation_catalog_applied_ops` (Ursprung): `op_id` (PK), `result` (JSON),
   `applied_at`; Einträge älter als 30 Tage werden entfernt
@@ -596,7 +669,10 @@ G5. Ein Projekt, das es nur auf .2 gibt, erscheint auf .4 unter „Nicht zugeord
     und in keiner Projektliste. Nach manueller Zuordnung zu einem Projekt auf .4
     erscheinen seine Einträge dort. „Nicht anzeigen“ blendet sie aus den Projektlisten
     aus. Zwei gleichnamige Projekte auf .4 → keine automatische Zuordnung, Hinweis
-    „mehrdeutig“.
+    „mehrdeutig“. Ein Admin auf .4 klickt „Projekt hier anlegen“ → leeres Projekt mit
+    dem Namen von .2, der Admin ist Mitglied, die Einträge erscheinen dort ohne
+    manuelle Zuordnung. Ein Nutzer ohne Admin-Rechte sieht den Knopf nicht. Bei
+    „mehrdeutig“ fehlt der Knopf.
 G6. Status eines fremden Tasks auf .4 ändern, .2 online: übernommen, auf .2 steht der
     neue Status mit Verlauf und Urheber `till@<.4>`, auf .4 aktualisiert sich die Zeile.
 G7. Dasselbe mit .2 offline: Zeile zeigt „wartet auf hydrahome“. Nach Wiederkehr von
@@ -618,12 +694,28 @@ G14. Detailansicht eines fremden Eintrags auf .4 lädt den Volltext live. .2 off
      Snapshot des Hubs mit „Stand vom …“ oder Metadaten mit „zuletzt gesehen am …“;
      Hub offline → Metadaten aus der Kopie mit „Hub nicht erreichbar“. Auf .4 wird
      kein Volltext gespeichert.
-G15. Agenten-Werkzeuge: `task_list` im Projekt zeigt fremde Einträge mit `@instanz`,
-     `instances="local"` blendet sie aus. `task_read` liest einen fremden Eintrag.
-     `task_write`/`task_delete` verhalten sich nach der Entscheidung zu Frage 1.
+G15. Agenten-Werkzeuge: `task_list` im Projekt zeigt fremde Einträge mit `@instanz`
+     (ohne Parameter, Standard „alle“), `instances="local"` blendet sie aus.
+     `task_read` liest einen fremden Eintrag. `task_write` mit Status oder Notiz auf
+     einen fremden Eintrag → übernommen bzw. wartet. `task_write` mit Titel,
+     Beschreibung oder Priorität → `foreign_field_not_allowed`, nichts in der
+     Warteschlange. `task_delete` → `foreign_delete_not_allowed`. Dasselbe für
+     `idea_write`. Kommt beim Ursprung trotzdem eine Agenten-Änderung an Titel oder Text
+     an → `rejected: agent_field_not_allowed`, keine Änderung.
 G16. Regression: alle Akzeptanzkriterien 1–13 aus `federation-catalog.md` bleiben
      erfüllt. Module mit älterem Kern und älteres Modul mit neuem Kern laufen ohne
      Fehler (keine fremden Einträge, sonst unverändert).
+G17. Ideentext einer Idee von .2 auf .4 ändern, .2 online: Auf .2 steht der neue Text,
+     darunter eine Anmerkung „Frühere Fassung, ersetzt durch till@<.4> …“ mit dem
+     alten Text (`author = system`). Dieselbe `op_id` noch einmal → keine zweite
+     Anmerkung. Leerer alter Text oder gleicher Text → keine Anmerkung. Ein alter Text
+     mit mehr als 10 000 Zeichen wird vollständig gesichert. Die Anmerkung erscheint
+     auf .4 nur beim Nachladen, nie in der Kopie.
+G18. Ist „Gemeinsame Taskpflege“ auf allen Seiten an, zeigen Reiter „Tasks“ und
+     Ideenliste fremde Einträge ohne weiteren Klick (Filter „Alle Instanzen“ ist
+     Standard). Hat der Nutzer „Nur diese Instanz“ gewählt, bleibt das nach Neuladen
+     so. Eine wartende Änderung wird nach 7 Tagen `expired` und ist mit „erneut
+     versuchen“ wieder `pending`.
 
 ## Etappen
 
@@ -636,18 +728,20 @@ werden daraus `new_catalog_item` (signierte Antwort), `catalog_fetch`, der Reite
    Antwort, `catalog_notify`, Kopie auf dem Client, Katalog-Reiter auf Clients (nur
    lesen). AK G1, G4, G13 (Pull/Notify), G16.
 2. **G3 Anzeige (Kern + Module)**: Projekt-Zuordnung (Tabelle, API, Bereiche „Nicht
-   zugeordnet“/„Projekt-Zuordnung“), `ctx.catalog_foreign_list` und
+   zugeordnet“/„Projekt-Zuordnung“, Knopf „Projekt hier anlegen“),
+   `ctx.catalog_foreign_list` und
    `ctx.catalog_foreign_get` mit `catalog_read`; Modul-PR `tasks`/`scratchpad`:
    `include_foreign`, `foreign`-Leseroute, Abzeichen, Filter-Chip, Detailansicht.
-   AK G2, G3, G5, G12, G14.
+   AK G2, G3, G5, G12, G14, G18 (Standard-Filter).
 3. **G4 Bearbeiten (Kern + Module)**: Warteschlange, `catalog_edit`/`catalog_apply`
    mit signierten Antworten, `apply_edit` in den Modulen mit Vergleichswerten und
-   `op_id`, Verlauf mit Urheber, Oberfläche „wartet auf …“/Konflikt, Bereich
-   „Wartende Änderungen“. Wegen des neuen Schreibzugriffs mit Security-Review.
-   AK G6–G11, G13 (Edit/Apply).
-4. **G5 Agenten-Werkzeuge (Module)**: `task_*`/`idea_*` nach der Entscheidung zu
-   Frage 1. AK G15.
-5. **G6 Live-Abnahme** .4 ↔ `hydrahive-vps` ↔ `hydrahome` (.2), alle AK G1–G16 mit Till.
+   `op_id`, `actor_type`, Verlauf mit Urheber (Spalte `actor`), alte Ideenfassung als
+   Anmerkung, Oberfläche „wartet auf …“/Konflikt, Bereich „Wartende Änderungen“,
+   Ablauf nach 7 Tagen. Wegen des neuen Schreibzugriffs mit Security-Review.
+   AK G6–G11, G13 (Edit/Apply), G17, G18 (Warteschlange).
+4. **G5 Agenten-Werkzeuge (Module)**: `task_*`/`idea_*` sehen fremde Einträge, ändern
+   nur Status und Notiz (Entscheidung 4). AK G15.
+5. **G6 Live-Abnahme** .4 ↔ `hydrahive-vps` ↔ `hydrahome` (.2), alle AK G1–G18 mit Till.
    Dafür muss auch .2 als Client am Hub hängen.
 
 Je Etappe ein eigener PR mit grüner CI und Review durch `hydrahive-reviewer`,
@@ -655,7 +749,9 @@ Module mit angehobener Version und Test „alter Kern ohne Methode“.
 
 ## Nicht-Ziele
 
-- **Projekte synchronisieren oder automatisch anlegen.** Zugeordnet wird nur.
+- **Projekte synchronisieren oder automatisch anlegen.** Zugeordnet wird nur. Einzige
+  Ausnahme ist der Knopf „Projekt hier anlegen“: ein leeres Projekt mit dem Namen,
+  nur auf Klick eines Admins.
 - **Fremde Einträge löschen, in ein anderes Projekt verschieben oder auf fremden
   Instanzen neu anlegen.**
 - **Volltext, Anmerkungen oder Verlauf kopieren.** Clients speichern keinen Volltext.
@@ -665,17 +761,5 @@ Module mit angehobener Version und Test „alter Kern ohne Methode“.
 
 ## Offene Fragen an Till
 
-1. **Agenten und fremde Einträge:** Sollen Agenten fremde Tasks und Ideen nur
-   **sehen** oder auch **ändern** dürfen (Status setzen, Notiz anhängen)? Vorschlag:
-   sehen ja (gegen Doppelanlage), ändern ja, aber nur Status und Notiz. Titel und Text
-   nur durch Menschen.
-2. **Ideentext fernbearbeiten:** Ideen haben keinen Verlauf wie Tasks. Soll der
-   Ursprung bei einer Fern-Änderung des Ideentexts die alte Fassung als Anmerkung
-   sichern, oder soll der Ideentext aus der Ferne gar nicht änderbar sein?
-3. **Gleichnamiges Projekt anlegen:** Soll es unter „Nicht zugeordnet“ einen Knopf
-   „Projekt hier anlegen“ geben (legt nur ein leeres lokales Projekt mit dem Namen an)?
-4. **Ein Schalter oder zwei:** „Gemeinsame Taskpflege“ teilt und zeigt in einem. Reicht
-   das, oder soll eine Instanz nur zeigen, ohne zu teilen (oder umgekehrt)?
-5. **Standard-Filter in den Modulen:** Fremde Einträge standardmäßig mit anzeigen
-   (Vorschlag) oder erst nach Klick auf „Alle Instanzen“?
-6. **Wartezeit für die Warteschlange:** 7 Tage bis „verworfen“ – passt das?
+Keine. Die sechs offenen Fragen des Entwurfs hat Till am 21.11.2026 abends beantwortet,
+sie stehen jetzt als Entscheidungen 4–9 oben.
