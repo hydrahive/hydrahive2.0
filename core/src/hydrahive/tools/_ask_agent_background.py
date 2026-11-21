@@ -53,12 +53,13 @@ WAIT_SCHEMA = {
 BACKGROUND_ORIGINS = ("chat", "delegation", "handoff")
 
 
-def wants_background(args: dict, ctx: ToolContext, is_internal: bool) -> bool:
-    """Hintergrund nur für interne Spezialisten aus Chat-, Zustell- und
-    Handoff-Läufen, und nur wenn der Agent nicht ausdrücklich warten will.
-    Handoff: Ein beauftragter Projekt-Agent verteilt an Spezialisten, seine
-    Antwort hält runner/handoff_chain zurück, bis alle Kinder fertig sind."""
-    if not is_internal or bool(args.get("wait")):
+def wants_background(args: dict, ctx: ToolContext) -> bool:
+    """Hintergrund für interne Spezialisten (Ziele ohne „@“ sind immer intern)
+    aus Chat-, Zustell- und Handoff-Läufen, und nur wenn der Agent nicht
+    ausdrücklich warten will. Handoff: Ein beauftragter Projekt-Agent verteilt
+    an Spezialisten, seine Antwort hält runner/handoff_chain zurück, bis alle
+    Kinder fertig sind."""
+    if bool(args.get("wait")):
         return False
     return ctx.origin in BACKGROUND_ORIGINS
 

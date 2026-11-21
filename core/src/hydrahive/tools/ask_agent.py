@@ -85,14 +85,16 @@ async def _execute(args: dict, ctx: ToolContext) -> ToolResult:
     required_skills = args.get("required_skills") or []
 
     # Nur Agenten, die der Besitzer des Laufs nutzen darf (Task 26841785).
+    # Ohne „@“ gibt es kein externes Ziel: unbekannt → sofort abgelehnt, kein
+    # AgentLink-Post (sonst Hängen bis zum Timeout, Idee 935d541b).
     # Danach auf UUID normalisieren, damit der Projekt-Check UUIDs vergleicht.
     resolution = resolve_target(target, ctx.user_id)
-    if resolution.error:
-        return ToolResult.fail(resolution.error)
+    if resolution.error or resolution.agent is None:
+        return ToolResult.fail(
+            resolution.error or f"Agent '{target}' unbekannt. Für Agenten auf anderen Servern: name@server.",
+        )
     target_agent = resolution.agent
-    _is_internal = target_agent is not None
-    if _is_internal:
-        target = target_agent["id"]
+    target = target_agent["id"]
 
     refused = project_refusal(ctx.agent_id, target)
     if refused:
@@ -103,15 +105,14 @@ async def _execute(args: dict, ctx: ToolContext) -> ToolResult:
     task_description, files, errors = map_context(task, raw_context)
     if not args.get("resume_token"):
         task_description = build_briefing(task_description, args)
-        if _is_internal:
-            # Ketten-Anker (docs/specs/chain-anchor.md): Ziel + Originalauftrag reisen unverändert mit.
-            try:
-                task_description = _anchor.anchor_task(task_description, args, ctx, target_agent)
-            except _anchor.AnchorError as exc:
-                return ToolResult.fail(f"Zieldokument: {exc}")
+        # Ketten-Anker (docs/specs/chain-anchor.md): Ziel + Originalauftrag reisen unverändert mit.
+        try:
+            task_description = _anchor.anchor_task(task_description, args, ctx, target_agent)
+        except _anchor.AnchorError as exc:
+            return ToolResult.fail(f"Zieldokument: {exc}")
     files += [{"path": str(p)} for p in (args.get("files") or [])[:50]]
 
-    background = _bg.wants_background(args, ctx, _is_internal)
+    background = _bg.wants_background(args, ctx)
     if background:
         refused = _bg.refuse_reason(ctx)
         if refused:
@@ -121,25 +122,23 @@ async def _execute(args: dict, ctx: ToolContext) -> ToolResult:
     # agents share the same display name. UI names stay in local config/logs.
     caller_al_id = _caller_agentlink_id(ctx.agent_id)
 
-    routing_target = settings.agentlink_agent_id if _is_internal else target
-    task_reason = f"hh-task: {task[:120]}"
-    if resume_token and not _is_internal:
-        return ToolResult.fail("Resume-Tokens werden nur für interne Spezialisten unterstützt")
-    if _is_internal:
-        try:
-            task_reason = reason_with_profile(
-                target, profile, task[:120], resume_token=resume_token,
-                # Plan E6 T4: Folgeaufträge aus derselben Sitzung setzen die Sitzung des Spezialisten fort
-                thread=thread_key(ctx.session_id) if ctx.session_id and not resume_token else None,
-                # Eigene Kettentiefe mitgeben: der Empfänger startet dann mit
-                # origin=handoff(ctx.origin_depth + 1) und darf selbst wieder
-                # im Hintergrund delegieren statt synchron zu warten (sonst
-                # summieren sich Timeouts über verschachtelte ask_agent-Ketten,
-                # Befund 2026-11-19).
-                caller_depth=ctx.origin_depth,
-            )
-        except ValueError as exc:
-            return ToolResult.fail(str(exc))
+    # Interne Ziele laufen alle über die eigene AgentLink-Kennung; das eigentliche
+    # Ziel steht signiert in reason (hh-target).
+    routing_target = settings.agentlink_agent_id
+    try:
+        task_reason = reason_with_profile(
+            target, profile, task[:120], resume_token=resume_token,
+            # Plan E6 T4: Folgeaufträge aus derselben Sitzung setzen die Sitzung des Spezialisten fort
+            thread=thread_key(ctx.session_id) if ctx.session_id and not resume_token else None,
+            # Eigene Kettentiefe mitgeben: der Empfänger startet dann mit
+            # origin=handoff(ctx.origin_depth + 1) und darf selbst wieder
+            # im Hintergrund delegieren statt synchron zu warten (sonst
+            # summieren sich Timeouts über verschachtelte ask_agent-Ketten,
+            # Befund 2026-11-19).
+            caller_depth=ctx.origin_depth,
+        )
+    except ValueError as exc:
+        return ToolResult.fail(str(exc))
 
     state = State(
         agent_id=caller_al_id,
