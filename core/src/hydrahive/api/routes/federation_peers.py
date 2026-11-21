@@ -47,6 +47,9 @@ class PeerAgents(BaseModel):
 def _public(peer: dict) -> dict:
     out = {k: v for k, v in peer.items() if k != "public_key"}
     out["allowed_agents"] = peers_db.allowed_agents(peer["id"])
+    # Föderations-Katalog (docs/specs/federation-catalog.md): als bool, nicht 0/1.
+    out["is_hub"] = bool(peer.get("is_hub", 0))
+    out["catalog_accept"] = bool(peer.get("catalog_accept", 0))
     return out
 
 
