@@ -1,8 +1,7 @@
 # Gemeinsame Taskpflege: Tasks und Ideen aller Instanzen im eigenen Projekt
 
-**Stand:** 21.11.2026 · **Status:** Entwurf, alle Entscheidungen Till 21.11. eingearbeitet (inkl. Antworten auf
-die offenen Fragen), bereit für Review
-**Baut auf:** `federation-catalog.md` (Etappen 1–3 gemergt: #734, #736, Module #416, #737;
+**Stand:** 21.11.2026 · **Status:** Entwurf, alle Entscheidungen Till eingearbeitet, Review-Einwände #739 behoben
+**Baut auf:** `federation-catalog.md` (Etappen 1–3 gemergt: Kern #734, #736, #737, Module #416;
 Etappe 4 Backend auf Branch `feat/federation-catalog-e4-backend`)
 **Verwandt:** `server-peering.md`, Module `tasks` (`SPEC-HISTORY.md`, `SPEC-PAGINATION.md`)
 und `scratchpad` (`SPEC-IDEEN.md`)
@@ -85,7 +84,10 @@ Je Instanz, in Föderation → Katalog (Admin):
 
 „Bearbeiten durch andere Instanzen erlauben“ ist kein zweiter Teilen-Schalter, sondern
 ein zusätzlicher Schutz für Schreibzugriffe von außen: Mit `shared` allein sind die
-eigenen Einträge anderswo sichtbar, aber nicht änderbar.
+eigenen Einträge anderswo sichtbar, aber nicht änderbar. **Sicherheitsergänzung dieser
+Spec, nicht Teil von Tills Entscheidungen 1 und 7.** Till bestätigt sie vor Etappe G4
+(Bearbeiten). Lehnt er sie ab, entfällt `remote_edits`, und `shared` erlaubt auch das
+Bearbeiten.
 
 Der Client meldet beide Werte in jedem `catalog_push` mit (neue Felder `shared`,
 `remote_edits`). Der Hub speichert sie in `federation_catalog_sources`. Auf dem Hub
@@ -96,13 +98,41 @@ Der Hub gibt einen Eintrag mit Ursprung **O** genau dann an Client **C**, wenn a
 Bedingungen gelten:
 
 1. Hub: `shared = 1`.
-2. O ist der Hub selbst, oder O hat `catalog_accept = 1` am Hub und meldet `shared`.
+2. O ist der Hub selbst, oder O hat `catalog_accept = 1` am Hub, ist `active` und
+   meldet `shared`.
 3. C hat `catalog_accept = 1` am Hub, ist `active` und meldet `shared`.
 4. `owner` steht in der Nutzerliste, die C beim Abholen mitschickt (siehe Verteilung).
 5. C ≠ O. Eigene Einträge bekommt ein Client nie zurück.
 
 Für Einträge des Hubs gelten zusätzlich die Nutzerauswahl und die ausgeschlossenen
 Projekte **des Hubs** (dieselben Tabellen wie auf einem Client).
+
+**Wenn die Sichtbarkeit wegfällt (Teilen zurückgenommen):** Fällt eine der Bedingungen
+1–3 für einen Ursprung oder für den Hub weg, müssen dessen Einträge aus allen Kopien
+verschwinden, und zwar beim nächsten Abholen, nicht erst beim stündlichen Abgleich:
+
+- **Bedingung 2 fällt für O weg** (O meldet `shared = 0`, der Hub nimmt O
+  `catalog_accept` weg, O wird gesperrt oder entfernt): Der Hub schreibt in derselben
+  Transaktion, die den Wechsel speichert, für **jeden** Katalogeintrag von O eine Zeile
+  ins Löschprotokoll (`federation_catalog_deletions`, je eigene `rev`) und stupst
+  danach alle Clients an. Die Katalogzeilen selbst bleiben auf dem Hub (er zeigt sie
+  im Katalog-Reiter weiter, wie bisher). Wird die Bedingung wieder erfüllt, bekommen
+  alle Einträge von O eine neue `rev` und werden so erneut verteilt.
+- **Bedingung 1 fällt weg** (Hub schaltet `shared` aus): Der Hub verteilt nichts mehr
+  und beantwortet jedes `catalog_pull` mit `peer_catalog_not_shared`.
+- **Bedingung 3 fällt für C weg** (C meldet `shared = 0`, verliert `catalog_accept`
+  oder wird gesperrt): `catalog_pull` von C wird mit `peer_catalog_not_shared`
+  abgelehnt bzw. kommt nicht mehr an.
+- **Der Client leert seine Kopie**, sobald der Hub `peer_catalog_not_shared` meldet,
+  und setzt `pull_rev` auf 0. Das deckt die Fälle „Hub teilt nicht mehr“ und „C darf
+  nicht mehr“ ab, ohne dass der Hub für jeden Client Löschzeilen schreiben muss.
+- **Der Hub schließt bei sich etwas aus** (Nutzer abgewählt, Projekt ausgeschlossen):
+  Er schreibt für die betroffenen eigenen Einträge Löschzeilen und stupst an, wie bei
+  einem Ausschluss beim Ursprung.
+
+Sperrt ein **Client** seinen Hub oder entfernt ihn, bleibt die Kopie dagegen stehen
+(„Hub nicht erreichbar“, siehe §Datenschutz). Hier hat nur der Betrachter die
+Verbindung gekappt, die Ursprünge haben nichts zurückgenommen.
 
 ## Verteilung Hub → Clients
 
@@ -136,10 +166,15 @@ Der Hub vergibt eine fortlaufende Änderungsnummer `rev` (INTEGER, global auf de
   (Grundsatz aus `federation-catalog.md`). Sie werden wie bisher über die
   Katalog-Quellen gelesen: `list_changed` mit eigenem Cursor je Art beim Client
   (gleiches Format wie beim Push, nie über Arten hinweg verglichen). Heute tut
-  `catalog_changed` auf einer Instanz ohne Hub nichts (`catalog_changes.gate_active`).
-  Mit `shared` auf dem Hub merkt es sich die Änderung dort ebenfalls vor. Ein
-  Verteil-Schritt prüft je vorgemerktem Eintrag mit `get_full`, ob es ihn noch gibt.
-  Fehlt er, schreibt der Hub eine Zeile in `federation_catalog_deletions`. Danach
+  `catalog_changed` auf einer Instanz ohne Hub nichts: `catalog_changes.refresh_gate()`
+  öffnet die Sperre nur bei `hub_status == "active"`, und nur der Client-Loop leert die
+  Liste mit `drain()`. Neu öffnet `refresh_gate()` die Sperre auch dann, wenn die
+  Instanz selbst Hub ist (mindestens ein Partner mit `catalog_accept = 1`) und
+  `shared` an ist. Auf dem Hub leert ein **eigener Verteil-Schritt im selben
+  Katalog-Loop** die Liste (gleiche Sperre, gleiche 10-s-Bündelung wie beim Push). Er
+  prüft je vorgemerktem Eintrag mit `get_full`, ob es ihn noch gibt.
+  Fehlt er (oder ist er inzwischen ausgeschlossen), schreibt der Hub eine Zeile in
+  `federation_catalog_deletions`. Danach
   stupst er die Clients an. Verpasste Löschungen fängt der stündliche `full`-Abgleich.
 
 Weil `rev` eine ganze Zahl ist, entfällt für Partner-Einträge das Problem der
@@ -196,7 +231,10 @@ Antwort `200`, signiert (`kind: "catalog_items"`, `in_reply_to` = `msg_id`, Head
   `federation_catalog_mirror` geschrieben ist (eine Transaktion). Upsert nur, wenn das
   neue `updated_at` ≥ dem gespeicherten ist (Vergleich nur innerhalb derselben Art).
 - `full = true`: Der Hub schickt zusätzlich `full_keys`, die vollständige Liste aller
-  für C sichtbaren Schlüssel. Der Client löscht aus der Kopie alles, was fehlt.
+  für C sichtbaren Schlüssel, seitenweise mit höchstens 5000 Schlüsseln je Antwort
+  (`more` gilt dann auch für die Schlüsselliste). Der Client sammelt alle Seiten und
+  löscht erst danach aus der Kopie alles, was fehlt. Bricht der Lauf ab, löscht er
+  nichts und versucht es beim nächsten stündlichen Abgleich erneut.
 
 ### Wann wird abgeholt
 
@@ -204,8 +242,10 @@ Antwort `200`, signiert (`kind: "catalog_items"`, `in_reply_to` = `msg_id`, Head
   Sperre. Ohne Hub, ohne `enabled` oder ohne `shared` entsteht kein Netzverkehr.
 - **Stündlich** mit `full = true` (zusammen mit dem stündlichen Abgleich des Pushs).
 - **Auf Anstupsen** durch den Hub, gebündelt 10 s.
-- Nach Hub-Wechsel, Ausschalten von `shared` oder Änderung der Nutzerauswahl wird die
-  Kopie geleert, der nächste Lauf holt von vorn.
+- Nach Hub-Wechsel, Ausschalten von `shared`, Änderung der Nutzerauswahl oder der
+  Antwort `peer_catalog_not_shared` wird die Kopie geleert, und der nächste Lauf holt
+  von vorn. Wartende Änderungen bleiben dabei `pending`. Das Leeren der Kopie gilt
+  **nicht** als „Eintrag verschwunden“ (siehe §Warteschlange).
 
 ### Anstupsen `catalog_notify` (Hub → Client)
 
@@ -247,7 +287,9 @@ Projekt um, wandert die automatische Zuordnung mit dem neuen Namen. Eine manuell
 Zuordnung hängt an der `origin_project_id` und bleibt.
 
 Einträge ohne Projekt beim Ursprung erscheinen nur in projektübergreifenden Listen
-(z. B. Task-Box im Buddy, Ideenliste „alle Projekte“), nie in einem Projekt.
+(Ideenliste „alle Projekte“, Taskliste ohne Projektfilter), nie in einem Projekt. Die
+Task-Box im Buddy zeigt in diesen Etappen **keine** fremden Einträge, sie fragt ohne
+`include_foreign` ab.
 
 ### Projekte, die es nur auf einer Seite gibt
 
@@ -360,7 +402,8 @@ heute `404`.
   mit „Hub nicht erreichbar“.
 - Wartet eine eigene Änderung, zeigt die Zeile den alten Wert und daneben
   „→ neuer Wert · wartet auf <instanz>“. Die Kopie wird **nicht** vorab geändert. Sie
-  ändert sich erst, wenn der Ursprung bestätigt hat.
+  ändert sich erst, wenn der Ursprung bestätigt hat. Woher der Vergleichswert einer
+  weiteren Änderung kommt, regelt §Woher der Vergleichswert kommt.
 - Fremde Einträge lassen sich nicht löschen und nicht in ein anderes Projekt
   verschieben (Knöpfe ausgeblendet, Hinweis „gehört zu <instanz>“).
 - Neue Tasks und Ideen entstehen immer auf der eigenen Instanz.
@@ -370,7 +413,11 @@ heute `404`.
 
 1. `ctx.catalog_foreign_get(...)` auf Client C schickt signiert
    `POST https://<hub>/api/peering/catalog/read`
-   `{"kind": "catalog_read", "msg_id", "from", "seq", "issued_at", "origin_fp", "item_kind", "item_id", "owner"}`.
+   `{"kind": "catalog_read", "msg_id", "from", "issued_at", "origin_fp", "item_kind", "item_id", "owner"}`.
+   Wie `catalog_fetch` **ohne `seq`** und außerhalb der gemeinsamen Sperre: Der
+   Replay-Schutz läuft über `msg_id` (gemerkt wie in `catalog_origin._remember`) und
+   die Frische von `issued_at`. So überholt ein Lesezugriff keine laufenden Pushes
+   (kein `peer_replay`), und die Detailansicht wartet nicht auf Sync-Läufe.
 2. Der Hub prüft die Verteilungsregel (Schalter oben, `owner` ∈ `pull_users` von C,
    Eintrag sichtbar). Sonst nach außen `404`, Grund ins Audit.
 3. Der Hub lädt beim Ursprung mit dem **bestehenden** `catalog_fetch` nach (Timeout 8 s,
@@ -436,6 +483,29 @@ Die bearbeitende Instanz verhindert solche Änderungen schon vorher (Werkzeuge b
 die Felder nicht an). Die Prüfung beim Ursprung ist die zweite Sicherung, falls eine
 Instanz das anders hält.
 
+#### Woher der Vergleichswert kommt
+
+Den `from`-Wert setzt **der Kern** in `ctx.catalog_foreign_edit`, nicht das Modul und
+nicht das Werkzeug. Je Feld gilt, in dieser Reihenfolge:
+
+1. Gibt es in der Warteschlange für denselben Eintrag eine noch nicht abgeschlossene
+   Änderung (`pending`) dieses Felds, ist deren `to` der `from`-Wert. Bei mehreren
+   gilt die jüngste. So passen mehrere wartende Änderungen zusammen, obwohl die Kopie
+   nicht vorab geändert wird.
+2. Sonst für **Status und Priorität**: der Wert aus der Kopie (bzw. auf dem Hub aus
+   `federation_catalog_items`).
+3. Sonst für **Titel, Beschreibung und Ideentext**: der Wert aus dem live nachgeladenen
+   Volltext (`catalog_read`, beim Hub `get_full`). Die Kopie taugt dafür nicht, weil der
+   Katalog Titel auf 300 Zeichen kürzt, Tasks aber 500 erlauben. Ein `from` aus der
+   Kopie würde bei langen Titeln dauerhaft einen Konflikt auslösen. Die Oberfläche
+   bearbeitet Titel und Text ohnehin nur in der Detailansicht, die den Volltext schon
+   geladen hat. Sie gibt den gesehenen Wert mit, der Kern nimmt ihn, wenn Regel 1 nicht
+   greift. Ist der Volltext nicht live verfügbar (Ursprung offline, nur Snapshot oder
+   Metadaten), lässt sich Titel und Text nicht ändern (Felder gesperrt, Hinweis
+   „<instanz> nicht erreichbar“). Status und Notiz gehen weiter.
+
+`note.add` braucht keinen Vergleichswert.
+
 So hängt die Entscheidung nicht an `updated_at`. Das ist wichtig, weil Tasks nur
 sekundengenau speichern und zwei Änderungen in derselben Sekunde nicht
 unterscheidbar wären.
@@ -446,9 +516,12 @@ API (Status aus der Liste, Titellänge, `MAX_TEXT` bzw. `MAX_BODY`). Als Urheber
 `<username>@<instanz>` (z. B. `till@hydrahome`, Instanzname = `via_name` vom Hub):
 
 - **Tasks** sichern die alte Fassung von Titel und Beschreibung wie bisher im Verlauf
-  (`module_tasks_history`). Damit der Urheber dort steht, bekommt die Tabelle eine
-  Spalte `actor` (TEXT, leer bei lokalen Änderungen) und für Fern-Änderungen
-  `source = 'remote'` (Modul-Migration in Etappe G4).
+  (`module_tasks_history`, wie bisher mit `source = 'update'`). Damit der Urheber dort
+  steht, bekommt die Tabelle eine Spalte `actor` (TEXT, `NULL` bei lokalen Änderungen,
+  Modul-Migration in Etappe G4 per `ALTER TABLE … ADD COLUMN`). Einen neuen
+  `source`-Wert gibt es nicht: Die Tabelle hat `CHECK (source IN ('update','restored'))`,
+  und `_history._trim` kürzt nur `update`-Einträge. Fern-Änderungen bleiben so im
+  Kürzen nach `HISTORY_LIMIT`.
 - **Ideen** haben keinen Verlauf (Entscheidung 5). Ändert eine Fern-Änderung den
   Ideentext, schreibt der Ursprung **in derselben Transaktion** die alte Fassung als
   Anmerkung an die Idee: `author = "system"`, `agent_name` = Urheber, Text
@@ -469,8 +542,11 @@ antwortet er mit dem gespeicherten Ergebnis und ändert nichts.
 1. Das Modul ruft `ctx.catalog_foreign_edit(...)`. Der Kern schreibt die Änderung in
    die **Warteschlange** `federation_catalog_outbox` von C (`op_id`, `origin_fp`,
    `kind`, `item_id`, `owner`, `actor_type`, `changes`, `created_at`, `state = pending`).
-2. Sofort danach (ohne 10-s-Bündelung, der Nutzer wartet) schickt C unter der
-   gemeinsamen Sperre signiert `POST https://<hub>/api/peering/catalog/edit`
+2. Sofort danach (ohne 10-s-Bündelung, der Nutzer wartet) versucht C, die gemeinsame
+   Sperre zu bekommen, und wartet darauf **höchstens 2 s**. Bekommt C sie nicht (etwa
+   weil gerade ein Push mit mehreren Seiten läuft), meldet C sofort `queued`, und der
+   nächste Timer-Lauf überträgt die Änderung. Sonst schickt C unter der Sperre signiert
+   `POST https://<hub>/api/peering/catalog/edit`
    `{"kind": "catalog_edit", "msg_id", "from", "seq", "issued_at", "op_id", "origin_fp", "item_kind", "item_id", "owner", "actor_type", "changes"}`.
 3. Der Hub prüft Verteilungsregel, `owner` ∈ `pull_users` von C und dass O
    `remote_edits` meldet. Dann leitet er weiter:
@@ -511,8 +587,12 @@ eigene Warteschlange und schickt `catalog_apply` direkt an O.
   der Zeile („nicht übertragen, verworfen“) und im Katalog-Reiter, mit Knopf
   „erneut versuchen“ oder „verwerfen“.
 - Löscht oder schließt der Ursprung den Eintrag inzwischen aus, kommt `rejected`.
-  Verschwindet der Eintrag aus der Kopie (Abgleich), werden seine wartenden
-  Änderungen `rejected: not_found`.
+  Verschwindet der Eintrag **einzeln** aus der Kopie (Löschprotokoll oder stündlicher
+  Abgleich), werden seine wartenden Änderungen `rejected: not_found`. Wird die Kopie
+  **als Ganzes** geleert (Hub-Wechsel, `shared` aus, Nutzerauswahl, Antwort
+  `peer_catalog_not_shared`), bleiben die Änderungen `pending`. Sie laufen dann wie
+  alle anderen nach 7 Tagen ab oder werden beim Ursprung abgelehnt. Die Oberfläche
+  zeigt sie im Bereich „Wartende Änderungen“ weiter an.
 
 ### Konflikte
 
@@ -543,8 +623,8 @@ Priorität ändern nur Menschen.
   von `_ids.resolve` mit beiden Treffern. Volltext über `catalog_read`.
 - **`task_write` / `idea_write`** auf einen fremden Eintrag: nur `status` und
   `note` (bei Ideen die Anmerkung), über denselben Weg wie die Oberfläche mit
-  `actor_type = "agent"` (Vergleichswert = der Stand, den das Werkzeug gerade aus der
-  Kopie liest). Enthält der Aufruf zusätzlich Titel, Beschreibung/Text oder Priorität,
+  `actor_type = "agent"` (den Vergleichswert setzt der Kern nach §Woher der
+  Vergleichswert kommt). Enthält der Aufruf zusätzlich Titel, Beschreibung/Text oder Priorität,
   lehnt das Werkzeug den **ganzen** Aufruf ab, bevor etwas in die Warteschlange geht,
   mit `foreign_field_not_allowed` und dem Hinweis „Bei Einträgen anderer Instanzen
   ändern Agenten nur Status und Notiz, Titel und Text ändert ein Mensch.“ Ergebnis
@@ -616,7 +696,12 @@ Alles aus `federation-catalog.md` §Sicherheit gilt weiter. Zusätzlich:
   Ausführung.
 - **Rate-Limit**: `catalog_pull` zählt zum bestehenden Zähler (30/min).
   `catalog_read` 60/min wie `catalog_fetch`. `catalog_edit`/`catalog_apply` 60/min je
-  Partner (eigener Zähler). `catalog_notify` höchstens eines je 10 s.
+  Partner (eigener Zähler). `catalog_notify` höchstens eines je 10 s. Achtung: Alle
+  Lesezugriffe aller Clients laufen beim Ursprung als `catalog_fetch` des **einen**
+  Absenders Hub ein und teilen sich dort dessen 60/min. Für die erwartete Nutzung
+  (ein Mensch, wenige Instanzen) reicht das. Überschreitungen sieht der Nutzer als
+  „Ursprung nicht erreichbar“ mit Snapshot. Der Hub begrenzt `catalog_read` je Client
+  zusätzlich auf 30/min, damit ein einzelner Client das Budget nicht allein aufbraucht.
 - **Audit** (`errors_log`, Quelle `federation.catalog`): jede Ablehnung mit Grund,
   jedes Abholen gezählt (Partner, Anzahl), jedes Nachladen und jede Änderung mit
   Partner, Art, Kurz-ID, Nutzer, `via`, Ergebnis, **ohne Inhalt**.
@@ -633,7 +718,12 @@ Alles aus `federation-catalog.md` §Sicherheit gilt weiter. Zusätzlich:
 - `GET /api/federation/catalog` (aus Etappe 4) gibt es nun **auch auf Clients**: Dort
   liest es die Kopie und die eigenen Einträge. Filter und Sichtbarkeit wie auf dem
   Hub, zusätzlich Filter `assignment=unassigned`.
-- `GET /api/federation/catalog/{origin}/{kind}/{item_id}` auf Clients über `catalog_read`
+- `GET /api/federation/catalog/{peer_id}/{kind}/{item_id}` (Pfad wie in Etappe 4,
+  `federation_catalog_view.py`) gibt es auch auf Clients und geht dort über
+  `catalog_read`. Weil ein Client die Ursprünge nicht als Partner kennt, steht dort im
+  Pfadteil der `origin_fp` aus der Kopie. Die Route prüft den Wert gegen die Kopie
+  (`federation_catalog_mirror.origin_fp`), sonst `404`. Auf dem Hub bleibt es bei der
+  `peer_id`.
 - `GET/PUT /api/federation/catalog/project-map` (siehe Projektzuordnung)
 - `GET /api/federation/catalog/outbox` (eigene wartende, fehlgeschlagene, abgelaufene
   Änderungen), `POST …/outbox/{op_id}/retry`, `DELETE …/outbox/{op_id}`
@@ -657,7 +747,11 @@ Hilfe in `help/{de,en}/federation.md` ergänzen.
 
 G1. Ohne `shared` auf Hub, Ursprung **oder** Betrachter erscheint kein fremder Eintrag
     in Modul-Listen, und `catalog_pull` liefert nichts (`peer_catalog_not_shared`).
-    Ohne Hub oder mit Katalog aus entsteht kein Netzverkehr.
+    Ohne Hub oder mit Katalog aus entsteht kein Netzverkehr. **Zurücknehmen:** Schaltet
+    .2 `shared` aus, verliert .2 am Hub `catalog_accept` oder wird .2 am Hub gesperrt,
+    verschwinden die Einträge von .2 beim nächsten Abholen aus der Kopie auf .4 (nicht
+    erst beim stündlichen Abgleich). Schaltet der Hub `shared` aus, leert .4 seine Kopie
+    beim nächsten Abholen.
 G2. Mit allen Schaltern an: Ein neuer Task auf .2 im Projekt „Hydrahive DEV“
     erscheint auf .4 im Reiter „Tasks“ desselben Projekts mit Abzeichen „hydrahome“,
     in der Regel nach ≤ 30 s, spätestens nach einem Timer-Intervall. Genauso
@@ -680,7 +774,11 @@ G7. Dasselbe mit .2 offline: Zeile zeigt „wartet auf hydrahome“. Nach Wieder
 G8. Konflikt: Auf .2 wird der Status geändert, während auf .4 eine Änderung desselben
     Felds wartet → .2 behält seinen Wert, .4 zeigt den Konflikt und übernimmt den
     Wert von .2. Andere Felder derselben Änderung werden übernommen.
-G9. Dieselbe `op_id` zweimal → nur eine Änderung beim Ursprung.
+G9. Dieselbe `op_id` zweimal → nur eine Änderung beim Ursprung. Zwei
+    Statusänderungen nacheinander an demselben fremden Task, während .2 offline ist
+    (`open` → `in_progress` → `done`), werden nach Wiederkehr von .2 beide **ohne
+    Konflikt** übernommen (Vergleichswert der zweiten = Zielwert der ersten). Ein
+    Titel mit mehr als 300 Zeichen lässt sich ohne Konflikt ändern.
 G10. Ohne `remote_edits` beim Ursprung oder für ein ausgeschlossenes Projekt →
      `rejected`, beim Ursprung keine Änderung, Grund im Audit, nach außen `404`.
 G11. Fremde Einträge lassen sich weder löschen noch in ein anderes Projekt
