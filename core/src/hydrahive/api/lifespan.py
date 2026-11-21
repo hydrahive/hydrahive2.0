@@ -206,6 +206,10 @@ async def lifespan(app: FastAPI):
     load_butler_builtins()
     from hydrahive.modules.butler_bridge import register_module_butler_subtypes
     register_module_butler_subtypes()
+    from hydrahive.federation.catalog_changes import refresh_gate as refresh_catalog_gate
+    from hydrahive.modules.catalog_sources import collect_catalog_sources
+    collect_catalog_sources()
+    refresh_catalog_gate()
     set_start_time()
 
     if settings.update_check_enabled:

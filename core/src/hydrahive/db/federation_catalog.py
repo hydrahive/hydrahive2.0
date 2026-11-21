@@ -98,6 +98,19 @@ def set_catalog_accept(peer_id: str, accept: bool) -> dict | None:
 
 # --- Katalog-Einstellungen (federation_catalog_settings, eine Zeile) -------
 
+def gate_inputs() -> tuple[bool, str | None, list[str]]:
+    """Rein lesend (kein INSERT): (enabled, Hub-Status oder None, Nutzerauswahl).
+
+    Für den Schalter von `ctx.catalog_changed` (federation/catalog_changes.py).
+    Fehlt die Einstellungszeile, gilt der Standard „aus“.
+    """
+    with db() as conn:
+        row = conn.execute("SELECT enabled FROM federation_catalog_settings WHERE id = 1").fetchone()
+        hub = conn.execute("SELECT status FROM federation_peers WHERE is_hub = 1 LIMIT 1").fetchone()
+        users = conn.execute("SELECT username FROM federation_catalog_users ORDER BY username").fetchall()
+    return (bool(row and row["enabled"]), hub["status"] if hub else None, [r["username"] for r in users])
+
+
 def get_settings() -> dict:
     with db() as conn:
         conn.execute("INSERT OR IGNORE INTO federation_catalog_settings (id) VALUES (1)")

@@ -1,4 +1,5 @@
 from __future__ import annotations
+import logging
 from dataclasses import dataclass
 from typing import TYPE_CHECKING, Any, Awaitable, Callable
 from fastapi import APIRouter
@@ -6,6 +7,9 @@ from fastapi import APIRouter
 if TYPE_CHECKING:
     from hydrahive.butler.registry import ActionSpec, ConditionSpec, TriggerSpec
     from hydrahive.tools.base import Tool
+
+logger = logging.getLogger(__name__)
+CATALOG_KINDS = ("task", "idea")
 
 
 @dataclass(frozen=True)
@@ -24,6 +28,28 @@ class ModuleJob:
     initial_delay_seconds: float = 5.0
 
 
+@dataclass(frozen=True)
+class CatalogSource:
+    """Katalog-Quelle eines Moduls (docs/specs/federation-catalog.md §Katalog-Quellen).
+
+    Alle vier Funktionen sind synchron; der Kern ruft sie positionsgebunden in
+    genau dieser Reihenfolge der Parameter auf (ab Etappe 3 über einen Thread):
+      list_changed(username, after, limit) -> list[dict]
+          after = (updated_at, item_id) | None; sortiert nach (updated_at, item_id),
+          nur Zeilen mit (updated_at, item_id) > after
+      list_versions(username) -> list[tuple[item_id, updated_at, project_id]]
+      get_full(username, item_id) -> dict | None   (Metadaten + Volltext)
+      query(usernames, project, status, q, limit, offset) -> list[dict]
+    `updated_at` bleibt ein undurchsichtiger Wert der Quelle; verglichen wird nur
+    innerhalb derselben `kind`.
+    """
+    kind: str
+    list_changed: Callable[..., Any]
+    list_versions: Callable[..., Any]
+    get_full: Callable[..., Any]
+    query: Callable[..., Any]
+
+
 class ModuleContext:
     """Was ein Modul beim register() registrieren kann."""
 
@@ -38,6 +64,7 @@ class ModuleContext:
         self.butler_triggers: list["TriggerSpec"] = []
         self.butler_conditions: list["ConditionSpec"] = []
         self.butler_actions: list["ActionSpec"] = []
+        self.catalog_sources: list[CatalogSource] = []
 
     def register_router(self, router: APIRouter) -> None:
         self.routers.append(router)
@@ -99,3 +126,47 @@ class ModuleContext:
     def register_butler_action(self, spec: "ActionSpec") -> None:
         """Eigene Butler-Action beisteuern."""
         self.butler_actions.append(spec)
+
+    def register_catalog_source(
+        self,
+        kind: str,
+        list_changed: Callable[..., Any],
+        list_versions: Callable[..., Any],
+        get_full: Callable[..., Any],
+        query: Callable[..., Any],
+    ) -> bool:
+        """Modul als Katalog-Quelle für `kind` ("task" | "idea") anmelden.
+
+        Wirft nie: ungültige Anmeldungen (unbekannte Art, nicht aufrufbare
+        Funktion, zweite Anmeldung derselben Art im Modul) werden geloggt und
+        übersprungen, damit das Modul mit Routern, Tools und Jobs weiterläuft.
+        Rückgabe True = angemeldet. Meldet ein zweites Modul dieselbe Art an,
+        übernimmt der Kern beim Start nur die erste (modules/catalog_sources.py).
+        """
+        fns = {"list_changed": list_changed, "list_versions": list_versions,
+               "get_full": get_full, "query": query}
+        problem = None
+        if kind not in CATALOG_KINDS:
+            problem = f"unbekannte Art (erlaubt: {', '.join(CATALOG_KINDS)})"
+        elif not all(callable(fn) for fn in fns.values()):
+            problem = "nicht alle Funktionen aufrufbar: " + ", ".join(n for n, f in fns.items() if not callable(f))
+        elif any(s.kind == kind for s in self.catalog_sources):
+            problem = "schon angemeldet"
+        if problem:
+            logger.warning("Modul %s: Katalog-Quelle %r übersprungen: %s", self.module_id, kind, problem)
+            return False
+        self.catalog_sources.append(CatalogSource(kind=kind, **fns))
+        return True
+
+    def catalog_changed(self, kind: str, username: str, item_id: str) -> None:
+        """Nach jedem erfolgreichen Schreiben (anlegen/ändern/löschen) aufrufen.
+
+        Kehrt sofort zurück und wirft nie. Ist der Katalog-Sync aus, kein aktiver
+        Hub gesetzt oder der Nutzer nicht ausgewählt, passiert nichts; sonst wird
+        der Eintrag für den nächsten Push vorgemerkt (federation/catalog_changes.py).
+        """
+        try:
+            from hydrahive.federation import catalog_changes
+            catalog_changes.mark_changed(kind, username, item_id)
+        except Exception as e:  # nie in den Schreibpfad des Moduls durchreichen
+            logger.debug("catalog_changed(%s) von Modul %s ignoriert: %s", kind, self.module_id, e)
