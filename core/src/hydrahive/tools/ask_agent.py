@@ -90,7 +90,9 @@ async def _execute(args: dict, ctx: ToolContext) -> ToolResult:
     # Danach auf UUID normalisieren, damit der Projekt-Check UUIDs vergleicht.
     resolution = resolve_target(target, ctx.user_id)
     if resolution.error or resolution.agent is None:
-        return ToolResult.fail(resolution.error or f"Agent '{target}' unbekannt.")
+        return ToolResult.fail(
+            resolution.error or f"Agent '{target}' unbekannt. Für Agenten auf anderen Servern: name@server.",
+        )
     target_agent = resolution.agent
     target = target_agent["id"]
 
@@ -110,7 +112,7 @@ async def _execute(args: dict, ctx: ToolContext) -> ToolResult:
             return ToolResult.fail(f"Zieldokument: {exc}")
     files += [{"path": str(p)} for p in (args.get("files") or [])[:50]]
 
-    background = _bg.wants_background(args, ctx, True)
+    background = _bg.wants_background(args, ctx)
     if background:
         refused = _bg.refuse_reason(ctx)
         if refused:

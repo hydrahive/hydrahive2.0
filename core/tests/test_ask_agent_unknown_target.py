@@ -25,7 +25,11 @@ def _owner() -> str:
 
 # Echte Fehlgriffe aus AgentLink. „user“ fehlt hier bewusst: Das ist ein eindeutiger
 # Teilstring des eigenen Test-Agenten „Test Agent (testuser)“ und wird korrekt aufgelöst.
-@pytest.mark.parametrize("target", ["hydrahive2", "security-auditor", "nutzer", str(uuid.uuid4())])
+# Feste UUID (wie die des gelöschten Agenten 30d464d2…): zufällige Werte in parametrize
+# ergeben unter pytest-xdist je Worker andere Test-IDs („Different tests were collected“).
+@pytest.mark.parametrize(
+    "target", ["hydrahive2", "security-auditor", "nutzer", "30d464d2-b440-46d4-926e-3fde95210790"],
+)
 def test_unknown_target_fails_without_post_state(made, posted, tmp_path, target):  # noqa: F811
     made(f"spec-{uuid.uuid4().hex[:6]}", _owner())
     res = _run(target, _owner(), tmp_path)
