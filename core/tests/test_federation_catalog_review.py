@@ -7,13 +7,15 @@ from __future__ import annotations
 import pytest
 
 from tests.conftest import error_code
-from tests.test_federation_catalog_e1 import _add_active_peer, _cleanup, _settings_body
+from tests._own_rows import only_own_rows
+from tests.test_federation_catalog_e1 import CATALOG_TABLES, _add_active_peer, _cleanup, _settings_body
 
 
 @pytest.fixture(autouse=True)
 def _clean(client, admin_headers):
     _cleanup(client, admin_headers)
-    yield
+    with only_own_rows(*CATALOG_TABLES):
+        yield
     _cleanup(client, admin_headers)
 
 

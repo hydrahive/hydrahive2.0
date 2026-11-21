@@ -6,6 +6,7 @@ from __future__ import annotations
 
 import pytest
 
+from tests._own_rows import only_own_rows
 from tests.conftest import error_code, error_params
 from tests.test_federation_peers import _foreign_code
 
@@ -23,25 +24,25 @@ def _add_active_peer(client, admin_headers, name: str = "vps") -> dict:
     return ok.json()
 
 
-def _cleanup(client, admin_headers):
-    from hydrahive.db.connection import db
+# Katalog-Tabellen: nur Zeilen löschen, die im Test dazugekommen sind (kein DELETE
+# ohne WHERE, test_no_broad_deletes). Sonst hängt z. B. test_get_settings_defaults
+# davon ab, welcher Test vorher Einstellungen gespeichert hat.
+CATALOG_TABLES = (
+    "federation_catalog_settings", "federation_catalog_users",
+    "federation_catalog_excluded_projects", "federation_catalog_cursors",
+)
 
+
+def _cleanup(client, admin_headers):
     for p in client.get("/api/federation/peers", headers=admin_headers).json():
         client.delete(f"/api/federation/peers/{p['id']}", headers=admin_headers)
-    # Katalog-Zustand zurücksetzen: Die Tests teilen sich eine DB (auch unter xdist),
-    # sonst hängt z. B. test_get_settings_defaults von der Reihenfolge ab.
-    with db() as conn:
-        for table in (
-            "federation_catalog_settings", "federation_catalog_users",
-            "federation_catalog_excluded_projects", "federation_catalog_cursors",
-        ):
-            conn.execute(f"DELETE FROM {table}")
 
 
 @pytest.fixture(autouse=True)
 def _clean(client, admin_headers):
     _cleanup(client, admin_headers)
-    yield
+    with only_own_rows(*CATALOG_TABLES):
+        yield
     _cleanup(client, admin_headers)
 
 
