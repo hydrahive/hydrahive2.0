@@ -7,49 +7,14 @@ in derselben Sekunde, zwei Änderungen desselben Tasks in derselben Sekunde).
 """
 from __future__ import annotations
 
-import asyncio
-from datetime import datetime, timezone
-
 import pytest
 
 from hydrahive.db import federation_catalog_client as client_db
-from hydrahive.federation import catalog_plan, catalog_sync
-from hydrahive.modules import catalog_sources
-from tests._catalog_fakes import FakeHub, FakeSource, hub_rows
-from tests._own_rows import only_own_rows
-from tests.test_federation_catalog_e1 import CATALOG_TABLES, _add_active_peer, _cleanup, _settings_body
+from hydrahive.federation import catalog_sync
+from tests._catalog_fakes import hub_rows
+from tests._catalog_sync_env import I0, T0, T1
 
-T0 = "2026-11-21T10:00:00Z"
-T1 = "2026-11-21T10:00:01Z"
-I0 = "2026-11-21T10:00:00.500000Z"
-
-
-@pytest.fixture
-def env(client, admin_headers, monkeypatch):
-    _cleanup(client, admin_headers)
-    with only_own_rows(*CATALOG_TABLES, "errors_log"):
-        peer = _add_active_peer(client, admin_headers, "hydrahive-vps")
-        assert client.put(f"/api/federation/peers/{peer['id']}/hub", headers=admin_headers,
-                          json={"is_hub": True}).status_code == 200
-        assert client.put("/api/federation/catalog/settings", headers=admin_headers,
-                          json=_settings_body(excluded_projects=["proj-geheim"])).status_code == 200
-        client_db.reset_cursors([("testuser", "task"), ("testuser", "idea")])
-        tasks, ideas = FakeSource("task"), FakeSource("idea")
-        snap = dict(catalog_sources.CATALOG_SOURCES)
-        catalog_sources.CATALOG_SOURCES.clear()
-        catalog_sources.CATALOG_SOURCES.update({"task": ("tasks", tasks.as_source()),
-                                                "idea": ("scratchpad", ideas.as_source())})
-        hub = FakeHub(peer)
-        pauses: list[float] = []
-
-        async def no_pause(seconds):
-            pauses.append(seconds)
-        monkeypatch.setattr(catalog_sync, "send_signed", hub)
-        monkeypatch.setattr(catalog_sync, "_pause", no_pause)
-        yield {"peer": peer, "hub": hub, "tasks": tasks, "ideas": ideas, "pauses": pauses}
-        catalog_sources.CATALOG_SOURCES.clear()
-        catalog_sources.CATALOG_SOURCES.update(snap)
-        _cleanup(client, admin_headers)
+pytest_plugins = ["tests._catalog_sync_env"]  # Fixture `env`
 
 
 def _status() -> dict:
@@ -214,49 +179,3 @@ async def test_hub_nimmt_nicht_an_grund_im_status(env, client, admin_headers):
     env["hub"].peer["catalog_accept"] = 0
     assert await catalog_sync.sync() == "peer_catalog_not_accepted"
     assert _status()["last_error"] == "peer_catalog_not_accepted"
-
-
-# --- Kein Netz ohne Hub/Sync, gemeinsame Sperre, Abgleich fällig -------------------
-
-async def test_ohne_hub_oder_sync_aus_kein_netzverkehr(env, client, admin_headers):
-    client.put("/api/federation/catalog/settings", headers=admin_headers, json=_settings_body(enabled=False))
-    env["tasks"].put("t-1", T0)
-    assert await catalog_sync.sync() == "inactive"
-    client.put("/api/federation/catalog/settings", headers=admin_headers, json=_settings_body())
-    client.put(f"/api/federation/peers/{env['peer']['id']}/hub", headers=admin_headers, json={"is_hub": False})
-    assert await catalog_sync.sync(full=True) == "inactive"
-    assert env["hub"].sent == []
-
-
-async def test_gemeinsame_sperre_nachrichten_nacheinander(env):
-    env["hub"].delay = 0.05
-    env["tasks"].put("t-1", T0)
-    results = await asyncio.gather(*(catalog_sync.sync() for _ in range(3)))
-    assert results == ["ok", "ok", "ok"]
-    assert env["hub"].max_active == 1
-    seqs = [p["seq"] for p in env["hub"].sent]
-    assert seqs == sorted(seqs)
-
-
-async def test_event_lauf_ohne_aenderung_sendet_nichts(env):
-    assert await catalog_sync.sync(pairs={("testuser", "task")}, heartbeat=False, reason="event") == "ok"
-    assert env["hub"].sent == []
-    assert await catalog_sync.sync() == "ok"           # Timer: leeres Lebenszeichen
-    assert len(env["hub"].sent) == 1 and env["hub"].sent[0]["items"] == []
-
-
-def test_full_due():
-    now = datetime(2026, 11, 21, 12, 0, tzinfo=timezone.utc)
-    assert catalog_sync.full_due(None, 1, now)
-    assert catalog_sync.full_due("2026-11-21T10:59:00.000+00:00", 1, now)
-    assert not catalog_sync.full_due("2026-11-21T11:30:00.000+00:00", 1, now)
-    assert catalog_sync.full_due("2026-11-21T11:30:00.000+00:00", 12, now)
-    assert catalog_sync.full_due("kaputt", 1, now)
-
-
-def test_messages_hoechstens_500_und_abgleich_am_ende():
-    plan = catalog_plan.Plan(items=[{"i": n} for n in range(1001)], deleted=[{"d": 1}], full_versions={"u": {}})
-    msgs = catalog_plan.messages(plan, heartbeat=False)
-    assert [len(m[0]) for m in msgs] == [500, 500, 1]
-    assert msgs[0][1] == [{"d": 1}] and msgs[-1][2] == {"u": {}} and msgs[0][2] is None
-    assert catalog_plan.messages(catalog_plan.Plan(), heartbeat=False) == []
