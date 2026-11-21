@@ -3,6 +3,8 @@ from __future__ import annotations
 
 import logging
 
+from hydrahive.agentlink.protocol import ErrorEntry, error_entry
+
 logger = logging.getLogger(__name__)
 
 
@@ -30,11 +32,14 @@ def project_refusal(calling_agent_id: str, target: str) -> str | None:
     return None
 
 
-def map_context(task: str, raw_context: dict) -> tuple[str, list[dict], list[str]]:
-    """Komfort-Schlüssel (error_log, code_snippet, related_files) → (Auftragstext, files, errors)."""
-    errors = list(raw_context.get("errors") or [])
+def map_context(task: str, raw_context: dict) -> tuple[str, list[dict], list[ErrorEntry]]:
+    """Komfort-Schlüssel (error_log, code_snippet, related_files) → (Auftragstext, files, errors).
+
+    ``errors`` sind Objekte ``{type, message}``: AgentLink lehnt Text in ``context.errors``
+    mit 422 ab (Task 54c50a91)."""
+    errors = [error_entry("error", e) for e in (raw_context.get("errors") or [])]
     if raw_context.get("error_log"):
-        errors.append(raw_context["error_log"])
+        errors.append(error_entry("error_log", raw_context["error_log"]))
     files = list(raw_context.get("files") or [])
     for p in raw_context.get("related_files") or []:
         files.append({"path": str(p)})

@@ -136,7 +136,7 @@ def test_signatur_ueberlebt_die_rundreise(client, link, tmp_path):
     """Der Empfänger prüft die Signatur am State, den AgentLink zurückgibt."""
     a = _agent("security")
     try:
-        res = _run({"agent_id": a["id"], "task_type": "review", "on_demand_reason": "Auth",
+        res = _run({"agent_id": a["id"], "task_type": "review", "on_demand_reason": "Neue Auth-Route",
                     "context": {"error_log": "log"}}, tmp_path)
         assert res.success is True, res.error
         back = State.model_validate(link.stored[0].model_dump(mode="json"))

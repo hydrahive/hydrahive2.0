@@ -16,6 +16,7 @@ import asyncio
 import logging
 
 from hydrahive.agentlink.runtime_profiles import OVERRUN_PROFILE, reason_with_profile, thread_key
+from hydrahive.agentlink.protocol import error_entry
 from hydrahive.agentlink import (
     ContextBlock,
     Handoff,
@@ -146,9 +147,9 @@ async def _execute(args: dict, ctx: ToolContext) -> ToolResult:
         context=ContextBlock(
             files=files,
             git=raw_context.get("git"),
-            errors=errors + ([f"Budget-Überschreitung angefordert: {overrun_reason[:500]}"]
+            errors=errors + ([error_entry("overrun", f"Budget-Überschreitung angefordert: {overrun_reason[:500]}")]
                              if profile == OVERRUN_PROFILE else [])
-                          + ([f"Auf Abruf: {on_demand_reason}"] if on_demand_reason else []),
+                          + ([error_entry("on_demand", f"Auf Abruf: {on_demand_reason}")] if on_demand_reason else []),
         ),
         handoff=Handoff(
             to_agent=routing_target,

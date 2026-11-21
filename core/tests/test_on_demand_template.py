@@ -64,7 +64,8 @@ def test_review_mit_begruendung_ausgefuehrt(security, posted, tmp_path):
     res = _run({"agent_id": security["id"], "task_type": "review",
                 "on_demand_reason": "Neue Auth-Route mit Token-Prüfung"}, tmp_path)
     assert res.success is True, res.error
-    assert any("Auf Abruf: Neue Auth-Route" in e for e in posted[0].context.errors)
+    assert any(e.type == "on_demand" and "Auf Abruf: Neue Auth-Route" in e.message
+               for e in posted[0].context.errors)
 
 
 def test_normale_spezialisten_unberuehrt(client, posted, tmp_path):
