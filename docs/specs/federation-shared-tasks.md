@@ -1,6 +1,6 @@
 # Gemeinsame Taskpflege: Tasks und Ideen aller Instanzen im eigenen Projekt
 
-**Stand:** 21.11.2026 · **Status:** Entwurf, alle Entscheidungen Till eingearbeitet, Review-Einwände #739 behoben
+**Stand:** 21.11.2026 · **Status:** Entwurf, alle Entscheidungen Till eingearbeitet, Einwände aus Review #739 behoben
 **Baut auf:** `federation-catalog.md` (Etappen 1–3 gemergt: Kern #734, #736, #737, Module #416;
 Etappe 4 Backend auf Branch `feat/federation-catalog-e4-backend`)
 **Verwandt:** `server-peering.md`, Module `tasks` (`SPEC-HISTORY.md`, `SPEC-PAGINATION.md`)
