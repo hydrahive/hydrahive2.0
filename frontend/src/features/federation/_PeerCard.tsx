@@ -119,7 +119,12 @@ export function PeerCard({ peer, currentHub, agents, onChange }: Props) {
           if (!confirm(t("catalog.switch_hub_confirm", { from: currentHub.name, to: peer.name }))) return
           run(async () => {
             await peersApi.setHub(currentHub.id, false)
-            await peersApi.setHub(peer.id, true)
+            try {
+              await peersApi.setHub(peer.id, true)
+            } catch (e) {
+              onChange() // alter Hub ist schon aus → Liste neu laden, sonst zeigt sie ihn noch als Hub
+              throw e
+            }
           })
         }}
         onSetAccept={next => run(() => peersApi.setCatalogAccept(peer.id, next))}
