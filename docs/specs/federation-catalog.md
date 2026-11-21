@@ -6,6 +6,9 @@
 (Entwurf, **noch nicht auf main**, nur auf Branch `docs/instance-identity`),
 `datamining-access.md`,
 Module `tasks` (`SPEC-HISTORY.md`) und `scratchpad` (`SPEC-IDEEN.md`)
+**Erweiterung:** `federation-shared-tasks.md` (Gemeinsame Taskpflege: Tasks und Ideen
+aller Instanzen im eigenen Projekt, Verteilung Hub → Clients, Bearbeiten über den Hub
+an den Ursprung; Entscheidungen Till 21.11. abends)
 
 ## Problem
 
@@ -508,15 +511,17 @@ Texte über i18n (`federation.json` de/en), Hilfe in `help/{de,en}/federation.md
   gilt weiter die Live-Abfrage aus `instance-identity.md`.
 - **Volltext-Sync**: Beschreibungen, Ideentexte, Anmerkungen und Verlauf werden nie
   automatisch übertragen.
-- **Bearbeiten über Server**: Der Hub zeigt nur an. Status ändern oder Tasks anlegen
-  auf einem anderen Server geht weiter über `ask_agent("<agent>@<server>")`.
-- **Agenten-Werkzeug für den Katalog** (z. B. `task_list(server="*")`): später möglich,
-  nicht in dieser Spec.
+- **Bearbeiten über Server** in den Etappen 1–5 dieser Spec: Der Katalog-Reiter zeigt
+  nur an. Das Bearbeiten fremder Tasks und Ideen regelt die Erweiterung
+  `federation-shared-tasks.md` (Änderung geht über den Hub an den Ursprung). Tasks auf
+  einem anderen Server **anlegen** geht weiter nur über `ask_agent("<agent>@<server>")`.
+- **Agenten-Werkzeug für den Katalog** (z. B. `task_list(server="*")`): nicht in dieser
+  Spec, siehe `federation-shared-tasks.md` §Agenten-Werkzeuge.
 - **Mesh, mehrere Hubs, Hub-Ketten**: genau ein Hub pro Client.
-- **Gesamtkatalog auf den Clients** (Entscheidung Till 21.11.): Ein Client wie
-  `hydrahome` sieht in dieser ersten Stufe nur seinen eigenen Sync-Status. Es gibt
-  keine Live-Abfrage `catalog_query` beim Hub und kein Weiterreichen von Volltext
-  über Dritte. Das kann später nachgezogen werden.
+- ~~**Gesamtkatalog auf den Clients**~~ **gestrichen** (Till, 21.11.2026 abends):
+  Clients bekommen die Tasks und Ideen der anderen Instanzen über den Hub, siehe
+  `federation-shared-tasks.md`. Für die Etappen 1–5 dieser Spec bleibt es dabei, dass
+  nur der Hub den Katalog zeigt.
 - **Kopplung ohne Tailscale** über das offene Internet.
 
 ## Akzeptanzkriterien
@@ -580,8 +585,13 @@ diese Etappe nicht zwingend, profitiert aber von einheitlichen Namen.
    Frage in `instance-identity.md` (Datamining), die dort nachzutragen ist.
 3. **Snapshot des zuletzt geöffneten Volltexts darf auf dem Hub bleiben**
    (`snapshot_body`, siehe Ablauf 4).
-4. **Clients sehen den Gesamtkatalog nicht** (keine Live-Abfrage beim Hub). Das bleibt
-   Nicht-Ziel dieser ersten Stufe und kann später folgen.
+4. ~~**Clients sehen den Gesamtkatalog nicht**~~ – überholt durch die Entscheidungen
+   vom 21.11. abends (unten).
+5. **Gemeinsame Taskpflege** (21.11.2026 abends): Tasks und Ideen aller gekoppelten
+   Instanzen erscheinen im gleichnamigen Projekt jeder Instanz (im Cockpit
+   korrigierbar). Fremde Einträge dürfen bearbeitet werden, die Änderung geht über den
+   Hub an die Ursprungs-Instanz, die Besitzer bleibt. Ideen gleich mit. Ausgearbeitet
+   in `federation-shared-tasks.md`.
 
 Offene Fragen gibt es derzeit keine.
 

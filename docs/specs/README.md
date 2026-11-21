@@ -3,7 +3,7 @@
 > Automatisch erzeugt aus Dateinamen, Git-Historie und Überschriften.
 > Neu erzeugen: `python3 scripts/gen_spec_index.py`
 
-148 Spezifikationen. Die Spalte **Status** zeigt nur, was die Spec
+153 Spezifikationen. Die Spalte **Status** zeigt nur, was die Spec
 selbst im Kopf angibt — leer heißt: nicht angegeben, nicht automatisch geraten.
 
 ## Mehrteilige Reihen
@@ -30,11 +30,12 @@ frühere Teile beschreiben bereits umgesetzte Etappen.
 | [`access-groups.md`](access-groups.md) | Freigaben und Gruppen — wer darf was nutzen und teilen |  | 2026-09-29 |
 | [`access-groups-plan.md`](access-groups-plan.md) | Plan: Freigaben und Gruppen — Etappe 1 (Funktions-Freigaben) |  | 2026-09-29 |
 | [`admin-cockpit-visual-system.md`](admin-cockpit-visual-system.md) | Admin-Cockpit Visual System |  | 2026-10-30 |
-| [`agent-background-delegation.md`](agent-background-delegation.md) | Spec + Plan: Spezialisten im Hintergrund beauftragen (ask_agent) |  | 2026-10-01 |
+| [`agent-background-delegation.md`](agent-background-delegation.md) | Spec + Plan: Spezialisten im Hintergrund beauftragen (ask_agent) |  | 2026-11-20 |
 | [`agent-infrastructure-tools.md`](agent-infrastructure-tools.md) | Container und VMs als Agent-Werkzeuge |  | 2026-09-26 |
 | [`agent-integrity-layer.md`](agent-integrity-layer.md) | Agent Integrity Layer |  | 2026-09-24 |
 | [`agent-language.md`](agent-language.md) | Spec: Antwortsprache für alle Agenten aus der Buddy-Einstellung |  | 2026-10-11 |
 | [`agent-model-picker.md`](agent-model-picker.md) | Agent-Editor: Modellauswahl ohne Limit, nach Anbieter gruppiert |  | 2026-09-30 |
+| [`agent-office.md`](agent-office.md) | Agenten-Büro |  | 2026-11-14 |
 | [`agent-templates.md`](agent-templates.md) | Agenten-Templates – Modellketten, Budgets und Arbeitsweise an einem Ort |  | 2026-11-14 |
 | [`agentlink-checkpoint-resume.md`](agentlink-checkpoint-resume.md) | AgentLink Checkpoint and Resume |  | 2026-09-25 |
 | [`agentlink-runtime-profiles.md`](agentlink-runtime-profiles.md) | AgentLink Runtime Profiles |  | 2026-09-25 |
@@ -52,6 +53,7 @@ frühere Teile beschreiben bereits umgesetzte Etappen.
 | [`butler-module-nodes.md`](butler-module-nodes.md) | Spec: Butler-Editor zeigt Bausteine aus Modulen | Freigegeben (Till, 25.10.2026: „wir müssen den Butler sogar erweitern … der Butler sollte die treibende | 2026-10-25 |
 | [`butler-palette-webhook-cleanup.md`](butler-palette-webhook-cleanup.md) | Fix-Spec: Butler — Palette gegen Registry, Webhook benutzbar machen | Freigegeben (Till, 2026 | 2026-09-28 |
 | [`central-configuration.md`](central-configuration.md) | Zentrale Konfiguration — ein Ort für alle Einstellungen |  | 2026-09-26 |
+| [`chain-anchor.md`](chain-anchor.md) | Ketten-Anker: Zielbild und Originalauftrag reisen unverändert mit |  | 2026-11-20 |
 | [`chat-mobile-compact.md`](chat-mobile-compact.md) | Chat auf dem Handy: kompakter Kopf, kompakte Eingabe, Hilfe-Knopf in der Fußzeile |  | 2026-10-24 |
 | [`chat-run-decoupled.md`](chat-run-decoupled.md) | Plan: Agent-Lauf vom Browser entkoppeln (+ echter Stop) |  | 2026-07-29 |
 | [`chat-upload-safety.md`](chat-upload-safety.md) | Chat-Dateiupload: sichtbare Limits und sicheres Streaming |  | 2026-07-20 |
@@ -75,12 +77,15 @@ frühere Teile beschreiben bereits umgesetzte Etappen.
 | [`datamining-gesamtindex.md`](datamining-gesamtindex.md) | Datamining-Gesamtindex: Volltext über alles + Hybrid-Suche |  | 2026-10-10 |
 | [`datamining-volltext-werkzeuge.md`](datamining-volltext-werkzeuge.md) | Datamining: volle Werkzeug-Ausgaben in den Index (Teil B von Task 36caf245) |  | 2026-10-10 |
 | [`deepseek-provider.md`](deepseek-provider.md) | DeepSeek als LLM-Anbieter – Spec |  | 2026-10-20 |
+| [`delegation-reliability.md`](delegation-reliability.md) | Delegations-Zuverlässigkeit |  | 2026-11-14 |
 | [`design-consistency-migration.md`](design-consistency-migration.md) | Plan: Lokale Design-Konsistenz für Legacy-Routen |  | 2026-09-18 |
 | [`dev-browser-nachinstallieren.md`](dev-browser-nachinstallieren.md) | Browser-Werkzeug: dev-browser bei Installation und Update sicherstellen |  | 2026-10-26 |
 | [`discord-agent-tools.md`](discord-agent-tools.md) | Feature-Spec: Discord-Werkzeuge für Agenten | Freigegeben (Till, 2026 | 2026-10-12 |
 | [`discord-attachments.md`](discord-attachments.md) | Feature-Spec: Bilder an Discord-Nachrichten (discord_post / discord_reply) |  | 2026-10-12 |
 | [`discord-moderation-tools.md`](discord-moderation-tools.md) | Feature-Spec: Discord-Moderationswerkzeuge für Agenten | Freigegeben (Till, 2026 | 2026-09-27 |
 | [`discord-server-admin-tools.md`](discord-server-admin-tools.md) | Feature-Spec: Discord-Serververwaltung für Agenten | Freigegeben (Till, 2026 | 2026-09-28 |
+| [`federation-catalog.md`](federation-catalog.md) | Föderations-Katalog: Ideen und Tasks über Server hinweg | Entscheidungen getroffen (Till 21.11.), bereit für Review | 2026-11-21 |
+| [`federation-shared-tasks.md`](federation-shared-tasks.md) | Gemeinsame Taskpflege: Tasks und Ideen aller Instanzen im eigenen Projekt | Entwurf, Entscheidungen Till 21.11. eingearbeitet, bereit für Review | ? |
 | [`files-access.md`](files-access.md) | /api/files – Zugriff nur auf eigene bzw. freigegebene Dateien |  | 2026-10-10 |
 | [`fix-test-guard.md`](fix-test-guard.md) | Fix-Test-Guard: jeder Fix bringt einen Test mit |  | 2026-11-11 |
 | [`full-cockpit-visual-migration.md`](full-cockpit-visual-migration.md) | Full Cockpit Visual Migration |  | 2026-09-18 |
@@ -147,7 +152,7 @@ frühere Teile beschreiben bereits umgesetzte Etappen.
 | [`repo-zugang.md`](repo-zugang.md) | Spec: Zugang zum Code über GitHub-Freischaltung (privates Repo) |  | 2026-10-15 |
 | [`scheduled-agent-tasks.md`](scheduled-agent-tasks.md) | Spec: Wiederkehrende Agentenaufgaben und Heartbeat-Verwaltung |  | 2026-09-07 |
 | [`server-migration-rsync.md`](server-migration-rsync.md) | Server-Migration: Voll-Klon per rsync (Server-zu-Server) |  | 2026-07-01 |
-| [`server-peering.md`](server-peering.md) | Server-Kopplung: HydraHive ↔ HydraHive über Tailscale | Design, freigegeben in Grundrichtung (Option C, Rechte | 2026-10-04 |
+| [`server-peering.md`](server-peering.md) | Server-Kopplung: HydraHive ↔ HydraHive über Tailscale | Design, freigegeben in Grundrichtung (Option C, Rechte | 2026-11-21 |
 | [`smb-mounts.md`](smb-mounts.md) | SMB-Mounts — Fileserver-Freigaben als Projekt-Ressource |  | 2026-06-27 |
 | [`startdesktop.md`](startdesktop.md) | Startseite mit Bereichen und Bereichs-Leiste |  | 2026-10-24 |
 | [`system-skills-update.md`](system-skills-update.md) | System-Skills aktualisieren, Admin-Änderungen schützen |  | 2026-09-30 |
