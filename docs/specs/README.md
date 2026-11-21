@@ -85,7 +85,7 @@ frühere Teile beschreiben bereits umgesetzte Etappen.
 | [`discord-moderation-tools.md`](discord-moderation-tools.md) | Feature-Spec: Discord-Moderationswerkzeuge für Agenten | Freigegeben (Till, 2026 | 2026-09-27 |
 | [`discord-server-admin-tools.md`](discord-server-admin-tools.md) | Feature-Spec: Discord-Serververwaltung für Agenten | Freigegeben (Till, 2026 | 2026-09-28 |
 | [`federation-catalog.md`](federation-catalog.md) | Föderations-Katalog: Ideen und Tasks über Server hinweg | Entscheidungen getroffen (Till 21.11.), bereit für Review | 2026-11-21 |
-| [`federation-shared-tasks.md`](federation-shared-tasks.md) | Gemeinsame Taskpflege: Tasks und Ideen aller Instanzen im eigenen Projekt | Entwurf, alle Entscheidungen Till eingearbeitet, Review | 2026-11-21 |
+| [`federation-shared-tasks.md`](federation-shared-tasks.md) | Gemeinsame Taskpflege: Tasks und Ideen aller Instanzen im eigenen Projekt | Entwurf, alle Entscheidungen Till eingearbeitet, Einwände aus Review #739 behoben | 2026-11-22 |
 | [`files-access.md`](files-access.md) | /api/files – Zugriff nur auf eigene bzw. freigegebene Dateien |  | 2026-10-10 |
 | [`fix-test-guard.md`](fix-test-guard.md) | Fix-Test-Guard: jeder Fix bringt einen Test mit |  | 2026-11-11 |
 | [`full-cockpit-visual-migration.md`](full-cockpit-visual-migration.md) | Full Cockpit Visual Migration |  | 2026-09-18 |
