@@ -17,6 +17,7 @@ from hydrahive.api.middleware.auth import require_admin
 from hydrahive.api.middleware.errors import coded
 from hydrahive.db import federation_peers as peers_db
 from hydrahive.federation import peer_identity as ident
+from hydrahive.federation.catalog_changes import safe_refresh_gate
 from hydrahive.federation.peer_suggest import suggest_from_tailscale
 from hydrahive.tailscale.status import get_status as get_tailscale_status
 
@@ -118,6 +119,7 @@ def confirm_peer(peer_id: str, body: PeerConfirm, _: _Admin) -> dict:
     if _norm_fp(body.fingerprint) != _norm_fp(peer["fingerprint"]):
         raise coded(status.HTTP_400_BAD_REQUEST, "peer_fingerprint_mismatch")
     updated = peers_db.set_status(peer_id, "active")
+    safe_refresh_gate()
     logger.info("Server-Kopplung: Partner '%s' bestätigt", peer["name"])
     return _public(updated)  # type: ignore[arg-type]
 
@@ -126,6 +128,7 @@ def confirm_peer(peer_id: str, body: PeerConfirm, _: _Admin) -> dict:
 def block_peer(peer_id: str, _: _Admin) -> dict:
     peer = _peer_or_404(peer_id)
     updated = peers_db.set_status(peer_id, "blocked")
+    safe_refresh_gate()
     logger.warning("Server-Kopplung: Partner '%s' gesperrt", peer["name"])
     return _public(updated)  # type: ignore[arg-type]
 
@@ -134,6 +137,7 @@ def block_peer(peer_id: str, _: _Admin) -> dict:
 def delete_peer(peer_id: str, _: _Admin) -> None:
     peer = _peer_or_404(peer_id)
     peers_db.delete_peer(peer_id)
+    safe_refresh_gate()
     logger.info("Server-Kopplung: Partner '%s' entfernt", peer["name"])
 
 

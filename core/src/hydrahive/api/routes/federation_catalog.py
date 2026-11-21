@@ -17,6 +17,7 @@ from hydrahive.api.middleware.users import list_users
 from hydrahive.api.routes.federation_peers import _peer_or_404, _public
 from hydrahive.db import federation_catalog as catalog_db
 from hydrahive.db import federation_peers as peers_db
+from hydrahive.federation.catalog_changes import safe_refresh_gate
 
 logger = logging.getLogger(__name__)
 
@@ -87,6 +88,7 @@ def set_hub(peer_id: str, body: HubBody, _: _Admin) -> dict:
         raise coded(status.HTTP_409_CONFLICT, c.code, **c.params) from c
     if updated is None:  # zwischen Prüfung und Schreiben gelöscht
         raise coded(status.HTTP_404_NOT_FOUND, "peer_not_found")
+    safe_refresh_gate()
     logger.info(
         "Föderations-Katalog: Hub-Markierung für Partner '%s' auf %s gesetzt",
         peer["name"], body.is_hub,
@@ -133,5 +135,6 @@ def put_catalog_settings(body: CatalogSettingsBody, _: _Admin) -> dict:
     after_projects = set(body.excluded_projects)
     if before_users != after_users or before_projects != after_projects:
         catalog_db.reset_all_cursors()
+    safe_refresh_gate()
 
     return _settings_response()
