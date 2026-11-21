@@ -1,8 +1,10 @@
 # Föderations-Katalog: Ideen und Tasks über Server hinweg
 
-**Stand:** 21.11.2026 · **Status:** Entwurf, wartet auf Freigabe
+**Stand:** 21.11.2026 · **Status:** Entscheidungen getroffen (Till 21.11.), bereit für Review
+**Hub:** `hydrahive-vps` (100.89.239.63)
 **Verwandt:** `server-peering.md` (Grundlage, freigegeben), `instance-identity.md`
-(Entwurf, Branch `docs/instance-identity`), `datamining-access.md`,
+(Entwurf, **noch nicht auf main**, nur auf Branch `docs/instance-identity`),
+`datamining-access.md`,
 Module `tasks` (`SPEC-HISTORY.md`) und `scratchpad` (`SPEC-IDEEN.md`)
 
 ## Problem
@@ -52,7 +54,9 @@ Verworfen:
   signierten Kanal, Tailnet-Sperre und Audit. Das alles liegt im Kern unter
   `hydrahive/federation/`. Ein Modul müsste es nachbauen oder Kern-Interna importieren.
 
-Gewählt: **ein Server ist Hub** (z. B. ein vServer). Die anderen Server sind
+Gewählt: **ein Server ist Hub**, und zwar **`hydrahive-vps`** (100.89.239.63,
+Entscheidung Till 21.11.). Er ist mit `hydrahome` schon gekoppelt und getestet,
+ein neuer vServer wird nicht gebraucht. Die anderen Server sind
 **Clients**, also gewöhnliche gekoppelte Partner des Hubs. Kopplung, Kopplungscode,
 Fingerprint-Vergleich und Sperren laufen **unverändert** wie in `server-peering.md`.
 Neu kommen hinzu:
@@ -69,7 +73,7 @@ Kern und Modulen (siehe „Katalog-Quellen“).
 
 - **Client** (z. B. `hydrahome`): schickt die Metadaten seiner Ideen und Tasks an
   den Hub und beantwortet Nachlade-Anfragen des Hubs.
-- **Hub** (z. B. `hydrahive-vps` oder ein eigener vServer): sammelt, speichert und
+- **Hub** (`hydrahive-vps`): sammelt, speichert und
   zeigt den Katalog. Seine **eigenen** Ideen und Tasks zeigt er direkt aus den lokalen
   Tabellen, ohne sie in den Katalog zu kopieren.
 - Es gibt **genau einen Hub pro Client**. Ein Server kann Hub für viele Clients sein.
@@ -296,9 +300,12 @@ Hinweis „Stand vom …“ und „veraltet“, wenn sich `updated_at` seither g
 und **„<instanz> zuletzt gesehen am <federation_peers.last_seen>“**. Einen
 Fehlertext als Inhalt gibt es nie.
 
-Der Snapshot entsteht nur, wenn jemand den Eintrag öffnet. Er wird nie aktiv vom
-Client geschickt. Das ist mit dem Grundsatz „Volltext nicht automatisch syncen“
-vereinbar (siehe offene Frage 3).
+**Entscheidung Till (21.11.):** Der zuletzt geöffnete Volltext darf als Snapshot
+auf dem Hub gespeichert bleiben, damit „Ursprung offline“ etwas anzeigen kann. Der
+Snapshot entsteht nur, wenn jemand den Eintrag öffnet. Er wird nie aktiv vom Client
+geschickt. Das ist mit dem Grundsatz „Volltext nicht automatisch syncen“ vereinbar.
+Löscht der Ursprung den Eintrag oder schließt er Nutzer/Projekt aus, verschwindet
+mit der Katalog-Zeile auch der Snapshot (spätestens beim stündlichen Abgleich).
 
 ### Änderungen an `peer_protocol.py`
 
@@ -322,9 +329,12 @@ Grundlage wie in `server-peering.md`, ohne Abschwächung:
 - **Opt-in auf beiden Seiten**: Client `enabled` + Nutzerauswahl + `is_hub`, Hub
   `catalog_accept`. Standard überall aus.
 - **Wessen Daten sieht man auf dem Hub?** Ein Eintrag mit `owner = till` ist auf dem
-  Hub nur für den gleichnamigen Nutzer `till` sichtbar und für Admins. Das ist dieselbe
-  Zuordnung „gleicher Nutzername“ wie beim Datamining (`instance-identity.md`, dort
-  noch offen, siehe offene Frage 2).
+  Hub nur für den gleichnamigen Nutzer `till` sichtbar und für Admins.
+  **Entscheidung Till (21.11.): gleicher Nutzername reicht** (till@hydrahome =
+  till@hydrahive-vps), eine Zuordnungstabelle je Partner gibt es nicht. In
+  `instance-identity.md` steht dieselbe Frage für das Datamining noch als offen.
+  Sie ist damit für beide Specs gleich beantwortet und sollte dort beim nächsten
+  Stand nachgetragen werden.
 - **Herkunft nicht fälschbar**: Die Instanz eines Eintrags ist immer der Partner,
   dessen Signatur geprüft wurde. Ein Client kann keine Einträge unter fremdem
   Namen ablegen und keine fremden Einträge überschreiben, weil der Schlüssel
@@ -403,8 +413,10 @@ Texte über i18n (`federation.json` de/en), Hilfe in `help/{de,en}/federation.md
 - **Agenten-Werkzeug für den Katalog** (z. B. `task_list(server="*")`): später möglich,
   nicht in dieser Spec.
 - **Mesh, mehrere Hubs, Hub-Ketten**: genau ein Hub pro Client.
-- **Katalog auf den Clients anzeigen**: Ein Client sieht in dieser Fassung nur seinen
-  eigenen Sync-Status, nicht den Gesamtkatalog (siehe offene Frage 1).
+- **Gesamtkatalog auf den Clients** (Entscheidung Till 21.11.): Ein Client wie
+  `hydrahome` sieht in dieser ersten Stufe nur seinen eigenen Sync-Status. Es gibt
+  keine Live-Abfrage `catalog_query` beim Hub und kein Weiterreichen von Volltext
+  über Dritte. Das kann später nachgezogen werden.
 - **Kopplung ohne Tailscale** über das offene Internet.
 
 ## Akzeptanzkriterien
@@ -428,7 +440,8 @@ Texte über i18n (`federation.json` de/en), Hilfe in `help/{de,en}/federation.md
 9. `/api/peering/catalog/*` von außerhalb des Tailnets → 403.
 10. Einträge aus einem ausgeschlossenen Projekt und von nicht ausgewählten Nutzern
     erscheinen nie am Hub und sind auch per Fetch nicht abrufbar.
-11. Auf dem Hub sieht ein Nutzer nur Einträge mit seinem Nutzernamen, Admins alle.
+11. Auf `hydrahive-vps` sieht `till` die Einträge von till@hydrahome, ein anderer
+    Nutzer sieht sie nicht. Admins sehen alle.
 12. Partner entfernen → seine Katalog-Einträge auf dem Hub sind weg.
     Partner sperren → keine Annahme mehr.
 13. Regression: Aufträge über `ask_agent("<agent>@<server>")`, die Tools
@@ -447,24 +460,31 @@ Texte über i18n (`federation.json` de/en), Hilfe in `help/{de,en}/federation.md
    Einträge, `seq`/Ack, Rate-Limit, Audit), Annahme und Upsert auf dem Hub.
 4. **Katalog-Ansicht + Nachladen**: Reiter „Katalog“ (Liste, Filter, Suche),
    `catalog_fetch` mit signierter Antwort, Snapshot, Offline-Anzeige.
-5. **Live-Abnahme** `hydrahome` ↔ Hub (Akzeptanzkriterien 1–13).
+5. **Live-Abnahme** `hydrahome` ↔ `hydrahive-vps` (Akzeptanzkriterien 1–13).
 
 Abhängigkeit: Der Herkunfts-Instanzname ist der Partnername in `federation_peers`.
 Dieser Name kommt schon heute aus dem Kopplungscode. Mit Etappe 1 von
 `instance-identity.md` wird `instance_name` dort vorgeschlagen. Der Katalog braucht
 diese Etappe nicht zwingend, profitiert aber von einheitlichen Namen.
 
-## Offene Fragen (Till)
+## Entscheidungen (Till, 21.11.2026)
 
-1. **Katalog auch auf den Clients sehen?** Soll `hydrahome` den Gesamtkatalog sehen,
-   über eine Live-Abfrage `catalog_query` beim Hub? Ein Nachladen von Volltext über
-   Dritte müsste der Hub dann weiterreichen. Vorschlag: erst nach Etappe 5 entscheiden.
-2. **Nutzer-Zuordnung**: Reicht „gleicher Nutzername“ (till ↔ till)? Das ist dieselbe
-   offene Frage wie in `instance-identity.md` und sollte für beide gleich beantwortet
-   werden.
-3. **Snapshot des Volltexts auf dem Hub**: Darf der zuletzt geöffnete Text dort
-   gespeichert bleiben, damit „Ursprung offline“ etwas zeigen kann? Oder soll bei
-   Offline nur „Metadaten + zuletzt gesehen“ kommen? Vorschlag: speichern, wie oben
-   beschrieben.
-4. **Welcher Server wird Hub?** Ein neuer eigener vServer oder `hydrahive-vps`? Für
-   die Spec ist das egal, für die Live-Abnahme nicht.
+1. **Hub ist `hydrahive-vps`** (100.89.239.63), der schon gekoppelte und getestete
+   VPS. Kein neuer vServer.
+2. **Nutzer-Zuordnung über Servergrenzen: gleicher Nutzername reicht**
+   (till@hydrahome = till@hydrahive-vps). Das gilt auch für die gleichlautende offene
+   Frage in `instance-identity.md` (Datamining), die dort nachzutragen ist.
+3. **Snapshot des zuletzt geöffneten Volltexts darf auf dem Hub bleiben**
+   (`snapshot_body`, siehe Ablauf 4).
+4. **Clients sehen den Gesamtkatalog nicht** (keine Live-Abfrage beim Hub). Das bleibt
+   Nicht-Ziel dieser ersten Stufe und kann später folgen.
+
+Offene Fragen gibt es derzeit keine.
+
+## Hinweis für den Review
+
+`instance-identity.md` ist **noch nicht auf main** (Branch `docs/instance-identity`).
+Diese Spec übernimmt von dort nur die Namenskonvention (`hydrahome`,
+`hydrahive-vps`) und grenzt sich von der Datamining-Entscheidung ab. Technisch hängt
+sie nicht davon ab: Der Herkunfts-Instanzname ist der Partnername in
+`federation_peers`, den es schon gibt.
