@@ -11,11 +11,18 @@ Das ist strenger als POST /api/sessions (#461). Dort läuft die Session als der
 anfragende Nutzer, darum dürfen Projekt-Mitglieder dort das Projekt-Team nutzen.
 
 Namen und Teilstrings werden nur unter den erlaubten Agenten aufgelöst und
-müssen eindeutig sein. Passt der Text nur auf fremde Agenten, wird abgelehnt,
-statt ihn als externes AgentLink-Ziel weiterzureichen.
+müssen eindeutig sein. Passt der Text nur auf fremde Agenten, wird abgelehnt.
+
+Grundsatz (Till, 21.11.2026): Externe Ziele gibt es nur als ``name@server``
+(Föderation, wird in ask_agent vor dieser Auflösung abgezweigt). Ein Ziel ohne
+„@“, das kein erlaubter interner Agent ist, wird sofort abgelehnt, mit
+Vorschlägen nur aus den erlaubten Agenten. Früher fiel es still auf ein
+externes AgentLink-Ziel zurück und hing bis zum Timeout, weil am lokalen
+AgentLink nur ``agent:hydrahive`` zuhört.
 """
 from __future__ import annotations
 
+import difflib
 import logging
 from dataclasses import dataclass
 
@@ -24,8 +31,7 @@ logger = logging.getLogger(__name__)
 
 @dataclass(frozen=True, slots=True)
 class TargetResolution:
-    """agent gesetzt: internes Ziel. error gesetzt: abgelehnt.
-    Beides None: kein interner Agent, also externes AgentLink-Ziel."""
+    """Genau eins ist gesetzt: agent = erlaubtes internes Ziel, error = abgelehnt."""
     agent: dict | None = None
     error: str | None = None
 
@@ -35,6 +41,16 @@ def _denied(target: str) -> TargetResolution:
     # damit fremde Agenten nicht über die Fehlermeldung abfragbar sind.
     return TargetResolution(error=(
         f"Kein Zugriff auf Agent '{target}' (nicht gefunden oder gehört jemand anderem)."
+    ))
+
+
+def _unknown(target: str, mine: list[dict]) -> TargetResolution:
+    """Unbekanntes Ziel. Vorschläge NUR aus ``mine`` (erlaubte Agenten), nie fremde."""
+    lower = {a["name"].lower(): a["name"] for a in mine if a.get("name")}
+    close = difflib.get_close_matches(target.lower(), list(lower), n=3, cutoff=0.6)
+    hint = f" Meintest du: {', '.join(lower[c] for c in close)}?" if close else ""
+    return TargetResolution(error=(
+        f"Agent '{target}' unbekannt.{hint} Für Agenten auf anderen Servern: name@server."
     ))
 
 
@@ -81,4 +97,4 @@ def resolve_target(target: str, run_owner: str) -> TargetResolution:
         return partial
     if by_id is not None or any(needle in a.get("name", "").lower() for a in all_agents):
         return _denied(target)
-    return TargetResolution()
+    return _unknown(target, mine)
