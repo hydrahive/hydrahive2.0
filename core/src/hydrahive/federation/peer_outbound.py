@@ -8,6 +8,8 @@ from __future__ import annotations
 import asyncio
 import logging
 
+import httpx
+
 from hydrahive.db import federation_peers as peers_db
 from hydrahive.federation import peer_protocol as proto
 from hydrahive.federation.peer_inbound import send_signed
@@ -59,3 +61,29 @@ def resolve_reply(peer: dict, payload: dict) -> bool:
         fut.set_result(payload)
     peers_db.touch(peer["id"])
     return True
+
+
+class ReplyUnavailable(Exception):
+    """Partner erreichbar, gibt aber nichts heraus (antwortet 404)."""
+
+
+async def _post(peer: dict, path: str, payload: dict, timeout: float) -> httpx.Response:
+    async with httpx.AsyncClient(timeout=timeout, verify=False) as client:  # noqa: S501 - Ed25519 statt TLS
+        return await client.post(peer["url"] + path, json=payload, headers=proto.signed_headers(payload))
+
+
+async def request_signed(peer: dict, path: str, payload: dict, *, reply_kind: str, timeout: float) -> dict:
+    """Signiert anfragen UND die signierte Antwort prüfen (Ergänzung zu send_signed,
+    das nur die Anfrage signiert). 404 → ReplyUnavailable; Netz/Timeout → httpx-Fehler;
+    ungültige Antwort → PeerRejected."""
+    response = await _post(peer, path, payload, timeout)
+    if response.status_code == 404:
+        raise ReplyUnavailable(peer["name"])
+    response.raise_for_status()
+    try:
+        body = response.json()
+    except ValueError as e:
+        raise proto.PeerRejected("peer_payload_invalid", "Antwort ist kein JSON") from e
+    return proto.verify_reply(
+        peer, response.headers.get(proto.HEADER_SIGNATURE, ""), body, reply_kind, payload["msg_id"],
+    )
