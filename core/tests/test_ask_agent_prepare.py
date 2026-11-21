@@ -8,7 +8,8 @@ def test_map_context_komfort_schluessel():
     desc, files, errors = prep.map_context("Mach X", {
         "errors": ["e1"], "error_log": "log", "files": [{"path": "a"}],
         "related_files": ["b"], "code_snippet": "print(1)"})
-    assert errors == ["e1", "log"]
+    # Objekte statt Text: AgentLink verlangt ErrorContext{type, message} (Task 54c50a91)
+    assert [(e.type, e.message) for e in errors] == [("error", "e1"), ("error_log", "log")]
     assert files == [{"path": "a"}, {"path": "b"}]
     assert desc == "Mach X\n\n```\nprint(1)\n```"
 
