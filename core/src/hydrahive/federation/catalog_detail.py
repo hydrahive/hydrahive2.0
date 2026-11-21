@@ -4,8 +4,10 @@ Fremder Eintrag: Volltext live und signiert vom Ursprung holen (höchstens
 ``FETCH_TIMEOUT`` = 10 s), Metadaten nachziehen und als Snapshot speichern. Ist
 der Ursprung nicht erreichbar, kommen Metadaten + letzter Snapshot („Stand vom“,
 „veraltet“) + „zuletzt gesehen am“. Einen Fehlertext als Inhalt gibt es nie.
-Gibt der Ursprung den Eintrag nicht mehr heraus (404: gelöscht, ausgeschlossen),
-wird der Snapshot gelöscht.
+Antwortet der Ursprung 404, bleibt der Snapshot: Der Ursprung antwortet laut
+Spec in JEDEM Fehlerfall gleich (auch Rate-Limit, Uhrabweichung, Sync aus), der
+Hub kann also nicht unterscheiden. Gelöschte oder ausgeschlossene Einträge
+verschwinden samt Snapshot mit der Katalog-Zeile beim Abgleich (Spec).
 
 Gelöschte Anmerkungen (Task f3eeec36): Der Snapshot wird bei jedem erfolgreichen
 Nachladen GANZ ersetzt, nie ergänzt, und jedes Öffnen versucht zuerst live. Er
@@ -24,6 +26,7 @@ from hydrahive.db import federation_catalog_view as view_db
 from hydrahive.db import federation_peers as peers_db
 from hydrahive.db._utils import now_iso
 from hydrahive.federation import peer_protocol as proto
+from hydrahive.federation.catalog_hub import _item as _valid_meta
 from hydrahive.federation.catalog_hub import audit
 from hydrahive.federation.catalog_view import LOCAL, _public
 from hydrahive.federation.peer_outbound import ReplyUnavailable, request_signed
@@ -92,10 +95,10 @@ async def open_remote(peer_id: str, kind: str, item_id: str, viewer: str, *, is_
             timeout=FETCH_TIMEOUT,
         )
     except ReplyUnavailable:
-        await asyncio.to_thread(view_db.drop_snapshot, peer_id, kind, item_id)
         await asyncio.to_thread(audit, peer["name"], f"Nachladen {kind} {item_id[:8]}: Ursprung gibt nichts heraus")
-        row = await asyncio.to_thread(view_db.get_row, peer_id, kind, item_id) or row
-        return _result(row, source="none", content=None, peer=peer, online=True)
+        result = _offline(row, peer)
+        result["origin"]["online"] = True       # erreichbar, gibt aber (gerade) nichts heraus
+        return result
     except (asyncio.TimeoutError, httpx.HTTPError, proto.PeerRejected) as e:
         logger.info("Katalog: Nachladen von %s fehlgeschlagen: %s", peer["name"], e)
         return _offline(row, peer)
@@ -104,8 +107,12 @@ async def open_remote(peer_id: str, kind: str, item_id: str, viewer: str, *, is_
         await asyncio.to_thread(audit, peer["name"], f"Nachladen {kind} {item_id[:8]}: falscher Eintrag", severity="warning")
         return _offline(row, peer)
     content = _content(kind, item)
+    try:
+        meta = _valid_meta(item)       # gleiche Regeln wie beim Push (Status, Titel ≤ 300)
+    except ValueError:
+        meta = {}                      # ungültige Metadaten: nur den Snapshot speichern
     saved = await asyncio.to_thread(
-        view_db.save_fetch, peer_id, kind, item_id, item, json.dumps(content, ensure_ascii=False), now_iso(),
+        view_db.save_fetch, peer_id, kind, item_id, meta, json.dumps(content, ensure_ascii=False), now_iso(),
     )
     await asyncio.to_thread(peers_db.touch, peer_id)
     await asyncio.to_thread(audit, peer["name"], f"Nachladen {kind} {item_id[:8]} durch {viewer}")
@@ -119,7 +126,11 @@ def open_local(kind: str, item_id: str, owner: str, viewer: str, *, is_admin: bo
     source = catalog_sources.get_source(kind)
     if source is None:
         raise NotVisible()
-    full = source.get_full(owner, item_id)
+    try:
+        full = source.get_full(owner, item_id)
+    except Exception as e:
+        logger.warning("Katalog: eigene Quelle %s nicht lesbar: %s", kind, e)
+        raise NotVisible() from None
     if not isinstance(full, dict) or full.get("owner", owner) != owner:
         raise NotVisible()
     item = _public({**full, "kind": kind, "item_id": item_id, "owner": owner,

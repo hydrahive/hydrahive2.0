@@ -22,6 +22,7 @@ LOCAL = "local"           # Instanz-ID für die eigenen Einträge des Hubs
 KINDS = ("task", "idea")
 OPEN_STATUSES = {"task": ("open", "in_progress"), "idea": ("new", "review", "planned")}
 DEFAULT_INTERVAL = 300
+MAX_OFFSET = 4_700        # offset + limit + 1 bleibt unter der query-Grenze der Modul-Quellen (5000)
 
 
 @dataclass
@@ -145,6 +146,8 @@ def instance_list(*, with_counts: bool, now: datetime | None = None) -> list[dic
         }
         if with_counts:
             entry["item_count"] = r["item_count"]
+        else:  # Nicht-Admins: nur, was die Anzeige braucht
+            entry = {k: entry[k] for k in ("id", "name", "local", "stale")}
         out.append(entry)
     return out
 
@@ -152,7 +155,7 @@ def instance_list(*, with_counts: bool, now: datetime | None = None) -> list[dic
 def list_catalog(owners: list[str] | None, params: ListParams) -> dict:
     """Eine Seite des Katalogs. ``owners``: sichtbare Nutzernamen, None = alle (Admin)."""
     limit = max(1, min(int(params.limit), 200))
-    offset = max(0, min(int(params.offset), 10_000))
+    offset = max(0, min(int(params.offset), MAX_OFFSET))
     want = offset + limit + 1
     merged = _remote_items(owners, params, want) + _local_items(owners, params, want)
     merged.sort(key=_sort_key, reverse=True)

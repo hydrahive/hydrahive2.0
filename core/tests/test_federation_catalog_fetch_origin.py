@@ -168,3 +168,14 @@ def test_rate_limit(client, origin, monkeypatch):
     assert _send(client, origin["hub"], _fetch("t-1")).status_code == 200
     assert _is_plain_404(_send(client, origin["hub"], _fetch("t-1")))
     assert _audit("peer_rate_limited")
+
+
+def test_unerwarteter_fehler_ebenfalls_404(client, origin, monkeypatch):
+    """Review #738 L3: auch ein DB-Fehler am Ursprung sieht nach außen gleich aus."""
+    from hydrahive.db import federation_catalog_client as client_db
+
+    def broken():
+        raise RuntimeError("DB weg")
+    monkeypatch.setattr(client_db, "load_config", broken)
+    assert _is_plain_404(_send(client, origin["hub"], _fetch("t-1")))
+    assert _audit("error:RuntimeError")

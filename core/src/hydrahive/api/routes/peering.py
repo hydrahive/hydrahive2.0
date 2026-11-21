@@ -124,8 +124,8 @@ async def answer_catalog_fetch(request: Request):
         peer_name, payload = verified.peer["name"], verified.payload
         body, headers = await asyncio.to_thread(catalog_origin.answer_fetch, verified.peer, verified.payload)
         return JSONResponse(content=body, headers=headers)
-    except (proto.PeerRejected, catalog_origin.Unavailable) as exc:
-        reason = getattr(exc, "reason", None) or getattr(exc, "code", "unknown")
+    except Exception as exc:  # jeder Fehler sieht nach außen gleich aus (Spec: immer 404)
+        reason = getattr(exc, "reason", None) or getattr(exc, "code", None) or f"error:{type(exc).__name__}"
         await asyncio.to_thread(
             catalog_hub.audit, peer_name,
             f"Nachladen abgelehnt: {reason} ({catalog_origin.describe(payload)})", severity="warning",

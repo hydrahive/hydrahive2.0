@@ -97,7 +97,7 @@ def test_liste_felder_und_instanzen(client, remote, auth_headers):
     assert lokal["peer_id"] is None and lokal["instance"] is None
     names = {i["id"]: i for i in body["instances"]}
     assert names["local"]["local"] is True and names[remote["peer"]["id"]]["stale"] is False
-    assert "item_count" not in names[remote["peer"]["id"]]          # nur für Admins
+    assert set(names[remote["peer"]["id"]]) == {"id", "name", "local", "stale"}   # L7: Nicht-Admins knapp
 
 
 def test_filter_suche_und_seiten(client, remote, auth_headers):
@@ -161,13 +161,34 @@ def test_ak7_ohne_snapshot_nur_metadaten_und_veraltet_hinweis(client, remote, au
     assert body["source"] == "snapshot" and body["snapshot_stale"] is True and body["item"]["title"] == "Steuer neu"
 
 
-def test_ursprung_gibt_nichts_mehr_heraus_snapshot_weg(client, remote, auth_headers):
+def test_ursprung_404_behaelt_snapshot(client, remote, auth_headers):
+    """Review #738 M1: 404 kann auch Rate-Limit/Uhrabweichung sein → Snapshot bleibt,
+    Aufräumen gelöschter Einträge macht der Abgleich."""
     url = f"/api/federation/catalog/{remote['peer']['id']}/task/t-till"
     client.get(url, headers=auth_headers)
     remote["origin"].mode = "gone"
     body = client.get(url, headers=auth_headers).json()
-    assert body["source"] == "none" and body["origin"]["online"] is True
-    assert _row(remote["peer"]["id"], "t-till")["snapshot_body"] is None
+    assert body["source"] == "snapshot" and body["content"] == {"description": "Belege sammeln"}
+    assert body["snapshot_at"] and body["origin"]["online"] is True
+    assert _row(remote["peer"]["id"], "t-till")["snapshot_body"]
+
+
+def test_ungueltige_metadaten_beim_nachladen_nur_snapshot(client, remote, auth_headers):
+    """Review #738 L4: Metadaten aus dem Nachladen wie beim Push prüfen."""
+    remote["origin"].items["t-till"].update(status="kaputt", title="x" * 400, updated_at=T1)
+    body = client.get(f"/api/federation/catalog/{remote['peer']['id']}/task/t-till", headers=auth_headers).json()
+    assert body["source"] == "live" and body["content"] == {"description": "Belege sammeln"}
+    row = _row(remote["peer"]["id"], "t-till")
+    assert row["status"] == "open" and row["title"] == "Steuer" and row["snapshot_body"]
+
+
+def test_lokale_quelle_wirft_gibt_404(client, remote, auth_headers, monkeypatch):
+    def boom(*a):
+        raise RuntimeError("Quelle kaputt")
+    src = catalog_sources.CATALOG_SOURCES["task"][1]
+    monkeypatch.setitem(catalog_sources.CATALOG_SOURCES, "task", ("tasks", src.__class__(
+        kind="task", list_changed=src.list_changed, list_versions=src.list_versions, get_full=boom, query=src.query)))
+    assert client.get("/api/federation/catalog/local/task/t-lokal", headers=auth_headers).status_code == 404
 
 
 def test_ak11_fremder_eintrag_404_admin_darf(client, remote, auth_headers, admin_headers):

@@ -37,7 +37,7 @@ async def list_catalog(
     kind: Annotated[str | None, Query(pattern="^(task|idea)$")] = None,
     q: Annotated[str | None, Query(max_length=200)] = None,
     limit: Annotated[int, Query(ge=1, le=200)] = 50,
-    offset: Annotated[int, Query(ge=0, le=10_000)] = 0,
+    offset: Annotated[int, Query(ge=0, le=catalog_view.MAX_OFFSET)] = 0,
 ) -> dict:
     """Seite des Katalogs: Einträge der Partner + eigene des Hubs (``instance=local``),
     neueste Änderung zuerst. ``instance``/``status`` mehrfach möglich."""

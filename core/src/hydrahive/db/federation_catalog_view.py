@@ -109,16 +109,6 @@ def save_fetch(peer_id: str, kind: str, item_id: str, meta: dict, text: str, now
     return get_row(peer_id, kind, item_id)
 
 
-def drop_snapshot(peer_id: str, kind: str, item_id: str) -> None:
-    """Ursprung gibt den Eintrag nicht mehr heraus (gelöscht, ausgeschlossen): Snapshot weg."""
-    with db() as conn:
-        conn.execute(
-            "UPDATE federation_catalog_items SET snapshot_body = NULL, snapshot_at = NULL, snapshot_stale = 0 "
-            "WHERE peer_id = ? AND kind = ? AND item_id = ?",
-            (peer_id, kind, item_id),
-        )
-
-
 def instances() -> list[dict]:
     """Partner, die Katalog-Daten schicken (dürfen) — mit Status für „nicht aktuell“."""
     with db() as conn:
