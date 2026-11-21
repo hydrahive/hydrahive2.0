@@ -97,10 +97,9 @@ def refresh_gate() -> bool:
     try:
         from hydrahive.db import federation_catalog as catalog_db
 
-        settings = catalog_db.get_settings()
-        hub = catalog_db.any_hub()
-        users = frozenset(catalog_db.list_selected_users())
-        active = bool(settings.get("enabled")) and bool(hub) and hub.get("status") == "active" and bool(users)
+        enabled, hub_status, selected = catalog_db.gate_inputs()
+        users = frozenset(selected)
+        active = enabled and hub_status == "active" and bool(users)
         new = _Gate(active=active, users=users if active else frozenset())
     except Exception as e:
         logger.warning("Katalog-Schalter konnte nicht gelesen werden, Vormerken aus: %s", e)
