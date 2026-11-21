@@ -2,6 +2,7 @@ import { api } from "@/shared/api-client"
 import type {
   A2ACard, ClientConnection, CreateClientResult, Workstation,
   ExternalInstance, CreateInstanceResult, Peer, PeerIdentity, PeerOwnCode,
+  CatalogSettings,
 } from "./types"
 
 // All optional fields a workstation can have. Keeping it as a type
@@ -96,4 +97,26 @@ export const peersApi = {
 
   setAgents: (id: string, agent_ids: string[]): Promise<Peer> =>
     api.put(`/federation/peers/${id}/agents`, { agent_ids }),
+
+  // Föderations-Katalog (docs/specs/federation-catalog.md, Etappe 1): Hub-Markierung und Annahme.
+  setHub: (id: string, is_hub: boolean): Promise<Peer> =>
+    api.put(`/federation/peers/${id}/hub`, { is_hub }),
+
+  setCatalogAccept: (id: string, accept: boolean): Promise<Peer> =>
+    api.put(`/federation/peers/${id}/catalog`, { accept }),
+}
+
+export interface CatalogSettingsPatch {
+  enabled: boolean
+  interval_seconds: number
+  users: string[]
+  excluded_projects: string[]
+}
+
+export const catalogApi = {
+  getSettings: (): Promise<CatalogSettings> =>
+    api.get("/federation/catalog/settings"),
+
+  saveSettings: (body: CatalogSettingsPatch): Promise<CatalogSettings> =>
+    api.put("/federation/catalog/settings", body),
 }

@@ -106,6 +106,25 @@ export interface Peer {
   confirmed_at: string | null
   last_seen: string | null
   allowed_agents: string[]
+  /** Föderations-Katalog (docs/specs/federation-catalog.md): dieser Partner ist der Hub. Höchstens einer. */
+  is_hub: boolean
+  /** Dieser Server nimmt vom Partner den Katalog an (Partner = Sender, dieser Server = Empfänger/Hub für ihn). */
+  catalog_accept: boolean
+}
+
+/** Einstellungen des Föderations-Katalogs (docs/specs/federation-catalog.md §API). */
+export interface CatalogSettings {
+  enabled: boolean
+  interval_seconds: number
+  users: string[]
+  excluded_projects: string[]
+  hub: { id: string; name: string; status: PeerStatus } | null
+  /** Partner, für die dieser Server selbst als Hub Katalog-Daten annimmt (catalog_accept=1 beim Partner). */
+  accepting_from: { id: string; name: string }[]
+  last_push_at: string | null
+  last_ok_at: string | null
+  last_full_at: string | null
+  last_error: string | null
 }
 
 export interface PeerIdentity {

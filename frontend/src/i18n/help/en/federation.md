@@ -34,3 +34,18 @@ another machine.
 - **Handle the token securely**: it's the access secret to the other side — like a
   password.
 - **Prefer TLS** when the connection runs over a network that isn't fully trusted.
+
+## Federation catalog ("Servers" tab)
+
+See ideas and tasks of several servers in one place. One server is the **hub**, the
+others send it their entries (metadata only, the full text is loaded live later).
+
+- **Use as hub** — on the client, turn it on for the partner that should be the hub.
+  There is at most one hub, and the pairing must be active.
+- **Accept catalog** — on the hub, turn it on for every client whose catalog should
+  be accepted.
+- A server either acts as hub for others **or** sends to a hub itself, not both.
+  Otherwise a message tells you which switch to turn off first.
+- **Catalog sync** — sync on/off, interval (60–3600 seconds), which users are sent
+  (default: none) and which projects are never sent. Actual sending comes in a later
+  stage; until then only the settings are stored.

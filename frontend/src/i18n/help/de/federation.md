@@ -36,3 +36,20 @@ Spezialisten auf einer anderen Maschine.
   Passwort.
 - **TLS bevorzugen**, wenn die Verbindung über ein Netzwerk läuft, das nicht
   vollständig vertrauenswürdig ist.
+
+## Föderations-Katalog (Reiter „Server“)
+
+Ideen und Tasks mehrerer Server an einer Stelle sehen. Ein Server ist der **Hub**,
+die anderen schicken ihm ihre Einträge (nur Metadaten, der Volltext wird später live
+nachgeladen).
+
+- **Als Hub verwenden** — auf dem Client beim Partner einschalten, der Hub sein soll.
+  Es gibt höchstens einen Hub, und die Kopplung muss aktiv sein.
+- **Katalog annehmen** — auf dem Hub bei jedem Client einschalten, dessen Katalog
+  angenommen werden soll.
+- Ein Server ist entweder Hub für andere **oder** schickt selbst an einen Hub, nicht
+  beides. Sonst erscheint eine Meldung, welcher Schalter zuerst aus muss.
+- **Katalog-Sync** — Sync an/aus, Intervall (60–3600 Sekunden), welche Nutzer
+  gesendet werden (Standard: keiner) und welche Projekte nie gesendet werden.
+  Der eigentliche Versand kommt in einer späteren Ausbaustufe; bis dahin werden nur
+  die Einstellungen gespeichert.

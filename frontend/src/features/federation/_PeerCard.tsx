@@ -2,10 +2,13 @@ import { useState } from "react"
 import { useTranslation } from "react-i18next"
 import { AlertTriangle, Ban, CheckCircle2, Server, Trash2 } from "lucide-react"
 import { peersApi } from "./api"
+import { PeerCatalogToggles } from "./_PeerCatalogToggles"
 import type { Peer } from "./types"
 
 interface Props {
   peer: Peer
+  /** Anderer Partner, der schon Hub ist (Spec §Ablauf 1.2: Oberfläche fragt nach und wechselt). */
+  currentHub?: Peer | null
   agents: { id: string; name: string; autoTools: boolean }[]
   onChange: () => void
 }
@@ -16,7 +19,7 @@ const DOT: Record<Peer["status"], string> = {
   blocked: "bg-red-500",
 }
 
-export function PeerCard({ peer, agents, onChange }: Props) {
+export function PeerCard({ peer, currentHub, agents, onChange }: Props) {
   const { t } = useTranslation("federation")
   const [fp, setFp] = useState("")
   const [error, setError] = useState("")
@@ -108,6 +111,24 @@ export function PeerCard({ peer, agents, onChange }: Props) {
         </p>
       )}
       <p className="text-[11px] text-zinc-500">{t("peers.call_hint", { server: peer.name })}</p>
+
+      <PeerCatalogToggles
+        peer={peer}
+        onSetHub={next => {
+          if (!next || !currentHub) return run(() => peersApi.setHub(peer.id, next))
+          if (!confirm(t("catalog.switch_hub_confirm", { from: currentHub.name, to: peer.name }))) return
+          run(async () => {
+            await peersApi.setHub(currentHub.id, false)
+            try {
+              await peersApi.setHub(peer.id, true)
+            } catch (e) {
+              onChange() // alter Hub ist schon aus → Liste neu laden, sonst zeigt sie ihn noch als Hub
+              throw e
+            }
+          })
+        }}
+        onSetAccept={next => run(() => peersApi.setCatalogAccept(peer.id, next))}
+      />
 
       {error && <p className="text-xs text-red-400">{error}</p>}
     </div>
