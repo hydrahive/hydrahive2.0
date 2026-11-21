@@ -119,26 +119,27 @@ async def test_event_fehlschlag_keine_wiederholung(fast):
 
 # --- Timer -------------------------------------------------------------------------
 
-async def test_timer_erster_lauf_dann_intervall_live(fast, monkeypatch, client, admin_headers):
+async def test_timer_erster_lauf_dann_intervall_live(fast, monkeypatch):
+    """Intervall wird bei jedem Durchlauf neu gelesen. Deterministisch: die Änderung
+    passiert IM zweiten Warten, also genau zwischen zwei Läufen (kein Zeitrennen)."""
+    from hydrahive.db import federation_catalog as catalog_db
+
     env = fast
     waits: list[float] = []
     real_wait = catalog_runner._wait
 
     async def record_wait(stop, seconds):
         waits.append(seconds)
+        if len(waits) == 2:                    # nach Lauf 1: Admin stellt 900 s ein
+            catalog_db.update_settings(enabled=True, interval_seconds=900)
         if len(waits) >= 3:
             stop.set()
         return await real_wait(stop, 0)
     monkeypatch.setattr(catalog_runner, "_wait", record_wait)
     stop = asyncio.Event()
-    task = asyncio.create_task(catalog_runner.run_timer(stop))
-    await asyncio.sleep(0.05)
-    client.put("/api/federation/catalog/settings", headers=admin_headers,
-               json=_settings_body(interval_seconds=900, excluded_projects=["proj-geheim"]))
-    await asyncio.wait_for(task, timeout=5)
-    assert waits[0] == catalog_runner.FIRST_DELAY
-    assert waits[1] in (120, 900) and waits[-1] == 900        # Intervall live gelesen
-    assert len(env["hub"].sent) >= 2                          # Lebenszeichen je Lauf
+    await asyncio.wait_for(catalog_runner.run_timer(stop), timeout=5)
+    assert waits == [catalog_runner.FIRST_DELAY, 120, 900]   # Start, altes Intervall, neues Intervall
+    assert len(env["hub"].sent) == 2                          # Lebenszeichen je Lauf
 
 
 async def test_timer_abgleich_wenn_faellig(fast):
