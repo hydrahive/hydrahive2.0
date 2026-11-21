@@ -62,6 +62,31 @@ def new_reply(task_id: str, status: str, output: str) -> dict:
     }
 
 
+def new_catalog_push(
+    seq: int,
+    interval_seconds: int,
+    items: list[dict],
+    deleted: list[dict],
+    full_versions: dict | None = None,
+) -> dict:
+    """Katalog-Push an den Hub (docs/specs/federation-catalog.md §Ablauf 3).
+
+    Einmaligkeit über ``seq`` (streng steigend je Partner), ``msg_id`` dient nur
+    der Zuordnung im Log.
+    """
+    return {
+        "kind": "catalog_push",
+        "msg_id": str(uuid.uuid4()),
+        "from": ident.fingerprint(ident.public_key_b64()),
+        "seq": int(seq),
+        "interval_seconds": int(interval_seconds),
+        "issued_at": int(time.time()),
+        "items": list(items),
+        "deleted": list(deleted),
+        "full_versions": full_versions,
+    }
+
+
 def signed_headers(payload: dict) -> dict[str, str]:
     return {
         HEADER_PEER: ident.fingerprint(ident.public_key_b64()).replace(" ", ""),
@@ -80,8 +105,14 @@ def _peer_by_header(peer_header: str) -> dict | None:
     return None
 
 
-def verify_incoming(peer_header: str, signature: str, payload: dict, kind: str) -> Verified:
-    """Prüfreihenfolge laut Spec. Wirft PeerRejected, sonst Absender + Inhalt."""
+def verify_incoming(
+    peer_header: str, signature: str, payload: dict, kind: str, *, id_field: str = "task_id",
+) -> Verified:
+    """Prüfreihenfolge laut Spec. Wirft PeerRejected, sonst Absender + Inhalt.
+
+    ``id_field``: Pflichtfeld mit der Nachrichten-ID — ``task_id`` für
+    Aufträge/Antworten (Standard, unverändert), ``msg_id`` für Katalog-Nachrichten.
+    """
     peer = _peer_by_header(peer_header)
     if not peer or peer["status"] != "active":
         raise PeerRejected("peer_unknown", f"Absender {peer_header!r} nicht gekoppelt/aktiv")
@@ -93,7 +124,7 @@ def verify_incoming(peer_header: str, signature: str, payload: dict, kind: str) 
     now = time.time()
     if not isinstance(issued, int) or issued < now - MAX_AGE_SECONDS or issued > now + MAX_SKEW_SECONDS:
         raise PeerRejected("peer_expired", f"Nachricht von {peer['name']} abgelaufen")
-    task_id = payload.get("task_id")
-    if not isinstance(task_id, str) or not task_id:
-        raise PeerRejected("peer_payload_invalid", "task_id fehlt")
+    message_id = payload.get(id_field)
+    if not isinstance(message_id, str) or not message_id:
+        raise PeerRejected("peer_payload_invalid", f"{id_field} fehlt")
     return Verified(peer=peer, payload=payload)

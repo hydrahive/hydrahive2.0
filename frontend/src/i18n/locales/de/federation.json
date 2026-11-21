@@ -172,6 +172,25 @@
     "saved": "Gespeichert",
     "reset": "Verwerfen",
     "load_error": "Katalog-Einstellungen konnten nicht geladen werden.",
-    "switch_hub_confirm": "{{from}} ist bereits Hub. Auf {{to}} wechseln? Der Katalog wird danach vollständig neu abgeglichen."
+    "switch_hub_confirm": "{{from}} ist bereits Hub. Auf {{to}} wechseln? Der Katalog wird danach vollständig neu abgeglichen.",
+    "last_full": "Letzter vollständiger Abgleich:",
+    "sync_now": "Jetzt abgleichen",
+    "syncing": "Gleicht ab …",
+    "sync_now_ok": "Abgeglichen",
+    "sync_now_inactive": "Nichts gesendet: Sync aus, kein aktiver Hub oder kein Nutzer gewählt.",
+    "sync_now_hint": "Speichere zuerst die Änderungen.",
+    "reason": {
+      "peer_catalog_not_accepted": "Hub nimmt den Katalog noch nicht an (dort „Katalog annehmen“ einschalten).",
+      "hub_unreachable": "Hub nicht erreichbar.",
+      "peer_unknown": "Hub kennt diesen Server nicht oder hat ihn gesperrt.",
+      "peer_signature_invalid": "Hub lehnt die Signatur ab (Kopplung prüfen).",
+      "peer_expired": "Hub lehnt die Nachricht als zu alt ab (Uhrzeit prüfen).",
+      "peer_rate_limited": "Hub bremst gerade (zu viele Nachrichten), der nächste Lauf versucht es wieder.",
+      "peer_replay": "Hub lehnt die Nachrichtennummer ab, der nächste Lauf versucht es wieder.",
+      "peer_payload_too_large": "Nachricht zu groß für den Hub.",
+      "hub_bad_ack": "Hub hat nicht richtig bestätigt.",
+      "sync_failed": "Abgleich fehlgeschlagen (Details im Server-Log).",
+      "source_failed": "Eine Datenquelle (Ideen oder Tasks) konnte nicht gelesen werden."
+    }
   }
 }

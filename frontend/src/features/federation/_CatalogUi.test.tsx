@@ -106,6 +106,39 @@ describe("Abschnitt „Katalog-Sync“", () => {
   it("letzter Fehler wird im Status angezeigt", () => {
     expect(render(settings({ last_error: "Hub nimmt noch nicht an" }))).toContain("Hub nimmt noch nicht an")
   })
+  it("bekannte Fehlercodes werden übersetzt, unbekannte bleiben roh (AK 2: Grund sichtbar)", () => {
+    const h = render(settings({ last_error: "peer_catalog_not_accepted" }))
+    expect(h).toContain("catalog.reason.peer_catalog_not_accepted")
+    const mixed = render(settings({ last_error: "source_failed:idea, etwas_neues" }))
+    expect(mixed).toContain("catalog.reason.source_failed")
+    expect(mixed).toContain("etwas_neues")
+  })
+})
+
+describe("Knopf „Jetzt abgleichen“", () => {
+  const render = (over: Record<string, unknown> = {}, draft?: ReturnType<typeof toDraft>) => {
+    const s = settings({ enabled: true, users: ["till"], last_full_at: "2026-11-21T10:00:00.000+00:00" })
+    return renderToStaticMarkup(
+      <CatalogSyncForm settings={s} draft={draft ?? toDraft(s)} users={["till"]} projects={[]}
+        saving={false} saved={false} error="" onChange={() => {}} onSave={() => {}} onReset={() => {}}
+        onSyncNow={() => {}} {...over} />,
+    )
+  }
+  it("sichtbar und bedienbar, zeigt letzten vollständigen Abgleich", () => {
+    const h = render()
+    expect(h).toMatch(/<button[^>]*>catalog.sync_now<\/button>/)
+    expect(h).not.toMatch(/<button[^>]*disabled=""[^>]*>catalog.sync_now<\/button>/)
+    expect(h).toContain("catalog.last_full")
+  })
+  it("gesperrt, solange abgeglichen wird oder ungespeicherte Änderungen da sind", () => {
+    expect(render({ syncing: true })).toMatch(/<button[^>]*disabled=""[^>]*>catalog.syncing<\/button>/)
+    const s = settings({ enabled: true, users: ["till"] })
+    expect(render({}, { ...toDraft(s), interval: "900" })).toContain("catalog.sync_now_hint")
+  })
+  it("zeigt Ergebnis ok bzw. inactive", () => {
+    expect(render({ syncResult: "ok" })).toContain("catalog.sync_now_ok")
+    expect(render({ syncResult: "inactive" })).toContain("catalog.sync_now_inactive")
+  })
 })
 
 describe("Texte de/en", () => {
@@ -117,10 +150,18 @@ describe("Texte de/en", () => {
       "sync_subtitle", "sync_toggle", "sync_hint", "hub_label", "hub_none", "hub_inactive", "accepting_label",
       "interval_label", "interval_hint", "interval_invalid", "users_label", "users_empty", "users_none_selected",
       "projects_label", "projects_empty", "status_label", "last_ok", "last_push", "last_error", "never", "save",
-      "saving", "saved", "reset", "load_error", "switch_hub_confirm"]
+      "saving", "saved", "reset", "load_error", "switch_hub_confirm", "last_full", "sync_now", "syncing",
+      "sync_now_ok", "sync_now_inactive", "sync_now_hint"]
     for (const k of used) {
       expect(deFed.catalog).toHaveProperty(k)
       expect(enFed.catalog).toHaveProperty(k)
+    }
+  })
+  it("alle Fehlercodes des Sync-Status haben Texte de/en", async () => {
+    const { REASON_CODES } = await import("./_catalogSync")
+    for (const code of REASON_CODES) {
+      expect(deFed.catalog.reason).toHaveProperty(code)
+      expect(enFed.catalog.reason).toHaveProperty(code)
     }
   })
   it("409/400-Codes des Backends sind übersetzt (sonst sähe man den rohen Code)", () => {

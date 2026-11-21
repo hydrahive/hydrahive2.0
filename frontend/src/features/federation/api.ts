@@ -119,4 +119,8 @@ export const catalogApi = {
 
   saveSettings: (body: CatalogSettingsPatch): Promise<CatalogSettings> =>
     api.put("/federation/catalog/settings", body),
+
+  /** Voller Abgleich sofort (Etappe 3). ``result``: ok · inactive · Fehlercode des Laufs. */
+  syncNow: (): Promise<{ result: string; settings: CatalogSettings }> =>
+    api.post("/federation/catalog/sync-now", {}),
 }
