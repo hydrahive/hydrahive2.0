@@ -41,7 +41,7 @@ def test_migration_062_on_fresh_db(tmp_path: Path) -> None:
     conn.execute("PRAGMA foreign_keys = ON")
     try:
         apply_migrations(conn)
-        assert current_version(conn) == 62
+        assert current_version(conn) >= 62  # spätere Migrationen dürfen folgen
 
         cols = {row["name"] for row in conn.execute("PRAGMA table_info(federation_peers)")}
         assert {"is_hub", "catalog_accept"} <= cols
@@ -73,7 +73,7 @@ def test_migration_062_second_run_is_noop(tmp_path: Path) -> None:
         apply_migrations(conn)
 
         assert _snapshot(conn) == before_schema
-        assert current_version(conn) == before_version == 62
+        assert current_version(conn) == before_version >= 62
     finally:
         conn.close()
 
@@ -94,7 +94,7 @@ def test_migration_062_on_existing_db_with_peer(tmp_path: Path) -> None:
 
         apply_migrations(conn)
 
-        assert current_version(conn) == 62
+        assert current_version(conn) >= 62  # spätere Migrationen dürfen folgen
         peer = conn.execute(
             "SELECT is_hub, catalog_accept FROM federation_peers WHERE id = 'p1'",
         ).fetchone()
@@ -133,5 +133,31 @@ def test_migration_062_fts_trigger_follows_cascade_delete(tmp_path: Path) -> Non
         assert conn.execute(
             "SELECT title FROM federation_catalog_fts WHERE federation_catalog_fts MATCH 'Testtitel'",
         ).fetchone() is None
+    finally:
+        conn.close()
+
+
+def test_migration_063_snapshot_stale(tmp_path: Path) -> None:
+    """063 ergänzt snapshot_stale; bestehende Katalogzeilen bekommen 0, zweiter Lauf ändert nichts."""
+    conn = sqlite3.connect(tmp_path / "e3.db")
+    conn.row_factory = sqlite3.Row
+    try:
+        _apply_through(conn, 62)
+        conn.execute(
+            "INSERT INTO federation_peers (id, name, url, public_key, fingerprint, status, created_at) "
+            "VALUES ('p1', 'hydrahome', 'https://x', 'k', 'f', 'active', 'now')"
+        )
+        conn.execute(
+            "INSERT INTO federation_catalog_items (peer_id, kind, item_id, owner, title, status, received_at) "
+            "VALUES ('p1', 'task', 't1', 'till', 'T', 'open', 'now')"
+        )
+        conn.commit()
+        apply_migrations(conn)
+        assert current_version(conn) >= 63
+        row = conn.execute("SELECT snapshot_stale FROM federation_catalog_items").fetchone()
+        assert row["snapshot_stale"] == 0
+        before = _snapshot(conn)
+        apply_migrations(conn)
+        assert _snapshot(conn) == before
     finally:
         conn.close()

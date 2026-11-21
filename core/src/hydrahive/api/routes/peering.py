@@ -22,7 +22,7 @@ router = APIRouter(prefix="/api/peering", tags=["peering"])
 MAX_BODY = 1_048_576  # 1 MB
 
 
-async def _read(request: Request, kind: str) -> proto.Verified:
+async def _read(request: Request, kind: str, *, id_field: str = "task_id") -> proto.Verified:
     length = request.headers.get("content-length")
     if length and length.isdigit() and int(length) > MAX_BODY:
         raise proto.PeerRejected("peer_payload_too_large")
@@ -40,6 +40,7 @@ async def _read(request: Request, kind: str) -> proto.Verified:
         request.headers.get(proto.HEADER_SIGNATURE, ""),
         payload,
         kind,
+        id_field=id_field,
     )
 
 
@@ -80,3 +81,24 @@ async def receive_reply(request: Request):
     if not resolve_reply(verified.peer, verified.payload):
         return _rejected(proto.PeerRejected("peer_reply_unknown", "keine wartende Anfrage"))
     return {"ok": True}
+
+
+@router.post("/catalog/push")
+async def receive_catalog_push(request: Request):
+    """Föderations-Katalog: Metadaten eines Clients annehmen (federation-catalog.md §Ablauf 3)."""
+    from hydrahive.federation import catalog_hub
+
+    peer_name = request.headers.get(proto.HEADER_PEER, "")[:24] or "?"
+    try:
+        verified = await _read(request, "catalog_push", id_field="msg_id")
+        peer_name = verified.peer["name"]
+        return catalog_hub.accept_push(verified.peer, verified.payload)
+    except proto.PeerRejected as exc:
+        catalog_hub.audit(peer_name, f"Push abgelehnt: {exc.code} ({exc})", severity="warning")
+        response = _rejected(exc)
+        if isinstance(exc, catalog_hub.CatalogReplay):
+            response = JSONResponse(
+                status_code=response.status_code,
+                content={"detail": {"code": exc.code, "params": {"last_seq": exc.last_seq}}},
+            )
+        return response
