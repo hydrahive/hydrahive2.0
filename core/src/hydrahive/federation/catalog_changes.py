@@ -18,9 +18,11 @@ import logging
 import threading
 from dataclasses import dataclass
 
+from hydrahive.modules.context import CATALOG_KINDS
+
 logger = logging.getLogger(__name__)
 
-KINDS = frozenset({"task", "idea"})
+KINDS = frozenset(CATALOG_KINDS)  # eine Quelle der Wahrheit: modules/context.py
 MAX_PENDING = 10_000  # darüber: nicht mehr einzeln merken, Timer-Lauf holt alles
 
 
@@ -48,6 +50,10 @@ def mark_changed(kind: str, username: str, item_id: str) -> None:
         if not isinstance(item_id, str) or not item_id:
             return
         with _lock:
+            # zweite Prüfung unter der Sperre: refresh_gate kann dazwischen
+            # abgeschaltet und geleert haben
+            if not _gate.active or username not in _gate.users:
+                return
             if len(_pending) >= MAX_PENDING:
                 _overflow = True
                 return

@@ -134,23 +134,29 @@ class ModuleContext:
         list_versions: Callable[..., Any],
         get_full: Callable[..., Any],
         query: Callable[..., Any],
-    ) -> None:
+    ) -> bool:
         """Modul als Katalog-Quelle für `kind` ("task" | "idea") anmelden.
 
-        Je `kind` höchstens eine Quelle: doppelt im selben Modul → ValueError;
-        meldet ein zweites Modul dieselbe `kind` an, übernimmt der Kern beim Start
-        nur die erste (modules/catalog_sources.py, Warnung im Log).
+        Wirft nie: ungültige Anmeldungen (unbekannte Art, nicht aufrufbare
+        Funktion, zweite Anmeldung derselben Art im Modul) werden geloggt und
+        übersprungen, damit das Modul mit Routern, Tools und Jobs weiterläuft.
+        Rückgabe True = angemeldet. Meldet ein zweites Modul dieselbe Art an,
+        übernimmt der Kern beim Start nur die erste (modules/catalog_sources.py).
         """
-        if kind not in CATALOG_KINDS:
-            raise ValueError(f"unbekannte Katalog-Art: {kind!r} (erlaubt: {', '.join(CATALOG_KINDS)})")
         fns = {"list_changed": list_changed, "list_versions": list_versions,
                "get_full": get_full, "query": query}
-        for name, fn in fns.items():
-            if not callable(fn):
-                raise ValueError(f"register_catalog_source: {name} muss aufrufbar sein")
-        if any(s.kind == kind for s in self.catalog_sources):
-            raise ValueError(f"Katalog-Quelle für {kind!r} ist bereits angemeldet")
+        problem = None
+        if kind not in CATALOG_KINDS:
+            problem = f"unbekannte Art (erlaubt: {', '.join(CATALOG_KINDS)})"
+        elif not all(callable(fn) for fn in fns.values()):
+            problem = "nicht alle Funktionen aufrufbar: " + ", ".join(n for n, f in fns.items() if not callable(f))
+        elif any(s.kind == kind for s in self.catalog_sources):
+            problem = "schon angemeldet"
+        if problem:
+            logger.warning("Modul %s: Katalog-Quelle %r übersprungen: %s", self.module_id, kind, problem)
+            return False
         self.catalog_sources.append(CatalogSource(kind=kind, **fns))
+        return True
 
     def catalog_changed(self, kind: str, username: str, item_id: str) -> None:
         """Nach jedem erfolgreichen Schreiben (anlegen/ändern/löschen) aufrufen.

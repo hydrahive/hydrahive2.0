@@ -76,27 +76,49 @@ def test_register_catalog_source_positionsgebunden():
     assert ctx.catalog_sources[0].get_full is f["get_full"]
 
 
-def test_doppelte_anmeldung_im_selben_modul_abgelehnt():
+def test_doppelte_anmeldung_im_selben_modul_uebersprungen(caplog):
+    """Wirft nicht (Modul bleibt geladen), erste Quelle gilt, Warnung im Log."""
     ctx = ModuleContext("tasks")
-    ctx.register_catalog_source("task", **_fns())
-    with pytest.raises(ValueError):
-        ctx.register_catalog_source("task", **_fns())
+    first = _fns()
+    assert ctx.register_catalog_source("task", **first) is True
+    assert ctx.register_catalog_source("task", **_fns()) is False
     assert len(ctx.catalog_sources) == 1
+    assert ctx.catalog_sources[0].list_changed is first["list_changed"]
+    assert "schon angemeldet" in caplog.text
 
 
-def test_unbekannte_art_abgelehnt():
+def test_unbekannte_art_uebersprungen():
     ctx = ModuleContext("x")
-    with pytest.raises(ValueError):
-        ctx.register_catalog_source("note", **_fns())
+    assert ctx.register_catalog_source("note", **_fns()) is False
+    assert ctx.catalog_sources == []
 
 
-def test_nicht_aufrufbare_funktion_abgelehnt():
+def test_nicht_aufrufbare_funktion_uebersprungen():
     ctx = ModuleContext("x")
     fns = _fns()
     fns["get_full"] = None
-    with pytest.raises(ValueError):
-        ctx.register_catalog_source("task", **fns)
+    assert ctx.register_catalog_source("task", **fns) is False
     assert ctx.catalog_sources == []
+
+
+def test_ungueltige_anmeldung_bricht_modul_laden_nicht(tmp_path, monkeypatch):
+    """Ein Fehler bei der Anmeldung darf das Modul (Router/Tools/Jobs) nicht kippen."""
+    from hydrahive.modules import loader
+
+    mod = tmp_path / "katmod"
+    (mod / "backend").mkdir(parents=True)
+    (mod / "manifest.json").write_text('{"id": "katmod", "name": "katmod", "version": "1.0.0"}')
+    (mod / "backend" / "__init__.py").write_text(
+        "def register(ctx):\n"
+        "    f = lambda *a: []\n"
+        "    ctx.register_catalog_source('ticket', f, f, f, f)\n"
+        "    ctx.register_catalog_source('task', f, f, f, f)\n"
+        "    ctx.register_catalog_source('task', f, f, f, f)\n"
+    )
+    monkeypatch.setattr(loader, "ensure_module_templates", lambda *a, **k: None)
+    loaded = loader._load_one(mod)
+    assert loaded.loaded is True, loaded.error
+    assert [s.kind for s in loaded.ctx.catalog_sources] == ["task"]
 
 
 # --- Registry im Kern: je kind höchstens eine Quelle -------------------------
@@ -200,6 +222,22 @@ def test_vormerkliste_begrenzt(monkeypatch):
     assert len(items) == 3
     assert overflow is True
     assert not catalog_changes.is_dirty()
+
+
+def test_mark_changed_prueft_schalter_unter_sperre(monkeypatch):
+    """Wettlauf: Schalter wird zwischen erster Prüfung und Sperre abgeschaltet."""
+    _open_gate()
+
+    class _SwitchingLock:
+        def __enter__(self):
+            catalog_changes._gate = catalog_changes._Gate()  # refresh_gate schaltet ab
+            return self
+
+        def __exit__(self, *exc):
+            return False
+    monkeypatch.setattr(catalog_changes, "_lock", _SwitchingLock())
+    catalog_changes.mark_changed("task", "till", "t-1")
+    assert len(catalog_changes._pending) == 0
 
 
 def test_refresh_gate_db_fehler_schaltet_ab(monkeypatch):

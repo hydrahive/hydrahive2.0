@@ -12,6 +12,7 @@ import pytest
 from hydrahive.federation import catalog_changes
 from hydrahive.modules.context import ModuleContext
 from tests._own_rows import only_own_rows
+from tests.test_federation_peers import _foreign_code
 from tests.test_federation_catalog_e1 import CATALOG_TABLES, _add_active_peer, _cleanup, _settings_body
 
 
@@ -103,3 +104,32 @@ def test_sync_ausschalten_schaltet_ab(client, admin_headers):
     _settings(client, admin_headers, enabled=False)
     assert catalog_changes.gate_active() is False
     assert catalog_changes.pending_count() == 0
+
+
+def test_gesperrten_hub_wieder_bestaetigen_schaltet_an(client, admin_headers):
+    code, fp = _foreign_code("hub-reconfirm")
+    peer = client.post("/api/federation/peers", headers=admin_headers, json={"code": code}).json()
+    assert client.post(
+        f"/api/federation/peers/{peer['id']}/confirm", headers=admin_headers, json={"fingerprint": fp},
+    ).status_code == 200
+    _settings(client, admin_headers)
+    _hub(client, admin_headers, peer["id"], True)
+    client.post(f"/api/federation/peers/{peer['id']}/block", headers=admin_headers)
+    assert catalog_changes.gate_active() is False
+    r = client.post(
+        f"/api/federation/peers/{peer['id']}/confirm", headers=admin_headers, json={"fingerprint": fp},
+    )
+    assert r.status_code == 200
+    assert catalog_changes.gate_active() is True
+    assert _touch() == 1
+
+
+def test_lifespan_uebernimmt_quellen_und_liest_schalter():
+    """Start: collect_catalog_sources() + refresh_gate() stehen in der lifespan."""
+    import inspect
+
+    from hydrahive.api import lifespan
+
+    src = inspect.getsource(lifespan)
+    assert "collect_catalog_sources()" in src
+    assert "refresh_catalog_gate()" in src
