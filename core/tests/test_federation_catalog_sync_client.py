@@ -7,8 +7,6 @@ in derselben Sekunde, zwei Änderungen desselben Tasks in derselben Sekunde).
 """
 from __future__ import annotations
 
-import pytest
-
 from hydrahive.db import federation_catalog_client as client_db
 from hydrahive.federation import catalog_sync
 from tests._catalog_fakes import hub_rows
