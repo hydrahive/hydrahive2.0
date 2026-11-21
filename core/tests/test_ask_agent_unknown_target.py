@@ -23,7 +23,9 @@ def _owner() -> str:
     return "testuser"
 
 
-@pytest.mark.parametrize("target", ["hydrahive2", "security-auditor", "user", str(uuid.uuid4())])
+# Echte Fehlgriffe aus AgentLink. „user“ fehlt hier bewusst: Das ist ein eindeutiger
+# Teilstring des eigenen Test-Agenten „Test Agent (testuser)“ und wird korrekt aufgelöst.
+@pytest.mark.parametrize("target", ["hydrahive2", "security-auditor", "nutzer", str(uuid.uuid4())])
 def test_unknown_target_fails_without_post_state(made, posted, tmp_path, target):  # noqa: F811
     made(f"spec-{uuid.uuid4().hex[:6]}", _owner())
     res = _run(target, _owner(), tmp_path)
