@@ -1,6 +1,6 @@
 # Gemeinsame Taskpflege: Tasks und Ideen aller Instanzen im eigenen Projekt
 
-**Stand:** 21.11.2026 · **Status:** Entwurf, alle Entscheidungen Till eingearbeitet, Einwände aus Review #739 behoben
+**Stand:** 22.11.2026 · **Status:** Entwurf, alle Entscheidungen Till eingearbeitet, Einwände aus Review #739 behoben
 **Baut auf:** `federation-catalog.md` (Etappen 1–3 gemergt: Kern #734, #736, #737, Module #416;
 Etappe 4 Backend auf Branch `feat/federation-catalog-e4-backend`)
 **Verwandt:** `server-peering.md`, Module `tasks` (`SPEC-HISTORY.md`, `SPEC-PAGINATION.md`)
@@ -121,14 +121,27 @@ verschwinden, und zwar beim nächsten Abholen, nicht erst beim stündlichen Abgl
 - **Bedingung 1 fällt weg** (Hub schaltet `shared` aus): Der Hub verteilt nichts mehr
   und beantwortet jedes `catalog_pull` mit `peer_catalog_not_shared`.
 - **Bedingung 3 fällt für C weg** (C meldet `shared = 0`, verliert `catalog_accept`
-  oder wird gesperrt): `catalog_pull` von C wird mit `peer_catalog_not_shared`
-  abgelehnt bzw. kommt nicht mehr an.
-- **Der Client leert seine Kopie**, sobald der Hub `peer_catalog_not_shared` meldet,
-  und setzt `pull_rev` auf 0. Das deckt die Fälle „Hub teilt nicht mehr“ und „C darf
+  oder wird gesperrt): `catalog_pull` von C wird abgelehnt, je nach Prüfschritt mit
+  `peer_catalog_not_accepted` oder `peer_catalog_not_shared`, oder kommt bei einer
+  Sperre gar nicht mehr an.
+- **Der Client leert seine Kopie**, sobald der Hub `peer_catalog_not_shared` **oder**
+  `peer_catalog_not_accepted` meldet, und setzt `pull_rev` auf 0. Das deckt die Fälle „Hub teilt nicht mehr“ und „C darf
   nicht mehr“ ab, ohne dass der Hub für jeden Client Löschzeilen schreiben muss.
 - **Der Hub schließt bei sich etwas aus** (Nutzer abgewählt, Projekt ausgeschlossen):
   Er schreibt für die betroffenen eigenen Einträge Löschzeilen und stupst an, wie bei
-  einem Ausschluss beim Ursprung.
+  einem Ausschluss beim Ursprung. **Gegenrichtung** (Nutzer wieder angewählt, Projekt
+  wieder freigegeben): Der Cursor `local_next` rückt dabei nicht nach, weil sich
+  `updated_at` der Einträge nicht ändert. Der Hub antwortet deshalb beim nächsten
+  `catalog_pull` jedes Clients einmal mit `reset_local: true`. Der Client setzt
+  daraufhin seinen Cursor für Hub-Einträge (`pull_local_cursor`) auf von vorn und holt
+  die eigenen Einträge des Hubs neu. Spätestens der stündliche `full`-Abgleich liefert
+  fehlende Einträge ebenfalls nach: Schlüssel in `full_keys`, die in der Kopie fehlen,
+  holt der Client mit dem nächsten Abholen von vorn.
+
+Wird C **am Hub gesperrt**, erreicht C keine Ablehnung mehr, und die Kopie auf C
+bleibt mit „Hub nicht erreichbar“ stehen. Das ist so gewollt: C bekommt dann auch
+keine neuen Daten mehr. Der Admin von C kann „Gemeinsame Taskpflege“ ausschalten, um
+die Kopie zu leeren.
 
 Sperrt ein **Client** seinen Hub oder entfernt ihn, bleibt die Kopie dagegen stehen
 („Hub nicht erreichbar“, siehe §Datenschutz). Hier hat nur der Betrachter die
@@ -215,6 +228,7 @@ Antwort `200`, signiert (`kind: "catalog_items"`, `in_reply_to` = `msg_id`, Head
                "priority", "project_id", "project_name", "created_at", "updated_at" }, … ],
   "deleted": [ {"origin_fp", "kind", "item_id"}, … ],
   "next_rev": 81733, "local_next": {"task": […], "idea": […]}, "more": true,
+  "reset_local": false,                  # true = Cursor für Hub-Einträge auf von vorn
   "full_keys": [["<origin_fp>", "task", "<item_id>", "<updated_at>"], …] | null,
   "instances": [ {"origin_fp", "origin_name", "last_seen", "stale"} ],
   "ack_seq": 4712
