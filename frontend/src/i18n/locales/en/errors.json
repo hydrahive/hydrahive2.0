@@ -165,5 +165,9 @@
   "agent_managed": "This agent is managed by a module. Tools, prompt and soul can't be changed here.",
   "git_container_project": "Git for this project runs inside the container, not on the HydraHive server.",
   "template_primary_unavailable": "Project not created: the template \"{{template}}\" uses {{model}} as its main model, which is not available here right now.",
-  "project_agent_invalid": "Project not created: the project agent could not be set up ({{message}})."
+  "project_agent_invalid": "Project not created: the project agent could not be set up ({{message}}).",
+  "peer_not_active": "Only possible with an active pairing – confirm the fingerprint first.",
+  "catalog_hub_exists": "There is already a hub ({{name}}). Turn off “Use as hub” there first.",
+  "catalog_hub_conflict": "A server either acts as hub for others (“Accept catalog”) or sends to a hub itself (“Use as hub”) – not both. Turn off the other switch first.",
+  "catalog_user_unknown": "User {{username}} does not exist on this server."
 }

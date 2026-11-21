@@ -2,6 +2,7 @@ import { useState } from "react"
 import { useTranslation } from "react-i18next"
 import { AlertTriangle, Ban, CheckCircle2, Server, Trash2 } from "lucide-react"
 import { peersApi } from "./api"
+import { PeerCatalogToggles } from "./_PeerCatalogToggles"
 import type { Peer } from "./types"
 
 interface Props {
@@ -108,6 +109,12 @@ export function PeerCard({ peer, agents, onChange }: Props) {
         </p>
       )}
       <p className="text-[11px] text-zinc-500">{t("peers.call_hint", { server: peer.name })}</p>
+
+      <PeerCatalogToggles
+        peer={peer}
+        onSetHub={next => run(() => peersApi.setHub(peer.id, next))}
+        onSetAccept={next => run(() => peersApi.setCatalogAccept(peer.id, next))}
+      />
 
       {error && <p className="text-xs text-red-400">{error}</p>}
     </div>
