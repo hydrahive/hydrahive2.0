@@ -35,4 +35,13 @@ describe("Agent-Editor mit Template (Plan E3)", () => {
     const html = renderToStaticMarkup(<TemplateSummary tpl={{ ...newTemplate("r"), chain: ["a", "b"] }} />)
     expect(html).toContain("a → b")
   })
+
+  it("Zusammenfassung zeigt die Denktiefe aus dem Template (sonst Modellstandard)", () => {
+    const base = newTemplate("r")
+    const hoch = renderToStaticMarkup(<TemplateSummary tpl={{ ...base, budget: { ...base.budget, reasoning_effort: "high" } }} />)
+    expect(hoch).toContain("template.effort")
+    expect(hoch).toMatch(/data-template-effort="[^"]*">high/)
+    const leer = renderToStaticMarkup(<TemplateSummary tpl={{ ...base, budget: { ...base.budget, reasoning_effort: "" } }} />)
+    expect(leer).toContain("template.effort_default")
+  })
 })

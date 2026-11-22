@@ -38,3 +38,16 @@ describe("Projekt-Agent bearbeiten – Reiter-Zustand", () => {
     expect(activeTabFor("mail", [...tabs, { id: "mail" }], true)).toBe("mail")
   })
 })
+
+describe("Projekt-Agent bearbeiten – Modell-Reiter (Template-Bindung)", () => {
+  it("kein freies Feld für die Denktiefe mehr, stattdessen die Template-Auswahl", () => {
+    const a = { ...BASE, template: "reviewer", reasoning_effort: "high" } as Agent
+    const html = renderToStaticMarkup(<ProjectAgentEditorTabs agent={a} draft={a} prompt="" models={[]} catalog={[]}
+      tools={[]} mcpServers={[]} onChange={() => {}} onPromptChange={() => {}} soulActive={false} onSoulSaved={() => {}}
+      initialTab="model" />)
+    expect(html).toContain("template.label")
+    expect(html).not.toContain("Thinking-Tiefe")
+    expect(html).not.toContain("<option value=\"high\"")
+  })
+})
+

@@ -182,7 +182,10 @@
     "save": "Save",
     "reset": "Reset",
     "saved": "Template saved. New calls use it.",
-    "save_failed": "Template could not be saved."
+    "save_failed": "Template could not be saved.",
+    "effort": "Reasoning effort",
+    "effort_default": "Model default",
+    "effort_hint": "Comes from the agent template. For a single chat you can choose the reasoning effort at the top of the chat – it takes precedence."
   },
   "delete_specialist": {
     "title": "Delete specialist",

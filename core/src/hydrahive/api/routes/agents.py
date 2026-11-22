@@ -141,7 +141,7 @@ def create_agent(
             handoff_timeout_seconds=req.handoff_timeout_seconds,
         ))
     except AgentValidationError as e:
-        raise coded(status.HTTP_400_BAD_REQUEST, "validation_error", message=str(e))
+        raise _validation_error(e)
 
 
 @router.patch("/{agent_id}", dependencies=[Depends(require_admin)])
@@ -161,9 +161,21 @@ def update_agent(agent_id: str, req: AgentUpdate) -> dict:
     except KeyError:
         raise coded(status.HTTP_404_NOT_FOUND, "agent_not_found")
     except AgentValidationError as e:
-        raise coded(status.HTTP_400_BAD_REQUEST, "validation_error", message=str(e))
+        raise _validation_error(e)
     except agent_config.AgentManaged as e:
         raise coded(status.HTTP_409_CONFLICT, "agent_managed", module=e.managed_by)
+
+
+_BINDING_CODES = ("agent_bound_to_template", "agent_needs_template")
+
+
+def _validation_error(e: AgentValidationError):
+    """Template-Bindung als eigener Code mit Feldliste – die Oberfläche übersetzt ihn verständlich, statt den rohen
+    Text `agent_bound_to_template:reasoning_effort` zu zeigen."""
+    code, _, fields = str(e).partition(":")
+    if code in _BINDING_CODES:
+        return coded(status.HTTP_400_BAD_REQUEST, code, fields=fields)
+    return coded(status.HTTP_400_BAD_REQUEST, "validation_error", message=str(e))
 
 
 router.add_api_route("/{agent_id}", _delete_job.delete_agent, methods=["DELETE"],
