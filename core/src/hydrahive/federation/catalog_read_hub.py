@@ -113,7 +113,7 @@ async def answer_read(peer: dict, payload: dict) -> tuple[dict, dict[str, str]]:
     body = {"item": item, "content": result["content"], "source": result["source"],
             "origin_offline": not result["origin"]["online"] or result["source"] != "live",
             "snapshot_at": result.get("snapshot_at"), "last_seen": result["origin"].get("last_seen")}
-    reply = proto.new_catalog_item(payload["msg_id"], body)
+    reply = {**proto.new_catalog_item(payload["msg_id"], item), **body}   # kind/msg_id/in_reply_to/from/issued_at
     return reply, {proto.HEADER_SIGNATURE: ident.sign(reply)}
 
 
