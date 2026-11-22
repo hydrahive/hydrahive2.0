@@ -18,6 +18,7 @@ automatisch einen vollen Abgleich (``full: true`` in der Antwort, ab ``rev`` 0).
 """
 from __future__ import annotations
 
+import json
 from datetime import datetime, timezone
 from typing import Any
 
@@ -35,6 +36,11 @@ from hydrahive.federation.catalog_plan import KINDS
 
 MAX_LIMIT = 500
 MAX_KEYS = 5000
+# Seitenbudget nach Bytes (F2, Security-Review #742): Einträge, Löschungen und Schlüssel
+# zusammen bleiben unter der Lesegrenze des Clients (peer_outbound.MAX_REPLY_BYTES), auch
+# bei langen Titeln. 64 KB Reserve für Umschlag und ``instances``. Bei ``full`` bekommen
+# Einträge höchstens die Hälfte, die Schlüsselliste den Rest.
+PAGE_BYTES = 4 * proto.MAX_TEXT
 MAX_USERS = 200
 MAX_NAME = 64
 DEFAULT_INTERVAL = 300
@@ -119,26 +125,50 @@ def _parse(stamp: str | None) -> datetime | None:
     return dt if dt.tzinfo else dt.replace(tzinfo=timezone.utc)
 
 
-def _page(peer: dict, users: list[str], after_rev: int, local_after: dict, limit: int) -> dict:
-    """Partner-Einträge und Löschungen nach ``rev``, dann eigene Einträge im Rest."""
+def size(value: Any) -> int:
+    """Bytes in der Antwort (wie JSONResponse: kompakt, UTF-8 ohne ASCII-Escape) plus Komma."""
+    return len(json.dumps(value, ensure_ascii=False, separators=(",", ":")).encode("utf-8")) + 1
+
+
+def _public_entry(tag: str, r: dict) -> dict:
+    if tag == "d":
+        return {"origin_fp": r["origin_fp"], "kind": r["kind"], "item_id": r["item_id"]}
+    return {f: r.get(f) for f in _ITEM_FIELDS}
+
+
+def _page(peer: dict, users: list[str], after_rev: int, local_after: dict, limit: int, budget: int) -> dict:
+    """Partner-Einträge und Löschungen nach ``rev``, dann eigene Einträge im Rest.
+    Höchstens ``limit`` Stück und ``budget`` Bytes (mindestens ein Eintrag, damit es weitergeht)."""
     upto = pull_db.current_rev()
     found = pull_db.items_after(peer["id"], users, after_rev, upto, limit + 1)
     dels = pull_db.deletions_after(peer["fingerprint"], users, after_rev, upto, limit + 1)
     merged = sorted([("i", r) for r in found] + [("d", r) for r in dels], key=lambda e: e[1]["rev"])
     more = len(merged) > limit
     merged = merged[:limit]
-    next_rev = merged[-1][1]["rev"] if more else max(upto, after_rev)
-    items = [{f: r.get(f) for f in _ITEM_FIELDS} for t, r in merged if t == "i"]
-    deleted = [{"origin_fp": r["origin_fp"], "kind": r["kind"], "item_id": r["item_id"]}
-               for t, r in merged if t == "d"]
-    own_items, local_next, own_more = own.changes(users, local_after, limit - len(merged))
+    used, kept = 0, []
+    for tag, r in merged:
+        entry = _public_entry(tag, r)
+        n = size(entry)
+        if kept and used + n > budget:
+            more = True
+            break
+        kept.append((tag, r["rev"], entry))
+        used += n
+    next_rev = kept[-1][1] if more else max(upto, after_rev)
+    items = [e for t, _, e in kept if t == "i"]
+    deleted = [e for t, _, e in kept if t == "d"]
+    own_items, local_next, own_more = own.changes(users, local_after, limit - len(kept),
+                                                  max(0, budget - used), size=size)
     items += [{f: r.get(f) for f in _ITEM_FIELDS} for r in own_items]
-    return {"items": items, "deleted": deleted, "next_rev": next_rev,
-            "local_next": local_next, "more": more or own_more, "_partner_changes": bool(merged)}
+    used += sum(size({f: r.get(f) for f in _ITEM_FIELDS}) for r in own_items)
+    return {"items": items, "deleted": deleted, "next_rev": next_rev, "local_next": local_next,
+            "more": more or own_more, "_partner_changes": bool(kept), "_bytes": used}
 
 
-def _full_keys(peer: dict, users: list[str], keys_after: list[str] | None) -> tuple[list, list | None]:
-    """Eine Seite der vollständigen Schlüsselliste (≤ 5000) und der Cursor der nächsten."""
+def _full_keys(peer: dict, users: list[str], keys_after: list[str] | None,
+               budget: int) -> tuple[list, list | None]:
+    """Eine Seite der vollständigen Schlüsselliste (≤ 5000 Stück, ≤ ``budget`` Bytes) und der
+    Cursor der nächsten."""
     try:
         mine = own.keys(users)
     except Exception as e:  # unvollständige Liste würde beim Client Einträge löschen
@@ -146,8 +176,15 @@ def _full_keys(peer: dict, users: list[str], keys_after: list[str] | None) -> tu
     keys = sorted(pull_db.visible_keys(peer["id"], users) + mine)
     if keys_after is not None:
         keys = [k for k in keys if k[:3] > keys_after]
-    page = keys[:MAX_KEYS]
-    return page, (page[-1][:3] if len(keys) > MAX_KEYS else None)
+    page: list = []
+    used = 0
+    for k in keys[:MAX_KEYS]:
+        n = size(k)
+        if page and used + n > budget:
+            break
+        page.append(k)
+        used += n
+    return page, (page[-1][:3] if len(keys) > len(page) else None)
 
 
 def accept_pull(peer: dict, payload: dict) -> tuple[dict, dict[str, str]]:
@@ -164,11 +201,12 @@ def accept_pull(peer: dict, payload: dict) -> tuple[dict, dict[str, str]]:
         # keinen vollen Abgleich fährt. Folgeseiten kommen mit full=true und eigenem after_rev,
         # sonst stünde jede Folgeseite wieder bei 0 (Endlosschleife, Review #742).
         after_rev, full = 0, True
-    body = _page(peer, users, after_rev, local_after, limit)
+    body = _page(peer, users, after_rev, local_after, limit, PAGE_BYTES // 2 if full else PAGE_BYTES)
     keys_next = None
     body["full_keys"] = None
+    used = body.pop("_bytes")
     if full:
-        body["full_keys"], keys_next = _full_keys(peer, users, keys_after)
+        body["full_keys"], keys_next = _full_keys(peer, users, keys_after, PAGE_BYTES - used)
         body["more"] = body["more"] or keys_next is not None
     try:
         reset = pull_db.record_pull(peer["id"], seq, users, now_iso(),

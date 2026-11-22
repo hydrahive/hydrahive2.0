@@ -33,19 +33,22 @@ def _key(row: dict) -> tuple[str, str]:
     return (str(row["updated_at"]), str(row["item_id"]))
 
 
-def changes(users: list[str], local_after: dict, budget: int) -> tuple[list[dict], dict, bool]:
+def changes(users: list[str], local_after: dict, budget: int, byte_budget: int | None = None,
+            *, size=None) -> tuple[list[dict], dict, bool]:
     """Geänderte eigene Einträge nach ``local_after``.
 
     Rückgabe ``(items, local_next, more)``. ``local_next[kind]`` richtet sich nach
     dem höchsten gelesenen Eintrag, auch wenn er wegen eines ausgeschlossenen
     Projekts nicht mitgeht (sonst bliebe der Cursor dort stehen). Eine Art ohne
-    Quelle oder mit kaputter Quelle behält ihren alten Cursor.
+    Quelle oder mit kaputter Quelle behält ihren alten Cursor. ``byte_budget`` mit
+    ``size(entry)``: zusätzlich höchstens so viele Bytes (F2), gemessen wie in der Antwort.
     """
     owners, excluded = _scope(users)
     fp = own_fp()
     items: list[dict] = []
     local_next = {k: local_after.get(k) for k in KINDS}
     more = False
+    bytes_left = byte_budget
     for kind in KINDS:
         left = budget - len(items)
         source = catalog_sources.get_source(kind)
@@ -63,9 +66,19 @@ def changes(users: list[str], local_after: dict, budget: int) -> tuple[list[dict
         cut = len(rows) > left
         if cut:
             rows, more = rows[:left], True
+        kept_rows = []
         for row in rows:
             if row.get("project_id") not in excluded:
-                items.append({**row, "origin_fp": fp, "origin_name": None})
+                entry = {**row, "origin_fp": fp, "origin_name": None}
+                if bytes_left is not None and size is not None:
+                    n = size(entry)
+                    if (items or kept_rows) and n > bytes_left:
+                        cut = more = True
+                        break
+                    bytes_left -= n
+                items.append(entry)
+            kept_rows.append(row)
+        rows = kept_rows
         if rows:
             # Mitten im Blättern genau weiter (Keyset). Ist die Art durch, geht die
             # letzte Zeitstufe beim nächsten Abholen noch einmal mit (wie beim Push:
