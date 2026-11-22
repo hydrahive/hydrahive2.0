@@ -75,3 +75,31 @@ Shows the copy of other instances' entries, **read only**. Columns: kind
 (task/idea), short ID, title, status, project, instance, last updated. Filter by
 instance, project, status and kind, plus a search field. Without "Shared task
 management" turned on or without a hub set, the list stays empty.
+
+### Project mapping
+
+Entries from other instances appear in your own project that has **the same name** as
+the project at the origin (case and surrounding spaces do not matter), as long as you
+are a member there. The "Project mapping" table below the list shows every origin
+project with instance, number of entries, mapping and note. You can change the
+mapping per row:
+
+- **Automatic (same name)** — the default rule.
+- **Project …** — a specific project of yours, even with a different name.
+- **Do not show** — the entries no longer appear in any project list, only in the
+  catalog.
+
+The mapping applies **only to you**; every user sets it up themselves, admin rights
+are not needed. Notes: "Ambiguous" (several projects with that name), "No project
+with the same name", "Not a member" (the project exists but you are not on it),
+"Target not available" (the chosen project is gone or you are no longer a member).
+
+### Not assigned
+
+Origin projects without a matching project of yours are listed under "Not assigned",
+grouped by instance. Their entries appear in no project list until you pick a project
+above. For "No project with the same name", an **admin** can click **"Create project
+here"** to create an empty project with that name (member: the signed-in user).
+Nothing is copied from the origin project — no files, no members. After that the
+automatic mapping takes over. Other users see the note "An admin can create the
+project here". Projects themselves are never synced or created automatically.

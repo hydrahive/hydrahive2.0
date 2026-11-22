@@ -79,3 +79,33 @@ Zeigt die Kopie der Einträge anderer Instanzen, **nur lesen**. Spalten: Art
 (Task/Idee), Kurz-ID, Titel, Status, Projekt, Instanz, geändert am. Filter nach
 Instanz, Projekt, Status und Art, dazu eine Suche. Ohne eingeschaltete „Gemeinsame
 Taskpflege“ oder ohne gesetzten Hub bleibt die Liste leer.
+
+### Projekt-Zuordnung
+
+Fremde Einträge erscheinen in dem eigenen Projekt, das **genauso heißt** wie das
+Projekt beim Ursprung (Groß-/Kleinschreibung und Leerzeichen am Rand egal), sofern du
+dort Mitglied bist. Die Tabelle „Projekt-Zuordnung“ unter der Liste zeigt jedes
+Ursprungsprojekt mit Instanz, Anzahl der Einträge, Zuordnung und Hinweis. Die
+Zuordnung lässt sich je Zeile ändern:
+
+- **Automatisch (gleicher Name)** — die Standardregel.
+- **Projekt …** — ein bestimmtes eigenes Projekt, auch mit anderem Namen.
+- **Nicht anzeigen** — die Einträge erscheinen in keiner Projektliste mehr, nur noch
+  im Katalog.
+
+Die Zuordnung gilt **nur für dich**; jeder Nutzer stellt sie selbst ein, auch ohne
+Admin-Rechte. Hinweise: „Mehrdeutig“ (mehrere Projekte mit dem Namen), „Kein
+gleichnamiges Projekt“, „Nicht Mitglied“ (es gibt das Projekt, du bist aber nicht
+eingetragen), „Ziel nicht verfügbar“ (das gewählte Projekt gibt es nicht mehr oder du
+bist kein Mitglied mehr).
+
+### Nicht zugeordnet
+
+Ursprungsprojekte ohne passendes eigenes Projekt stehen gesammelt unter „Nicht
+zugeordnet“, gruppiert nach Instanz. Ihre Einträge erscheinen in keiner Projektliste,
+bis du oben ein Projekt wählst. Bei „Kein gleichnamiges Projekt“ legt ein **Admin**
+mit **„Projekt hier anlegen“** ein leeres Projekt mit demselben Namen an (Mitglied:
+der angemeldete Nutzer). Vom Ursprungsprojekt wird nichts übernommen, weder Dateien
+noch Mitglieder. Danach greift die automatische Zuordnung. Andere Nutzer sehen dort
+den Hinweis „Ein Admin kann das Projekt hier anlegen“. Projekte selbst werden nie
+synchronisiert oder automatisch angelegt.
