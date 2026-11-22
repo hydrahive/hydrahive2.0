@@ -166,6 +166,17 @@ def new_catalog_items(in_reply_to: str, body: dict) -> dict:
     }
 
 
+def new_catalog_notify(rev: int) -> dict:
+    """Hub → Client: „es gibt Neues“, ohne Daten (federation-shared-tasks.md §Anstupsen)."""
+    return {
+        "kind": "catalog_notify",
+        "msg_id": str(uuid.uuid4()),
+        "from": ident.fingerprint(ident.public_key_b64()),
+        "issued_at": int(time.time()),
+        "rev": int(rev),
+    }
+
+
 def verify_reply(peer: dict, signature: str, payload: object, kind: str, in_reply_to: str) -> dict:
     """Signierte Antwort des Partners prüfen: Signatur mit SEINEM Schlüssel,
     Nachrichtentyp, Frische und dass sie sich auf unsere Anfrage bezieht."""
