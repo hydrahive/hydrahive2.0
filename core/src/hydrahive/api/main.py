@@ -101,6 +101,7 @@ from hydrahive.access.deps import require_capability
 from hydrahive.api.routes.federation import router as federation_router
 from hydrahive.api.routes.federation_catalog import router as federation_catalog_router
 from hydrahive.api.routes.federation_catalog_view import router as federation_catalog_view_router
+from hydrahive.api.routes.federation_project_map import router as federation_project_map_router
 from hydrahive.api.routes.federation_peers import router as federation_peers_router
 from hydrahive.api.routes.peering import router as peering_router
 from hydrahive.api.routes.streaming import router as streaming_router
@@ -234,6 +235,7 @@ app.include_router(federation_router, dependencies=[Depends(require_capability("
 app.include_router(federation_peers_router, dependencies=[Depends(require_capability("core.federation"))])
 app.include_router(federation_catalog_router, dependencies=[Depends(require_capability("core.federation"))])
 # Katalog lesen: jeder Angemeldete, Sichtbarkeit nach Nutzername (Spec AK 11) — bewusst ohne core.federation
+app.include_router(federation_project_map_router)
 app.include_router(federation_catalog_view_router)
 # Server-zu-Server: ohne Login, jede Anfrage Ed25519-signiert (server-peering.md)
 app.include_router(peering_router)

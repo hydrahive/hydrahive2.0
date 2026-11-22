@@ -20,7 +20,7 @@ from __future__ import annotations
 from collections.abc import Iterable
 from dataclasses import dataclass
 
-from hydrahive.db.connection import db
+from hydrahive.db.federation_catalog_project_map import manual_rows as load_manual
 from hydrahive.projects import _members_model
 from hydrahive.projects import config as project_config
 
@@ -90,11 +90,3 @@ def resolve(username: str, *, is_admin: bool, origin_fp: str, origin_project_id:
     """Ein einzelner Eintrag. Für viele Einträge ``Resolver`` nehmen."""
     return Resolver(username, is_admin=is_admin).resolve(origin_fp, origin_project_id, project_name)
 
-
-def load_manual(username: str) -> dict[tuple[str, str], str]:
-    with db() as conn:
-        rows = conn.execute(
-            "SELECT origin_fp, origin_project_id, target FROM federation_catalog_project_map WHERE username = ?",
-            (username,),
-        ).fetchall()
-    return {(r["origin_fp"], r["origin_project_id"]): r["target"] for r in rows}
