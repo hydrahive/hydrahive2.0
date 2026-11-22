@@ -10,36 +10,11 @@ const read = (...parts: string[]) => readFileSync(join(SRC, ...parts), "utf8")
 const topics = (lang: string) =>
   (JSON.parse(read("i18n", "locales", lang, "help.json")) as { manual: { topics: Record<string, string> } }).manual.topics
 
-describe("Hilfe-Artikel zum Modul Ideen", () => {
-  it("beschreibt einzelne Ideen, nicht mehr den Zettel mit zwei Bereichen (de)", () => {
-    const text = read("i18n", "help", "de", "scratchpad.md")
-    expect(text.startsWith("# Ideen\n")).toBe(true)
-    for (const word of ["Kopfzeile", "Beschreibung", "Projekt", "Status", "Anmerkung"]) expect(text).toContain(word)
-    for (const alt of ["Notizzettel", "Agent-Notizen", "Meine Ideen", "leeren", "Scratchpad"]) expect(text).not.toContain(alt)
-  })
-
-  it("beschreibt einzelne Ideen, nicht mehr den Zettel mit zwei Bereichen (en)", () => {
-    const text = read("i18n", "help", "en", "scratchpad.md")
-    expect(text.startsWith("# Ideas\n")).toBe(true)
-    for (const word of ["headline", "description", "project", "status", "note"]) expect(text.toLowerCase()).toContain(word)
-    for (const alt of ["notepad", "Agent Notes", "My Ideas", "Scratchpad"]) expect(text).not.toContain(alt)
-  })
-
-  it("nennt in beiden Sprachen dieselben Statusstufen wie das Modul", () => {
-    const de = read("i18n", "help", "de", "scratchpad.md")
-    const en = read("i18n", "help", "en", "scratchpad.md")
-    for (const label of ["Neu", "Wird geprüft", "Geplant", "Geparkt", "Umgesetzt", "Verworfen"]) expect(de).toContain(`**${label}**`)
-    for (const label of ["New", "Under review", "Planned", "Parked", "Done", "Dropped"]) expect(en).toContain(`**${label}**`)
-  })
-
+describe("Handbuch-Eintrag zum Modul Ideen", () => {
+  // Der Artikel selbst liegt seit der Umstellung im Modul (scratchpad/frontend/help/de/scratchpad.md, Modul-Repo).
   it("heißt im Handbuch Ideen / Ideas", () => {
     expect(topics("de").scratchpad).toBe("Ideen")
     expect(topics("en").scratchpad).toBe("Ideas")
-  })
-
-  it("der Notizbuch-Artikel verweist auf Ideen statt auf den Zettel", () => {
-    expect(read("i18n", "help", "de", "notizbuch.md")).not.toContain("Scratchpad")
-    expect(read("i18n", "help", "en", "notizbuch.md")).not.toContain("Scratchpad")
   })
 })
 

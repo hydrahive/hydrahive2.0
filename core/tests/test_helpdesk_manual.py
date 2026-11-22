@@ -1,6 +1,6 @@
 """Hilfe-Assistent: Handbuch laden und durchsuchen (docs/plans/help-assistant.md, Etappe 1, Schritt 1).
 
-Quellen: Hilfe-Artikel frontend/src/i18n/help/<lang>/<topic>.md und docs/USER_GUIDE.md (Topic „guide“).
+Quellen: Hilfe-Artikel frontend/src/i18n/help/<lang>/<topic>.md, Modul-Artikel frontend/src/modules/<id>/help/<lang>/<topic>.md und docs/USER_GUIDE.md (Topic „guide“).
 Sprache des Nutzers zuerst, sonst Deutsch, sonst Englisch – wie loadHelp() im Frontend.
 """
 from __future__ import annotations
@@ -102,11 +102,16 @@ def test_search_excerpt_is_short(repo, monkeypatch):
 
 
 def test_real_manual_is_found():
-    """Im echten Repo: alle Hilfe-Artikel und das Handbuch sind da."""
+    """Im echten Repo: die Kern-Artikel und das Handbuch sind da.
+
+    Modul-Artikel liegen seit dem Umzug im jeweiligen Modul und kommen erst mit der Installation dazu
+    (frontend/src/modules/<id>/help). Im nackten Kern-Repo zählen daher nur die 28 Kern-Themen plus „guide“.
+    """
     manual.clear_cache()
     topics = manual.topics("de")
     assert "agents" in topics and "llm" in topics and "guide" in topics
-    assert len(topics) >= 40
+    core = sorted(p.stem for p in (manual.REPO_ROOT / "frontend" / "src" / "i18n" / "help" / "de").glob("*.md"))
+    assert len(core) >= 28 and set(core) <= set(topics)
 
 
 def _module_help(repo: Path, module: str, lang: str, topic: str, text: str) -> None:
