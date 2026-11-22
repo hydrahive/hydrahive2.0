@@ -26,7 +26,7 @@ from hydrahive.db import federation_catalog_client as client_db
 from hydrahive.db import federation_catalog_foreign as foreign_db
 from hydrahive.federation import peer_protocol as proto
 from hydrahive.federation.catalog_detail import _content
-from hydrahive.federation.catalog_foreign import FIELDS
+from hydrahive.federation.catalog_foreign import FIELDS, hub_stale
 from hydrahive.federation.peer_outbound import ReplyUnavailable, request_signed
 
 logger = logging.getLogger(__name__)
@@ -61,13 +61,16 @@ async def foreign_get(kind: str, username: str, origin_fp: str, item_id: str) ->
     """Wirft nie. ``None`` = nicht sichtbar (nicht in der Kopie, fremder Nutzer, Hub sagt 404)."""
     try:
         mode = foreign_db.mode()
-        if mode == "hub":
+        if mode == foreign_db.HUB:
             return await _on_hub(kind, username, origin_fp, item_id)
-        if mode != "client":
+        if mode not in (foreign_db.CLIENT, foreign_db.CLIENT_OFFLINE):
             return None
         row = await asyncio.to_thread(foreign_db.mirror_row, kind, username, origin_fp, item_id)
         if row is None:
             return None
+        row = {**row, "stale": bool(row.get("stale")) or await asyncio.to_thread(hub_stale, mode)}
+        if mode == foreign_db.CLIENT_OFFLINE:            # Hub gesperrt/entfernt: Kopie mit Hinweis (AK G14)
+            return _from_mirror(row, hub_unreachable=True)
         cfg = await asyncio.to_thread(client_db.load_config)
         if not (cfg.active and cfg.shared):
             return _from_mirror(row, hub_unreachable=True)

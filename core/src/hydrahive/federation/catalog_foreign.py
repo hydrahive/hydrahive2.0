@@ -44,6 +44,17 @@ def _hub_stale(row: dict, now: datetime) -> bool:
     return last is None or (now - last).total_seconds() > 2 * interval
 
 
+def hub_stale(mode: str, now: datetime | None = None) -> bool:
+    """Client: Kopie gilt als nicht aktuell, wenn der Hub nicht erreichbar ist (gesperrt,
+    entfernt, Sync aus) oder länger als zwei Intervalle kein Abholen gelang (Review #746)."""
+    if mode == foreign_db.CLIENT_OFFLINE:
+        return True
+    last_pull, interval = foreign_db.pull_state()
+    last = _parse(last_pull)
+    now = now or datetime.now(timezone.utc)
+    return last is None or (now - last).total_seconds() > 2 * interval
+
+
 def _wanted(project_id: str | None, local: str | None, origin_project: str | None, hidden: bool) -> bool:
     if project_id is None:
         return not origin_project
@@ -71,15 +82,17 @@ def foreign_list(kind: str, username: str, project_id: str | None = ALL, statuse
             return []
         statuses = [s for s in (statuses or []) if isinstance(s, str)][:12] or None
         q = q[:200] if isinstance(q, str) and q.strip() else None
-        rows = (foreign_db.mirror_rows if mode == "client" else foreign_db.hub_rows)(kind, username, statuses, q)
+        client = mode != foreign_db.HUB
+        rows = (foreign_db.mirror_rows if client else foreign_db.hub_rows)(kind, username, statuses, q)
         resolver = Resolver(username, is_admin=is_admin_user(username) if is_admin is None else is_admin)
         now = datetime.now(timezone.utc)
+        all_stale = client and hub_stale(mode, now)
         out: list[dict] = []
         for row in rows:
             a = resolver.resolve(row["origin_fp"], row.get("project_id"), row.get("project_name"))
             if not _wanted(project_id, a.local_project_id, row.get("project_id"), a.hidden):
                 continue
-            stale = bool(row.get("stale")) if mode == "client" else _hub_stale(row, now)
+            stale = (all_stale or bool(row.get("stale"))) if client else _hub_stale(row, now)
             out.append({**{f: row.get(f) for f in FIELDS}, "foreign": True,
                         "origin_last_seen": row.get("origin_last_seen"), "stale": stale,
                         "pending_edits": 0, "local_project_id": a.local_project_id})
