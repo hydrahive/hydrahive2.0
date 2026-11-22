@@ -155,3 +155,18 @@ async def test_langsamer_client_haelt_andere_nicht_auf(client, env, sent, monkey
 async def test_echtes_senden_faengt_netzfehler(env):
     peer = {"name": "weg", "url": "https://127.0.0.1:9"}
     assert await catalog_notify._send(peer, proto.new_catalog_notify(1)) is False
+
+
+async def test_partner_entfernen_und_ausschluss_beim_hub_stupsen_an(client, admin_headers, env, sent):
+    """Review #742: Löschungen durch Entfernen eines Ursprungs bzw. Ausschluss beim Hub
+    erreichen die Clients sofort (Anstupsen), nicht erst beim Timer."""
+    log, _ = sent
+    push(client, env["o"], [item("o-1")])
+    catalog_notify._reset_for_tests()
+    client.delete(f"/api/federation/peers/{env['o_peer']['id']}", headers=admin_headers)
+    await catalog_notify.flush(now=1000.0)
+    assert _names(log) == ["hydrahome"]
+    log.clear()
+    settings(client, admin_headers, users=())                 # Hub wählt den Nutzer ab
+    await catalog_notify.flush(now=2000.0)
+    assert _names(log) == ["hydrahome"]

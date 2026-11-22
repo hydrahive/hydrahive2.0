@@ -109,3 +109,6 @@ def apply_hub_exclusion_change(
     freed_projects = before_excluded - after_excluded
     if added_users or freed_projects:
         _reset_local_for_all_sources()
+    if removed_users or newly_excluded or added_users or freed_projects:
+        from hydrahive.federation import catalog_notify   # Clients gleich abholen lassen (Review #742)
+        catalog_notify.mark()

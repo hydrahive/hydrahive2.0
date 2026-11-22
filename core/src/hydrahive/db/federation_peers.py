@@ -102,6 +102,7 @@ def delete_peer(peer_id: str) -> bool:
         peer = conn.execute(
             "SELECT fingerprint FROM federation_peers WHERE id = ?", (peer_id,),
         ).fetchone()
+        rows = []
         if peer:
             rows = conn.execute(
                 "SELECT kind, item_id, owner FROM federation_catalog_items WHERE peer_id = ?", (peer_id,),
@@ -116,6 +117,10 @@ def delete_peer(peer_id: str) -> bool:
         conn.execute("DELETE FROM federation_peer_agents WHERE peer_id = ?", (peer_id,))
         conn.execute("DELETE FROM federation_peer_tasks WHERE peer_id = ?", (peer_id,))
         cur = conn.execute("DELETE FROM federation_peers WHERE id = ?", (peer_id,))
+        wrote = bool(peer and rows)
+    if wrote:   # nach dem Commit: Clients holen die Löschzeilen gleich ab (Review #742)
+        from hydrahive.federation import catalog_notify
+        catalog_notify.mark(exclude=peer_id)
     return cur.rowcount > 0
 
 

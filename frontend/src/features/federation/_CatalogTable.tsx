@@ -48,7 +48,7 @@ export function CatalogTable({ items, loading, loadingMore, hasMore, onLoadMore 
                 <td className="px-2.5 py-1.5">{t(`catalog_tab.kind_${it.kind}`)}</td>
                 <td className="px-2.5 py-1.5 font-mono text-zinc-500">{it.short_id}</td>
                 <td className="px-2.5 py-1.5 text-zinc-200">{it.title}</td>
-                <td className="px-2.5 py-1.5">{t(`catalog_tab.status.${it.status}`)}</td>
+                <td className="px-2.5 py-1.5">{t(`catalog_tab.status.${it.status}`, { defaultValue: it.status })}</td>
                 <td className="px-2.5 py-1.5 text-zinc-500">{it.project_name ?? "—"}</td>
                 <td className="px-2.5 py-1.5 text-zinc-500">{it.origin_name}</td>
                 <td className="px-2.5 py-1.5 text-zinc-500">{formatDate(it.updated_at, t("catalog.never"))}</td>
