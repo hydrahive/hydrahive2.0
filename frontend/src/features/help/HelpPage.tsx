@@ -4,24 +4,22 @@ import { useTranslation } from "react-i18next"
 import { Markdown } from "@/features/chat/Markdown"
 import { CockpitShell } from "@/features/cockpit/CockpitShell"
 import { CockpitTopbar } from "@/features/cockpit/CockpitTopbar"
-import { type HelpTopic, loadHelp } from "@/i18n/help/loader"
-
-const TOPICS: { id: HelpTopic; labelDe: string; labelEn: string }[] = [
-  { id: "dashboard", labelDe: "Dashboard", labelEn: "Dashboard" },
-  { id: "chat", labelDe: "Chat", labelEn: "Chat" },
-  { id: "agents", labelDe: "Agenten", labelEn: "Agents" },
-  { id: "projects", labelDe: "Projekte", labelEn: "Projects" },
-  { id: "llm", labelDe: "LLM", labelEn: "LLM" },
-  { id: "mcp", labelDe: "MCP", labelEn: "MCP" },
-  { id: "system", labelDe: "System", labelEn: "System" },
-]
+import { type HelpEntry, type HelpTopic, listHelp, loadHelp } from "@/i18n/help/loader"
+import { orderTopics } from "./helpTopics"
 
 export function HelpPage() {
   const { i18n } = useTranslation()
-  const [topic, setTopic] = useState<HelpTopic>("dashboard")
+  const [topic, setTopic] = useState<HelpTopic>("onboarding")
+  const [entries, setEntries] = useState<HelpEntry[]>([])
   const [content, setContent] = useState("")
   const [loading, setLoading] = useState(false)
   const lang = i18n.language.split("-")[0]
+
+  useEffect(() => {
+    let active = true
+    listHelp(i18n.language).then((list) => { if (active) setEntries(orderTopics(list)) })
+    return () => { active = false }
+  }, [i18n.language])
 
   useEffect(() => {
     setLoading(true)
@@ -39,22 +37,22 @@ export function HelpPage() {
       <CockpitTopbar active="/help" context={lang === "de" ? "Handbuch und Seitendokumentation" : "Manual and page documentation"} />
       <main className="min-h-0 flex-1 overflow-y-auto p-4 md:p-6">
         <div className="mx-auto grid max-w-6xl grid-cols-1 gap-4 lg:grid-cols-[220px_minmax(0,1fr)]">
-          <aside className="self-start rounded-[4px] border border-s-rand bg-s-box p-3 lg:sticky lg:top-0">
+          <aside className="self-start rounded-[4px] border border-s-rand bg-s-box p-3 lg:sticky lg:top-0 lg:max-h-[calc(100vh-8rem)] lg:overflow-y-auto">
             <p className="px-2 pb-2 font-mono text-[10px] uppercase tracking-[0.16em] text-[#69d7ff]">
               {lang === "de" ? "Handbuch" : "Manual"}
             </p>
             <nav className="space-y-1" aria-label={lang === "de" ? "Hilfe-Themen" : "Help topics"}>
-              {TOPICS.map((item) => (
+              {entries.map((item) => (
                 <button
-                  key={item.id}
-                  onClick={() => setTopic(item.id)}
+                  key={item.topic}
+                  onClick={() => setTopic(item.topic)}
                   className={`w-full rounded-[4px] border px-3 py-2 text-left text-sm transition-colors ${
-                    topic === item.id
+                    topic === item.topic
                       ? "border-[#69d7ff]/45 bg-[#1c2940] font-semibold text-[#69d7ff]"
                       : "border-transparent text-[#9aa7bc] hover:border-s-rand-hover hover:bg-s-hebung hover:text-[#e8eef8]"
                   }`}
                 >
-                  {lang === "de" ? item.labelDe : item.labelEn}
+                  {item.title}
                 </button>
               ))}
             </nav>

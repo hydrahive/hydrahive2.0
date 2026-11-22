@@ -1,7 +1,9 @@
 """Handbuch für den Hilfe-Assistenten (docs/plans/help-assistant.md): laden und nach Wörtern durchsuchen.
 
-Quellen sind dieselben Dateien wie im Cockpit: die Hilfe-Artikel frontend/src/i18n/help/<lang>/<topic>.md und das
-Benutzerhandbuch docs/USER_GUIDE.md (Topic „guide“). Das Repo liegt auf jeder Installation komplett vor.
+Quellen sind dieselben Dateien wie im Cockpit: die Hilfe-Artikel frontend/src/i18n/help/<lang>/<topic>.md, die
+Artikel installierter Module frontend/src/modules/<id>/help/<lang>/<topic>.md (das Modul gewinnt bei gleichem Thema,
+wie loadHelp()) und das Benutzerhandbuch docs/USER_GUIDE.md (Topic „guide“). Das Repo liegt auf jeder Installation
+komplett vor.
 Sprache wie loadHelp() im Frontend: Sprache des Nutzers, sonst Deutsch, sonst Englisch.
 Wortsuche statt Embeddings: ~190 KB Text, und sie funktioniert auch ohne Embedding-Modell.
 """
@@ -22,6 +24,14 @@ _FALLBACK = ("de", "en")
 
 def _help_dir() -> Path:
     return REPO_ROOT / "frontend" / "src" / "i18n" / "help"
+
+
+def _module_help_dirs() -> list[Path]:
+    """help/-Ordner installierter Module (Build-Kopie unter frontend/src/modules/<id>/help)."""
+    base = REPO_ROOT / "frontend" / "src" / "modules"
+    if not base.is_dir():
+        return []
+    return sorted(d / "help" for d in base.iterdir() if d.is_dir() and not d.is_symlink() and (d / "help").is_dir())
 
 
 def _guide() -> Path:
@@ -45,20 +55,22 @@ def _load(topic: str, lang: str) -> str | None:
         p = _guide()
         return p.read_text(encoding="utf-8") if p.is_file() else None
     for lg in _langs(lang):
-        p = _help_dir() / lg / f"{topic}.md"
-        if p.is_file():
-            return p.read_text(encoding="utf-8")
+        for base in [*_module_help_dirs(), _help_dir()]:          # Modul vor Kern
+            p = base / lg / f"{topic}.md"
+            if p.is_file() and not p.is_symlink():
+                return p.read_text(encoding="utf-8")
     return None
 
 
 def topics(lang: str = "de") -> list[str]:
     """Alle Topics (Artikel in irgendeiner Sprache + Handbuch), sortiert."""
     names: set[str] = set()
-    base = _help_dir()
-    if base.is_dir():
+    for base in [_help_dir(), *_module_help_dirs()]:
+        if not base.is_dir():
+            continue
         for lang_dir in base.iterdir():
-            if lang_dir.is_dir():
-                names.update(p.stem for p in lang_dir.glob("*.md") if _TOPIC.match(p.stem))
+            if lang_dir.is_dir() and _LANG.match(lang_dir.name):
+                names.update(p.stem for p in lang_dir.glob("*.md") if _TOPIC.match(p.stem) and not p.is_symlink())
     if _guide().is_file():
         names.add(GUIDE_TOPIC)
     return sorted(names)
