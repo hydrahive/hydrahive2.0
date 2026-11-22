@@ -1,0 +1,40 @@
+{
+  "loading": "Lädt …",
+  "load_error": "Projekt-Zuordnung konnte nicht geladen werden.",
+  "save_error": "Zuordnung konnte nicht gespeichert werden.",
+  "create_error": "Projekt konnte nicht angelegt werden.",
+  "map": {
+    "title": "Projekt-Zuordnung",
+    "subtitle": "In welchem eigenen Projekt die Einträge anderer Instanzen erscheinen (nur für dich)",
+    "empty": "Noch keine Einträge anderer Instanzen mit Projekt.",
+    "col_instance": "Instanz",
+    "col_origin_project": "Ursprungsprojekt",
+    "col_count": "Anzahl",
+    "col_target": "Zuordnung",
+    "col_hint": "Hinweis",
+    "target_auto": "Automatisch (gleicher Name)",
+    "target_project": "Projekt {{name}}",
+    "target_hidden": "Nicht anzeigen",
+    "target_unavailable_option": "Projekt nicht mehr verfügbar"
+  },
+  "unassigned": {
+    "title": "Nicht zugeordnet",
+    "subtitle": "Diese Einträge erscheinen in keiner Projektliste. Oben ein Projekt wählen oder „Nicht anzeigen“.",
+    "empty": "Alle Ursprungsprojekte sind zugeordnet.",
+    "count_one": "{{count}} Eintrag",
+    "count_other": "{{count}} Einträge",
+    "create": "Projekt „{{name}}“ hier anlegen",
+    "creating": "Wird angelegt …",
+    "admin_can_create": "Ein Admin kann das Projekt hier anlegen."
+  },
+  "reason": {
+    "manual": "Manuell zugeordnet",
+    "name": "Gleicher Name",
+    "hidden": "Nicht angezeigt",
+    "ambiguous": "Mehrdeutig: mehrere Projekte mit diesem Namen",
+    "no_match": "Kein gleichnamiges Projekt",
+    "not_member": "Nicht Mitglied im gleichnamigen Projekt",
+    "no_project": "Ohne Projekt",
+    "target_unavailable": "Ziel nicht verfügbar"
+  }
+}

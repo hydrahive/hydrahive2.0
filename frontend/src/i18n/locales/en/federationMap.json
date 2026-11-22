@@ -1,0 +1,40 @@
+{
+  "loading": "Loading …",
+  "load_error": "Could not load the project mapping.",
+  "save_error": "Could not save the mapping.",
+  "create_error": "Could not create the project.",
+  "map": {
+    "title": "Project mapping",
+    "subtitle": "Which of your projects shows the entries of other instances (only for you)",
+    "empty": "No entries with a project from other instances yet.",
+    "col_instance": "Instance",
+    "col_origin_project": "Origin project",
+    "col_count": "Count",
+    "col_target": "Mapping",
+    "col_hint": "Note",
+    "target_auto": "Automatic (same name)",
+    "target_project": "Project {{name}}",
+    "target_hidden": "Do not show",
+    "target_unavailable_option": "Project no longer available"
+  },
+  "unassigned": {
+    "title": "Not assigned",
+    "subtitle": "These entries appear in no project list. Pick a project above or choose “Do not show”.",
+    "empty": "All origin projects are assigned.",
+    "count_one": "{{count}} entry",
+    "count_other": "{{count}} entries",
+    "create": "Create project “{{name}}” here",
+    "creating": "Creating …",
+    "admin_can_create": "An admin can create the project here."
+  },
+  "reason": {
+    "manual": "Assigned manually",
+    "name": "Same name",
+    "hidden": "Not shown",
+    "ambiguous": "Ambiguous: several projects with this name",
+    "no_match": "No project with the same name",
+    "not_member": "Not a member of the project with the same name",
+    "no_project": "No project",
+    "target_unavailable": "Target not available"
+  }
+}
