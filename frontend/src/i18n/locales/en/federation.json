@@ -150,6 +150,10 @@
     "sync_subtitle": "Send ideas and tasks (metadata only) to the hub",
     "sync_toggle": "Enable sync",
     "sync_hint": "Sending follows in a later stage; for now only the settings are stored.",
+    "shared_toggle": "Shared task management",
+    "shared_hint": "Shares your own synced entries with the other instances and shows their entries here.",
+    "remote_edits_toggle": "Allow editing by other instances",
+    "remote_edits_hint": "Takes effect from the editing stage onward. Can only be enabled with “Shared task management”.",
     "hub_label": "Hub:",
     "hub_none": "No hub selected – turn on “Use as hub” for an active server above.",
     "hub_inactive": "pairing not active",
@@ -166,6 +170,9 @@
     "last_ok": "Last successful sync:",
     "last_push": "Last attempt:",
     "last_error": "Last error:",
+    "last_pull": "Last pulled:",
+    "mirror_count": "Entries from other instances:",
+    "last_pull_error": "Last pull error:",
     "never": "never",
     "save": "Save",
     "saving": "Saving …",
@@ -191,6 +198,19 @@
       "hub_bad_ack": "The hub did not acknowledge correctly.",
       "sync_failed": "Sync failed (details in the server log).",
       "source_failed": "A data source (ideas or tasks) could not be read."
+    },
+    "pull_reason": {
+      "peer_catalog_not_shared": "The hub no longer shares the catalog.",
+      "peer_catalog_not_accepted": "The hub does not accept the catalog (turn on “Accept catalog” there).",
+      "hub_unreachable": "Hub not reachable.",
+      "peer_signature_invalid": "The hub rejects the signature (check the pairing).",
+      "peer_replay": "The hub rejects the message number, the next run will retry.",
+      "hub_bad_ack": "The hub did not acknowledge correctly.",
+      "hub_bad_reply": "The hub's reply was incomplete or broken.",
+      "peer_payload_too_large": "Reply too large.",
+      "pull_failed": "Pull failed (details in the server log).",
+      "http_404": "The hub rejects the request (404).",
+      "unknown": "Pull failed ({{code}})."
     }
   }
 }

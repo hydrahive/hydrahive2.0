@@ -12,6 +12,9 @@ export interface CatalogDraft {
   interval: string
   users: string[]
   excluded_projects: string[]
+  /** Gemeinsame Taskpflege (docs/specs/federation-shared-tasks.md §Schalter). */
+  shared: boolean
+  remote_edits: boolean
 }
 
 export function toDraft(s: CatalogSettings): CatalogDraft {
@@ -20,7 +23,15 @@ export function toDraft(s: CatalogSettings): CatalogDraft {
     interval: String(s.interval_seconds),
     users: [...s.users],
     excluded_projects: [...s.excluded_projects],
+    shared: s.shared,
+    remote_edits: s.remote_edits,
   }
+}
+
+/** ``remote_edits`` ergibt ohne ``shared`` keinen Sinn — Ausschalten von ``shared``
+ * nimmt ``remote_edits`` mit (docs/specs/federation-shared-tasks.md §Schalter). */
+export function setShared(draft: CatalogDraft, shared: boolean): CatalogDraft {
+  return { ...draft, shared, remote_edits: shared ? draft.remote_edits : false }
 }
 
 /** Ganze Sekunden im erlaubten Bereich, sonst null (Backend prüft dasselbe: 60–3600). */
@@ -43,6 +54,8 @@ export function isDirty(draft: CatalogDraft, server: CatalogSettings): boolean {
     || draft.interval.trim() !== String(server.interval_seconds)
     || !sameSet(draft.users, server.users)
     || !sameSet(draft.excluded_projects, server.excluded_projects)
+    || draft.shared !== server.shared
+    || draft.remote_edits !== server.remote_edits
 }
 
 /** Body für PUT /catalog/settings oder null, wenn das Intervall ungültig ist. */
@@ -54,6 +67,8 @@ export function draftToPatch(draft: CatalogDraft): CatalogSettingsPatch | null {
     interval_seconds: interval,
     users: draft.users,
     excluded_projects: draft.excluded_projects,
+    shared: draft.shared,
+    remote_edits: draft.shared ? draft.remote_edits : false,
   }
 }
 
@@ -70,4 +85,18 @@ export function reasonTexts(lastError: string | null): { textId: string | null; 
     const base = raw.split(":")[0]
     return { textId: (REASON_CODES as readonly string[]).includes(base) ? `catalog.reason.${base}` : null, raw }
   })
+}
+
+/** Codes aus ``last_pull_error`` (Abholen der Kopie, docs/specs/federation-shared-tasks.md
+ *  §Schalter/§Nachricht catalog_pull). Anders als beim Push nur ein einzelner Code, kein
+ *  Komma-String. Unbekannter Code → allgemeiner Text mit dem Code (gleiches Muster wie
+ *  ``reasonTexts``, aber hier immer ein Text, nie der rohe Code allein). */
+export const PULL_REASON_CODES = [
+  "peer_catalog_not_shared", "peer_catalog_not_accepted", "hub_unreachable", "peer_signature_invalid",
+  "peer_replay", "hub_bad_ack", "hub_bad_reply", "peer_payload_too_large", "pull_failed", "http_404",
+] as const
+
+export function pullReasonText(code: string): { textId: string; code: string } {
+  const known = (PULL_REASON_CODES as readonly string[]).includes(code)
+  return { textId: known ? `catalog.pull_reason.${code}` : "catalog.pull_reason.unknown", code }
 }

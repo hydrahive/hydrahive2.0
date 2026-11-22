@@ -2,7 +2,7 @@ import { api } from "@/shared/api-client"
 import type {
   A2ACard, ClientConnection, CreateClientResult, Workstation,
   ExternalInstance, CreateInstanceResult, Peer, PeerIdentity, PeerOwnCode,
-  CatalogSettings,
+  CatalogSettings, CatalogMirrorPage,
 } from "./types"
 
 // All optional fields a workstation can have. Keeping it as a type
@@ -111,6 +111,32 @@ export interface CatalogSettingsPatch {
   interval_seconds: number
   users: string[]
   excluded_projects: string[]
+  /** Gemeinsame Taskpflege (docs/specs/federation-shared-tasks.md §Schalter). */
+  shared: boolean
+  remote_edits: boolean
+}
+
+/** Filter für GET /api/federation/catalog/mirror (§Oberfläche Cockpit, Katalog-Reiter). */
+export interface CatalogMirrorQuery {
+  instance?: string[]
+  project?: string
+  status?: string[]
+  kind?: "task" | "idea"
+  q?: string
+  limit?: number
+  offset?: number
+}
+
+function mirrorParams(q: CatalogMirrorQuery): URLSearchParams {
+  const params = new URLSearchParams()
+  for (const i of q.instance ?? []) params.append("instance", i)
+  if (q.project) params.set("project", q.project)
+  for (const s of q.status ?? []) params.append("status", s)
+  if (q.kind) params.set("kind", q.kind)
+  if (q.q) params.set("q", q.q)
+  params.set("limit", String(q.limit ?? 50))
+  params.set("offset", String(q.offset ?? 0))
+  return params
 }
 
 export const catalogApi = {
@@ -123,4 +149,8 @@ export const catalogApi = {
   /** Voller Abgleich sofort (Etappe 3). ``result``: ok · inactive · Fehlercode des Laufs. */
   syncNow: (): Promise<{ result: string; settings: CatalogSettings }> =>
     api.post("/federation/catalog/sync-now", {}),
+
+  /** Kopie lesen (docs/specs/federation-shared-tasks.md §Oberfläche Cockpit), nur lesen. */
+  getMirror: (query: CatalogMirrorQuery = {}): Promise<CatalogMirrorPage> =>
+    api.get(`/federation/catalog/mirror?${mirrorParams(query).toString()}`),
 }
