@@ -102,10 +102,12 @@ async def test_ablehnung_kommt_als_code_an_und_leert_die_kopie(hub, code):
 
 async def test_peer_replay_springt_auf_last_seq_plus_1(hub):
     replies, seen = hub
-    replies.append((409, {"detail": {"code": "peer_replay", "params": {"last_seq": 900}}}))
+    with db() as conn:
+        target = conn.execute("SELECT seq FROM federation_catalog_settings WHERE id = 1").fetchone()[0] + 500
+    replies.append((409, {"detail": {"code": "peer_replay", "params": {"last_seq": target}}}))
     replies.append((200, _page()))
     assert await pc.pull(full=False) == "ok"
-    assert [p["seq"] for p in seen][1] == 901                 # zweiter Versuch mit last_seq + 1
+    assert seen[1]["seq"] == target + 1                       # zweiter Versuch mit last_seq + 1
 
 
 async def test_rate_limit_und_unbekannter_fehler(hub):
@@ -132,3 +134,35 @@ async def test_request_signed_reicht_lesbaren_statusfehler_weiter(hub):
                                            reply_kind="catalog_items", timeout=5)
     assert exc.value.response.status_code == 403
     assert exc.value.response.json()["detail"]["code"] == "peer_catalog_not_shared"
+
+
+# --- Übrige Aufrufer (F1: alle prüfen) -------------------------------------------------
+
+async def test_push_liest_fehlercode_aus_stream_antwort(hub, monkeypatch):
+    """Push (catalog_sync) nutzt send_signed mit client.post, das die Antwort ganz liest:
+    peer_replay mit last_seq kommt an, auch wenn der Hub die Antwort streamt."""
+    from hydrahive.federation import catalog_sync, peer_inbound
+
+    replies, seen = hub
+    monkeypatch.setattr(peer_inbound.httpx, "AsyncClient", peer_outbound.httpx.AsyncClient)
+    with db() as conn:
+        target = conn.execute("SELECT seq FROM federation_catalog_settings WHERE id = 1").fetchone()[0] + 500
+    replies.append((409, {"detail": {"code": "peer_replay", "params": {"last_seq": target}}}))
+    replies.append((403, {"detail": {"code": "peer_catalog_not_accepted"}}))
+    peer = {"name": "err-hub", "url": "https://err-hub.example"}
+    with pytest.raises(catalog_sync.SyncFailed) as exc:
+        await catalog_sync.send_message(peer, 300, [], [], None)
+    assert exc.value.code == "peer_catalog_not_accepted"      # Code gelesen, nicht http_403
+    assert seen[1]["seq"] == target + 1                       # peer_replay → last_seq + 1
+
+
+async def test_fetch_zeigt_offline_bei_fehlerantwort(hub):
+    """Fetch (catalog_detail) wertet keinen Code aus: jeder HTTP-Fehler → offline. Mit F1 ist
+    der Fehler ein lesbarer HTTPStatusError, den catalog_detail bereits abfängt (httpx.HTTPError)."""
+    replies, _ = hub
+    replies.append((500, {"detail": {"code": "x"}}))
+    peer = {"name": "err-hub", "url": "https://err-hub.example", "public_key": ident.public_key_b64()}
+    with pytest.raises(httpx.HTTPError):
+        await peer_outbound.request_signed(peer, "/api/peering/catalog/fetch",
+                                           proto.new_catalog_fetch("task", "t-1", "u"),
+                                           reply_kind="catalog_item", timeout=5)
