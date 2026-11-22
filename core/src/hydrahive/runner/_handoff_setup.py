@@ -8,6 +8,7 @@ from dataclasses import dataclass
 from hydrahive.agentlink.protocol import State
 from hydrahive.agentlink.runtime_profiles import (
     RUNTIME_METADATA_KEY,
+    channel_from_reason,
     effective_budget,
     profile_from_reason,
     resume_token_from_reason,
@@ -118,6 +119,8 @@ def prepare_handoff(state: State, target: dict, reason: str) -> PreparedHandoff:
         else:
             continued = _continue_session(state, target, thread, budget) if thread else None
             session = continued or _new_session(state, target, budget)
+        # Kanal des Auftraggebers übernehmen (neu, fortgesetzt oder wiederaufgenommen; nie entfernen).
+        sessions_db.adopt_channel(session.id, channel_from_reason(reason))
         handoff_record = db_agent_handoffs.create(
             incoming_state_id=state.id or "",
             from_agent=state.agent_id,

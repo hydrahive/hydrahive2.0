@@ -137,6 +137,9 @@ async def _execute(args: dict, ctx: ToolContext) -> ToolResult:
             # summieren sich Timeouts über verschachtelte ask_agent-Ketten,
             # Befund 2026-11-19).
             caller_depth=ctx.origin_depth,
+            # Kanal des eigenen Laufs weitergeben: ein Spezialist für eine WhatsApp-Nachricht
+            # bekommt ebenfalls keine Vault-Daten (Ziel vault-agenten §1.4).
+            channel=ctx.channel,
         )
     except ValueError as exc:
         return ToolResult.fail(str(exc))

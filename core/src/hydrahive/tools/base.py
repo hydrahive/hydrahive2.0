@@ -20,6 +20,9 @@ class ToolContext:
     # Nur vom Runner gesetzt; ask_agent entscheidet daran über Hintergrund-Modus.
     origin: str = "other"
     origin_depth: int = 0
+    # Kommunikationskanal des Laufs (sessions.channel) oder None für Web/intern. Nur vom Runner gesetzt;
+    # Vault-Werkzeuge liefern bei gesetztem Kanal nie Daten (vault/agent_gate.py).
+    channel: str | None = None
 
 
 @dataclass

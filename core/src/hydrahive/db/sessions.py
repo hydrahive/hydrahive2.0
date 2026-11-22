@@ -20,6 +20,9 @@ class Session:
     created_at: str = ""
     updated_at: str = ""
     metadata: dict = field(default_factory=dict)
+    # Kommunikationskanal (whatsapp, discord, email, matrix …) oder None für Web/intern.
+    # Gesetzt von communication/_session_lookup.py bzw. bei Weitergaben (adopt_channel); nie entfernt.
+    channel: str | None = None
 
     @classmethod
     def from_row(cls, row: sqlite3.Row) -> "Session":
@@ -37,6 +40,7 @@ class Session:
             created_at=row["created_at"],
             updated_at=row["updated_at"],
             metadata=metadata,
+            channel=row["channel"] if "channel" in row.keys() else None,
         )
 
 
@@ -150,6 +154,19 @@ def _set_metadata_key(session_id: str, key: str, value: str | None) -> None:
     s = get(session_id)
     if s:
         mirror.schedule_session(s)
+
+
+def adopt_channel(session_id: str, channel: str | None) -> None:
+    """Übernimmt den Kanal eines Auftraggebers (Ziel vault-agenten §1.4).
+
+    Nur setzen, nie entfernen oder ersetzen: leerer Wert ändert nichts, ein vorhandener Kanal bleibt."""
+    if not channel:
+        return
+    with db() as conn:
+        conn.execute(
+            "UPDATE sessions SET channel = ? WHERE id = ? AND (channel IS NULL OR channel = '')",
+            (channel, session_id),
+        )
 
 
 def set_model_override(session_id: str, model: str | None) -> None:

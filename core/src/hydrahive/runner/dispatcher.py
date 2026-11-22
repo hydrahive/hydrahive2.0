@@ -68,7 +68,7 @@ async def execute_tool(
             f"Keine Freigabe für '{tool_name}' ({denied_cap}). "
             "Ein Admin kann sie unter Admin → Freigaben erteilen."
         )
-    elif (vault_block := vault_gate.blocked(tool_name, ctx.user_id)) is not None:
+    elif (vault_block := vault_gate.blocked(tool_name, ctx.user_id, channel=ctx.channel)) is not None:
         # Vault-Werkzeug bei gesperrtem Vault: Werkzeug läuft gar nicht (Ziel vault-agenten §1.2)
         result = vault_block
     elif tool_name.startswith(mcp_bridge.PREFIX):

@@ -105,7 +105,7 @@ async def run(
                      workspace=workspace, config=effective_tool_config(agent, tool_config),
                      project_id=active_project_id,
                      current_user_input=_user_text(user_input) if origin.trusted_user_input else None,
-                     origin=origin.kind, origin_depth=origin.depth)
+                     origin=origin.kind, origin_depth=origin.depth, channel=session.channel or None)
 
     # Session-Lifecycle: start
     _first_prompt = user_input if isinstance(user_input, str) else None
