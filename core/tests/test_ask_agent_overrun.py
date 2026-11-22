@@ -55,7 +55,7 @@ def test_overrun_mit_begruendung(target, posted, tmp_path):
                 "overrun_reason": "Review über 40 Dateien, Standardbudget reicht nicht"}, tmp_path)
     assert res.success is True, res.error
     assert profile_from_reason(posted[0].handoff.reason) == "overrun"
-    assert any("Review über 40 Dateien" in e for e in posted[0].context.errors)
+    assert any(e.type == "overrun" and "Review über 40 Dateien" in e.message for e in posted[0].context.errors)
 
 
 def test_ohne_overrun_unveraendert(target, posted, tmp_path):

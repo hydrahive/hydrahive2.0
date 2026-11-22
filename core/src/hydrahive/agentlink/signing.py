@@ -54,6 +54,17 @@ def _file_view(f: object) -> list:
     return out
 
 
+def _error_view(e: object) -> list:
+    """Fehler-Eintrag in der Form, die AgentLink speichert (type/message/stack).
+
+    Text-Einträge (ältere Aufrufer, die ``errors`` nachträglich ändern) werden wie
+    beim Senden zu ``hint`` – so passt die Signatur vor und nach der Rundreise."""
+    from hydrahive.agentlink.protocol import error_entry
+
+    entry = error_entry("hint", e)
+    return [entry.type, entry.message, entry.stack]
+
+
 def _payload(state: State, reason: str) -> bytes:
     files = state.context.files if state.context else []
     body = {
@@ -63,7 +74,7 @@ def _payload(state: State, reason: str) -> bytes:
         "reason": reason,
         "task": [state.task.type, state.task.description] if state.task else None,
         "files": [_file_view(f) for f in files],
-        "errors": state.context.errors if state.context else [],
+        "errors": [_error_view(e) for e in state.context.errors] if state.context else [],
     }
     return json.dumps(body, sort_keys=True, ensure_ascii=False, separators=(",", ":")).encode()
 

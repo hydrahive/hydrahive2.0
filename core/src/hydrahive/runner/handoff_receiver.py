@@ -165,7 +165,7 @@ def _build_user_input(state: State) -> str:
         if paths:
             parts.append(f"\nDateien: {paths}")
     if state.context and state.context.errors:
-        parts.append("\nFehler:\n" + "\n".join(state.context.errors))
+        parts.append("\nFehler:\n" + "\n".join(state.context.error_lines()))
     if state.context and state.context.git:
         parts.append(f"\nGit: {state.context.git}")
     if state.agent_id:

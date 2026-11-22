@@ -6,7 +6,7 @@ Felder (knowledge-refs, A-MEM-IDs etc.) lassen wir als optional und passthrough.
 from __future__ import annotations
 
 from typing import Any
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
 
 
 class TaskBlock(BaseModel):
@@ -16,10 +16,44 @@ class TaskBlock(BaseModel):
     status: str = "in_progress"
 
 
+class ErrorEntry(BaseModel):
+    """Ein Eintrag in ``context.errors``, wie AgentLink ihn verlangt (``ErrorContext``).
+
+    Bis 21.11.2026 schickte HydraHive hier Text. AgentLink lehnte jeden State mit
+    nicht-leerer Liste mit 422 ab (Task 54c50a91: Spezialisten „auf Abruf“ und
+    Budget-Überschreitung unerreichbar)."""
+    type: str
+    message: str
+    stack: str | None = None
+
+
+def error_entry(kind: str, value: Any) -> ErrorEntry:
+    """Text, dict oder ErrorEntry → ErrorEntry. Text bekommt ``type=kind``."""
+    if isinstance(value, ErrorEntry):
+        return value
+    if isinstance(value, dict) and isinstance(value.get("message"), str):
+        stack = value.get("stack")
+        return ErrorEntry(type=str(value.get("type") or kind), message=value["message"],
+                          stack=stack if isinstance(stack, str) else None)
+    return ErrorEntry(type=kind, message=value if isinstance(value, str) else str(value))
+
+
 class ContextBlock(BaseModel):
     files: list[dict] = Field(default_factory=list)
     git: dict | None = None
-    errors: list[str] = Field(default_factory=list)
+    errors: list[ErrorEntry] = Field(default_factory=list)
+
+    @field_validator("errors", mode="before")
+    @classmethod
+    def _errors_als_objekte(cls, value: Any) -> Any:
+        # Alte Aufrufer und gespeicherte States mit Text-Einträgen bleiben gültig.
+        if isinstance(value, (list, tuple)):
+            return [error_entry("hint", v) for v in value]
+        return value
+
+    def error_lines(self) -> list[str]:
+        """Hinweise als Textzeilen für den Empfänger (handoff_receiver)."""
+        return [e.message if isinstance(e, ErrorEntry) else str(e) for e in self.errors]
 
 
 class WorkingMemory(BaseModel):
