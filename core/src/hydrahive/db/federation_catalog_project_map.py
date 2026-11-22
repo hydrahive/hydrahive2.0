@@ -22,7 +22,10 @@ _MIRROR = (
 _HUB = (
     "SELECT p.fingerprint AS origin_fp, MAX(p.name) AS origin_name, i.project_id, "
     "MAX(i.project_name) AS project_name, COUNT(*) AS n FROM federation_catalog_items i "
-    "JOIN federation_peers p ON p.id = i.peer_id WHERE i.owner = ? AND i.project_id IS NOT NULL "
+    "JOIN federation_peers p ON p.id = i.peer_id "
+    "LEFT JOIN federation_catalog_sources s ON s.peer_id = i.peer_id "
+    "WHERE i.owner = ? AND i.project_id IS NOT NULL "
+    "AND p.catalog_accept = 1 AND p.status = 'active' AND COALESCE(s.shared, 0) = 1 "   # wie hub_rows
     "GROUP BY p.fingerprint, i.project_id"
 )
 

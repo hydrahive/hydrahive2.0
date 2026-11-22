@@ -118,17 +118,24 @@ def test_umbenennung_beim_ursprung(client, auth_headers, setup):
 
 
 def test_katalog_auf_dem_hub_zaehlt_mit(client, auth_headers, setup):
+    """Nur sichtbare Partner (catalog_accept, active, shared) wie in hub_rows; Review #746."""
     with db() as conn:
-        conn.execute("INSERT INTO federation_peers (id, name, url, public_key, fingerprint, status, created_at) "
-                     "VALUES ('pm-peer', 'devbox', 'https://d.example', 'pk-pm', 'fp-devbox', 'active', ?)", (now_iso(),))
+        conn.execute("INSERT INTO federation_peers (id, name, url, public_key, fingerprint, status, created_at, "
+                     "catalog_accept) VALUES ('pm-peer', 'devbox', 'https://d.example', 'pk-pm', 'fp-devbox', "
+                     "'active', ?, 1)", (now_iso(),))
+        conn.execute("INSERT INTO federation_catalog_sources (peer_id, shared) VALUES ('pm-peer', 0)")
         conn.execute("INSERT INTO federation_catalog_items (peer_id, kind, item_id, owner, title, status, project_id, "
                      "project_name, updated_at, received_at) VALUES ('pm-peer', 'idea', 'i-1', 'testuser', 'I', 'new', "
                      "'o-g', ?, 'x', 'x')", (f"  garten {setup['tag']} ",))
     try:
+        assert "o-g" not in _origins(client, auth_headers)          # Partner teilt nicht: nicht in der Tabelle
+        with db() as conn:
+            conn.execute("UPDATE federation_catalog_sources SET shared = 1 WHERE peer_id = 'pm-peer'")
         o = _origins(client, auth_headers)
         assert o["o-g"]["origin_fp"] == "fp-devbox" and o["o-g"]["local_project_id"] == setup["garten"]["id"]
     finally:
         with db() as conn:
+            conn.execute("DELETE FROM federation_catalog_sources WHERE peer_id = 'pm-peer'")
             conn.execute("DELETE FROM federation_peers WHERE id = 'pm-peer'")
 
 

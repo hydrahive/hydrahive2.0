@@ -25,7 +25,7 @@ from hydrahive.federation import catalog_project_map as pm
 from hydrahive.projects import _members_model
 from hydrahive.projects import config as project_config
 
-router = APIRouter(prefix="/api/federation/catalog/project-map", tags=["federation"])
+router = APIRouter(prefix="/project-map", tags=["federation"])     # eingehängt in federation_catalog_view
 
 _User = Annotated[AuthPrincipal, Depends(require_principal)]
 

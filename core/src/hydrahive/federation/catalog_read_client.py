@@ -73,7 +73,9 @@ async def foreign_get(kind: str, username: str, origin_fp: str, item_id: str) ->
             return _from_mirror(row, hub_unreachable=True)
         payload = proto.new_catalog_read(origin_fp, kind, item_id, username)
         try:
-            reply = await request_signed(cfg.hub, READ_PATH, payload, reply_kind="catalog_item", timeout=TIMEOUT)
+            reply = await asyncio.wait_for(   # Gesamtzeit, nicht nur je httpx-Phase
+                request_signed(cfg.hub, READ_PATH, payload, reply_kind="catalog_item", timeout=TIMEOUT),
+                timeout=TIMEOUT + 2)
         except ReplyUnavailable:
             return None
         except (httpx.HTTPError, proto.PeerRejected, asyncio.TimeoutError) as e:

@@ -15,10 +15,14 @@ from fastapi import APIRouter, Depends, Query, status
 
 from hydrahive.api.middleware.auth import AuthPrincipal, require_principal
 from hydrahive.api.middleware.errors import coded
+from hydrahive.api.routes.federation_project_map import router as project_map_router
 from hydrahive.db import federation_catalog_mirror_view as mirror_view
 from hydrahive.federation import catalog_detail, catalog_view
 
 router = APIRouter(prefix="/api/federation/catalog", tags=["federation"])
+# Projekt-Zuordnung (G3, gleiche Regel: jeder Angemeldete, nur eigene Zeilen) hängt hier mit dran,
+# damit api/main.py nicht wächst. Vor den Pfaden mit Platzhaltern eingehängt.
+router.include_router(project_map_router)
 
 _User = Annotated[AuthPrincipal, Depends(require_principal)]
 _KINDS = ("task", "idea")
