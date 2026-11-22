@@ -50,6 +50,32 @@ nachgeladen).
 - Ein Server ist entweder Hub für andere **oder** schickt selbst an einen Hub, nicht
   beides. Sonst erscheint eine Meldung, welcher Schalter zuerst aus muss.
 - **Katalog-Sync** — Sync an/aus, Intervall (60–3600 Sekunden), welche Nutzer
-  gesendet werden (Standard: keiner) und welche Projekte nie gesendet werden.
-  Der eigentliche Versand kommt in einer späteren Ausbaustufe; bis dahin werden nur
-  die Einstellungen gespeichert.
+  gesendet werden (Standard: keiner) und welche Projekte nie gesendet werden. Der
+  Versand läuft alle paar Minuten automatisch und sofort bei Änderungen an einem
+  gesendeten Eintrag.
+
+## Gemeinsame Taskpflege
+
+Ergänzt den Föderations-Katalog: Die eigenen Ideen und Tasks werden mit den anderen
+gekoppelten Instanzen geteilt, und deren Einträge erscheinen hier zum Lesen. Geteilt
+werden **nur Metadaten** (Titel, Status, Projekt, …) — der Volltext bleibt immer bei
+der Instanz, auf der der Eintrag angelegt wurde, und wird bei Bedarf live
+nachgeladen. Sichtbar sind Einträge nur unter demselben Nutzernamen: `till` auf
+dieser Instanz sieht nur Einträge von `till` auf anderen Instanzen, sonst niemand.
+
+Im Abschnitt „Katalog-Sync“ gibt es dafür zwei Schalter:
+
+- **„Gemeinsame Taskpflege“** — teilt die eigenen synchronisierten Einträge mit den
+  anderen Instanzen **und** zeigt deren Einträge hier an. Beides hängt an einem
+  Schalter; es gibt kein getrenntes Nur-Anzeigen oder Nur-Teilen.
+- **„Bearbeiten durch andere Instanzen erlauben“** — lässt sich erst einschalten,
+  wenn „Gemeinsame Taskpflege“ an ist. Mit „Gemeinsame Taskpflege“ allein sind die
+  eigenen Einträge anderswo nur **sichtbar**, nicht änderbar. Der Schalter wirkt erst
+  ab der Etappe Bearbeiten — bis dahin ändert er noch nichts.
+
+## Reiter „Katalog“
+
+Zeigt die Kopie der Einträge anderer Instanzen, **nur lesen**. Spalten: Art
+(Task/Idee), Kurz-ID, Titel, Status, Projekt, Instanz, geändert am. Filter nach
+Instanz, Projekt, Status und Art, dazu eine Suche. Ohne eingeschaltete „Gemeinsame
+Taskpflege“ oder ohne gesetzten Hub bleibt die Liste leer.

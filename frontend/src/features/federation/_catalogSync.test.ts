@@ -1,12 +1,14 @@
 // Föderations-Katalog Etappe 1 (docs/specs/federation-catalog.md): Formular-Logik „Katalog-Sync“.
 import { describe, expect, it } from "vitest"
-import { draftToPatch, isDirty, parseInterval, toDraft, toggleIn } from "./_catalogSync"
+import { draftToPatch, isDirty, parseInterval, setShared, toDraft, toggleIn } from "./_catalogSync"
 import type { CatalogSettings } from "./types"
 
 const base: CatalogSettings = {
   enabled: false, interval_seconds: 300, users: [], excluded_projects: [],
   hub: null, accepting_from: [],
   last_push_at: null, last_ok_at: null, last_full_at: null, last_error: null,
+  shared: false, remote_edits: false,
+  last_pull_at: null, last_full_pull_at: null, last_pull_error: null, mirror_count: 0,
 }
 
 describe("Intervall wie im Backend (60–3600 s, ganze Zahl)", () => {
@@ -21,7 +23,10 @@ describe("Intervall wie im Backend (60–3600 s, ganze Zahl)", () => {
 describe("Entwurf und Speichern", () => {
   it("Standard: aus, Nutzerliste leer, nichts geändert", () => {
     const d = toDraft(base)
-    expect(d).toEqual({ enabled: false, interval: "300", users: [], excluded_projects: [] })
+    expect(d).toEqual({
+      enabled: false, interval: "300", users: [], excluded_projects: [],
+      shared: false, remote_edits: false,
+    })
     expect(isDirty(d, base)).toBe(false)
   })
   it("Änderung an Schalter, Intervall, Nutzern oder Projekten ist ungespeichert", () => {
@@ -30,14 +35,19 @@ describe("Entwurf und Speichern", () => {
     expect(isDirty({ ...d, interval: "600" }, base)).toBe(true)
     expect(isDirty({ ...d, users: ["till"] }, base)).toBe(true)
     expect(isDirty({ ...d, excluded_projects: ["p1"] }, base)).toBe(true)
+    expect(isDirty({ ...d, shared: true }, base)).toBe(true)
+    expect(isDirty({ ...d, remote_edits: true }, base)).toBe(true)
   })
   it("Reihenfolge der Nutzer zählt nicht als Änderung", () => {
     const s = { ...base, users: ["a", "b"] }
     expect(isDirty({ ...toDraft(s), users: ["b", "a"] }, s)).toBe(false)
   })
   it("Body für PUT nur mit gültigem Intervall", () => {
-    const d = { enabled: true, interval: "900", users: ["till"], excluded_projects: ["p1"] }
-    expect(draftToPatch(d)).toEqual({ enabled: true, interval_seconds: 900, users: ["till"], excluded_projects: ["p1"] })
+    const d = { enabled: true, interval: "900", users: ["till"], excluded_projects: ["p1"], shared: true, remote_edits: true }
+    expect(draftToPatch(d)).toEqual({
+      enabled: true, interval_seconds: 900, users: ["till"], excluded_projects: ["p1"],
+      shared: true, remote_edits: true,
+    })
     expect(draftToPatch({ ...d, interval: "30" })).toBeNull()
   })
   it("toggleIn fügt hinzu und entfernt", () => {
@@ -49,5 +59,20 @@ describe("Entwurf und Speichern", () => {
     const d = toDraft(s)
     d.users.push("b")
     expect(s.users).toEqual(["a"])
+  })
+})
+
+describe("Schalter „Gemeinsame Taskpflege“ und „Bearbeiten durch andere Instanzen erlauben“", () => {
+  it("setShared(true) lässt remote_edits unverändert", () => {
+    const d = { ...toDraft(base), remote_edits: false }
+    expect(setShared(d, true)).toEqual({ ...d, shared: true, remote_edits: false })
+  })
+  it("setShared(false) nimmt remote_edits mit aus (docs/specs/federation-shared-tasks.md §Schalter)", () => {
+    const d = { ...toDraft(base), shared: true, remote_edits: true }
+    expect(setShared(d, false)).toEqual({ ...d, shared: false, remote_edits: false })
+  })
+  it("draftToPatch setzt remote_edits auf false, wenn shared aus ist, selbst wenn der Entwurf es noch an hat", () => {
+    const d = { enabled: true, interval: "300", users: [], excluded_projects: [], shared: false, remote_edits: true }
+    expect(draftToPatch(d)?.remote_edits).toBe(false)
   })
 })

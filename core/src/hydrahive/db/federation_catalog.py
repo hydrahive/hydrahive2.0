@@ -9,6 +9,7 @@ from __future__ import annotations
 
 from typing import Any
 
+from hydrahive.db._utils import now_iso
 from hydrahive.db.connection import db
 
 _SETTINGS_COLUMNS = (
@@ -75,12 +76,21 @@ def set_hub(peer_id: str, is_hub: bool) -> dict | None:
         if bool(peer["is_hub"]) != is_hub:
             conn.execute("DELETE FROM federation_catalog_cursors")
             conn.execute("UPDATE federation_catalog_settings SET last_full_at = NULL WHERE id = 1")
+            _clear_mirror(conn)   # Hub-Wechsel: Kopie gehört zum alten Hub
         row = conn.execute("SELECT * FROM federation_peers WHERE id = ?", (peer_id,)).fetchone()
     return _row(row)
 
 
 def set_catalog_accept(peer_id: str, accept: bool) -> dict | None:
-    """Annahme setzen, atomar gegen gleichzeitiges Setzen eines Hubs."""
+    """Annahme setzen, atomar gegen gleichzeitiges Setzen eines Hubs.
+
+    docs/specs/federation-shared-tasks.md §Schalter, Bedingung 2 ("der Hub
+    nimmt O catalog_accept weg"): ändert sich dadurch die Sichtbarkeit von O
+    im Föderations-Katalog, schreibt diese Funktion in derselben Transaktion
+    Löschzeilen (Wegfall) bzw. neue rev für alle Einträge von O (Wiederkehr).
+    """
+    from hydrahive.federation.catalog_visibility import on_visibility_change, origin_visible
+
     with db(immediate=True) as conn:
         peer = conn.execute("SELECT * FROM federation_peers WHERE id = ?", (peer_id,)).fetchone()
         if not peer:
@@ -90,9 +100,17 @@ def set_catalog_accept(peer_id: str, accept: bool) -> dict | None:
                 raise CatalogConflict("peer_not_active")
             if conn.execute("SELECT 1 FROM federation_peers WHERE is_hub = 1 LIMIT 1").fetchone():
                 raise CatalogConflict("catalog_hub_conflict")
+        source = conn.execute(
+            "SELECT shared FROM federation_catalog_sources WHERE peer_id = ?", (peer_id,),
+        ).fetchone()
+        before = origin_visible(dict(peer), dict(source) if source else None)
         conn.execute(
             "UPDATE federation_peers SET catalog_accept = ? WHERE id = ?", (1 if accept else 0, peer_id),
         )
+        after_peer = dict(peer)
+        after_peer["catalog_accept"] = 1 if accept else 0
+        after = origin_visible(after_peer, dict(source) if source else None)
+        on_visibility_change(conn, peer_id, before, after, now_iso())
         row = conn.execute("SELECT * FROM federation_peers WHERE id = ?", (peer_id,)).fetchone()
     return _row(row)
 
@@ -112,6 +130,21 @@ def gate_inputs() -> tuple[bool, str | None, list[str]]:
     return (bool(row and row["enabled"]), hub["status"] if hub else None, [r["username"] for r in users])
 
 
+def hub_gate_inputs() -> tuple[bool, bool, list[str]]:
+    """Rein lesend: (ist diese Instanz Hub für mind. einen Partner, eigenes
+    `shared`, Nutzerauswahl). Für den Hub-Zweig von `ctx.catalog_changed`
+    (federation/catalog_changes.py, Spec §Änderungsnummer "Vormerkung eigener
+    Hub-Einträge"). Nutzerauswahl ist dieselbe Tabelle wie beim Client-Push —
+    "Für Einträge des Hubs gelten zusätzlich die Nutzerauswahl ... des Hubs
+    (dieselben Tabellen wie auf einem Client)".
+    """
+    with db() as conn:
+        is_hub = conn.execute("SELECT 1 FROM federation_peers WHERE catalog_accept = 1 LIMIT 1").fetchone()
+        row = conn.execute("SELECT shared FROM federation_catalog_settings WHERE id = 1").fetchone()
+        users = conn.execute("SELECT username FROM federation_catalog_users ORDER BY username").fetchall()
+    return (bool(is_hub), bool(row and row["shared"]), [r["username"] for r in users])
+
+
 def get_settings() -> dict:
     with db() as conn:
         conn.execute("INSERT OR IGNORE INTO federation_catalog_settings (id) VALUES (1)")
@@ -121,12 +154,17 @@ def get_settings() -> dict:
     return _row(row)
 
 
-def update_settings(*, enabled: bool, interval_seconds: int) -> dict:
+def update_settings(*, enabled: bool, interval_seconds: int, shared: bool = False, remote_edits: bool = False) -> dict:
+    """``shared``/``remote_edits`` (docs/specs/federation-shared-tasks.md §Schalter,
+    Standard aus). ``remote_edits`` hat noch keine Wirkung — das bestätigt Till
+    vor Etappe G4 (Bearbeiten), siehe Spec Z. 86–90. Nur speichern, nichts tut
+    damit heute etwas."""
     with db() as conn:
         conn.execute("INSERT OR IGNORE INTO federation_catalog_settings (id) VALUES (1)")
         conn.execute(
-            "UPDATE federation_catalog_settings SET enabled = ?, interval_seconds = ? WHERE id = 1",
-            (1 if enabled else 0, interval_seconds),
+            "UPDATE federation_catalog_settings "
+            "SET enabled = ?, interval_seconds = ?, shared = ?, remote_edits = ? WHERE id = 1",
+            (1 if enabled else 0, interval_seconds, 1 if shared else 0, 1 if remote_edits else 0),
         )
         row = conn.execute(
             "SELECT * FROM federation_catalog_settings WHERE id = 1",
@@ -177,6 +215,18 @@ def set_excluded_projects(project_ids: list[str]) -> list[str]:
 
 
 # --- Cursor (federation_catalog_cursors) ------------------------------------
+
+def _clear_mirror(conn) -> None:
+    """Kopie leeren, Abhol-Stand auf „von vorn“ (federation-shared-tasks.md §Schalter)."""
+    conn.execute("DELETE FROM federation_catalog_mirror")
+    conn.execute("UPDATE federation_catalog_settings SET pull_rev = 0, pull_local_cursor = NULL, "
+                 "last_full_pull_at = NULL WHERE id = 1")
+
+
+def clear_mirror() -> None:
+    with db() as conn:
+        _clear_mirror(conn)
+
 
 def reset_all_cursors() -> None:
     """Voller Abgleich beim nächsten Lauf (Spec Ablauf 2: Hub-Wechsel oder

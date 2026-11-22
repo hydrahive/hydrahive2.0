@@ -22,6 +22,10 @@ class SyncConfig:
     users: tuple[str, ...]
     excluded_projects: frozenset[str]
     last_full_at: str | None
+    # Gemeinsame Taskpflege (docs/specs/federation-shared-tasks.md §Schalter),
+    # Standard aus. Werden in jedem catalog_push mitgemeldet (new_catalog_push).
+    shared: bool = False
+    remote_edits: bool = False
 
     @property
     def active(self) -> bool:
@@ -32,7 +36,8 @@ class SyncConfig:
 def load_config() -> SyncConfig:
     with db() as conn:
         row = conn.execute(
-            "SELECT enabled, interval_seconds, last_full_at FROM federation_catalog_settings WHERE id = 1",
+            "SELECT enabled, interval_seconds, last_full_at, shared, remote_edits "
+            "FROM federation_catalog_settings WHERE id = 1",
         ).fetchone()
         hub = conn.execute("SELECT * FROM federation_peers WHERE is_hub = 1 LIMIT 1").fetchone()
         users = conn.execute("SELECT username FROM federation_catalog_users ORDER BY username").fetchall()
@@ -44,6 +49,8 @@ def load_config() -> SyncConfig:
         users=tuple(r["username"] for r in users),
         excluded_projects=frozenset(r["project_id"] for r in excluded),
         last_full_at=row["last_full_at"] if row else None,
+        shared=bool(row and row["shared"]),
+        remote_edits=bool(row and row["remote_edits"]),
     )
 
 

@@ -16,8 +16,10 @@ from hydrahive.api.middleware.errors import coded
 from hydrahive.api.middleware.users import list_users
 from hydrahive.api.routes.federation_peers import _peer_or_404, _public
 from hydrahive.db import federation_catalog as catalog_db
+from hydrahive.db import federation_catalog_mirror_view as mirror_view
 from hydrahive.db import federation_peers as peers_db
 from hydrahive.federation.catalog_changes import safe_refresh_gate
+from hydrahive.federation.catalog_hub_exclusion import apply_hub_exclusion_change
 
 logger = logging.getLogger(__name__)
 
@@ -39,6 +41,10 @@ class CatalogSettingsBody(BaseModel):
     interval_seconds: int = Field(ge=60, le=3600)
     users: list[str] = Field(default_factory=list, max_length=200)
     excluded_projects: list[str] = Field(default_factory=list, max_length=500)
+    # Gemeinsame Taskpflege (docs/specs/federation-shared-tasks.md §Schalter),
+    # Standard aus. remote_edits bleibt ohne Wirkung, bis Till sie vor G4 bestätigt.
+    shared: bool = False
+    remote_edits: bool = False
 
     # Kein Zeichen-Muster: Nutzernamen sind bei der Anlage frei (routes/users.py).
     # Maßgeblich ist die Prüfung gegen list_users() in put_catalog_settings.
@@ -66,6 +72,8 @@ def _settings_response() -> dict:
     return {
         "enabled": bool(row["enabled"]),
         "interval_seconds": row["interval_seconds"],
+        "shared": bool(row["shared"]),
+        "remote_edits": bool(row["remote_edits"]),
         "users": catalog_db.list_selected_users(),
         "excluded_projects": catalog_db.list_excluded_projects(),
         "hub": (
@@ -76,6 +84,11 @@ def _settings_response() -> dict:
         "last_ok_at": row["last_ok_at"],
         "last_full_at": row["last_full_at"],
         "last_error": row["last_error"],
+        # Gemeinsame Taskpflege: Abholen beim Hub (federation-shared-tasks.md §Oberfläche Cockpit)
+        "last_pull_at": row.get("last_pull_at"),
+        "last_full_pull_at": row.get("last_full_pull_at"),
+        "last_pull_error": row.get("last_pull_error"),
+        "mirror_count": mirror_view.count(),
     }
 
 
@@ -126,8 +139,12 @@ def put_catalog_settings(body: CatalogSettingsBody, _: _Admin) -> dict:
 
     before_users = set(catalog_db.list_selected_users())
     before_projects = set(catalog_db.list_excluded_projects())
+    before_shared = bool(catalog_db.get_settings().get("shared"))
 
-    catalog_db.update_settings(enabled=body.enabled, interval_seconds=body.interval_seconds)
+    catalog_db.update_settings(
+        enabled=body.enabled, interval_seconds=body.interval_seconds,
+        shared=body.shared, remote_edits=body.remote_edits,
+    )
     catalog_db.set_selected_users(body.users)
     catalog_db.set_excluded_projects(body.excluded_projects)
 
@@ -135,7 +152,20 @@ def put_catalog_settings(body: CatalogSettingsBody, _: _Admin) -> dict:
     after_projects = set(body.excluded_projects)
     if before_users != after_users or before_projects != after_projects:
         catalog_db.reset_all_cursors()
+    if before_users != after_users or (before_shared and not body.shared):
+        catalog_db.clear_mirror()   # Kopie passt nicht mehr zur Auswahl bzw. Taskpflege aus
     safe_refresh_gate()
+
+    # Spec §Schalter "Der Hub schließt bei sich etwas aus": Löschzeilen für
+    # abgewählte Nutzer/neu ausgeschlossene Projekte, reset_local für die
+    # Gegenrichtung. Darf die Antwort nie kippen.
+    try:
+        apply_hub_exclusion_change(
+            before_users=before_users, after_users=after_users,
+            before_excluded=before_projects, after_excluded=after_projects,
+        )
+    except Exception as e:  # pragma: no cover - reine Absicherung
+        logger.warning("Ausschluss beim Hub nicht verbucht: %s", e)
 
     return _settings_response()
 

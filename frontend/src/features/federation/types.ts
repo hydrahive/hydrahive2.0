@@ -112,7 +112,8 @@ export interface Peer {
   catalog_accept: boolean
 }
 
-/** Einstellungen des Föderations-Katalogs (docs/specs/federation-catalog.md §API). */
+/** Einstellungen des Föderations-Katalogs (docs/specs/federation-catalog.md §API,
+ * erweitert um die Gemeinsame Taskpflege, docs/specs/federation-shared-tasks.md §Schalter). */
 export interface CatalogSettings {
   enabled: boolean
   interval_seconds: number
@@ -125,6 +126,48 @@ export interface CatalogSettings {
   last_ok_at: string | null
   last_full_at: string | null
   last_error: string | null
+  /** Gemeinsame Taskpflege: eigene Einträge teilen + fremde anzeigen (docs/specs/federation-shared-tasks.md §Schalter). */
+  shared: boolean
+  /** Nur mit ``shared``: eigene Einträge dürfen von anderen Instanzen geändert werden. */
+  remote_edits: boolean
+  /** Abholen der Kopie (federation_catalog_mirror) beim Hub. */
+  last_pull_at: string | null
+  last_full_pull_at: string | null
+  last_pull_error: string | null
+  /** Anzahl Einträge in der Kopie (Einträge anderer Instanzen). */
+  mirror_count: number
+}
+
+/** Ein Eintrag der Kopie (docs/specs/federation-shared-tasks.md §Oberfläche Cockpit,
+ * GET /api/federation/catalog/mirror). */
+export interface CatalogMirrorItem {
+  origin_fp: string
+  origin_name: string
+  kind: "task" | "idea"
+  item_id: string
+  short_id: string
+  owner: string
+  title: string
+  status: string
+  priority: string | null
+  project_id: string | null
+  project_name: string | null
+  created_at: string
+  updated_at: string
+  received_at: string
+}
+
+export interface CatalogMirrorFacets {
+  instances: { origin_fp: string; origin_name: string; count: number }[]
+  projects: string[]
+}
+
+export interface CatalogMirrorPage {
+  items: CatalogMirrorItem[]
+  has_more: boolean
+  limit: number
+  offset: number
+  facets: CatalogMirrorFacets
 }
 
 export interface PeerIdentity {

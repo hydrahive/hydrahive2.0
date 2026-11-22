@@ -22,7 +22,10 @@ const peer = (over: Partial<Peer> = {}): Peer => ({
 const settings = (over: Partial<CatalogSettings> = {}): CatalogSettings => ({
   enabled: false, interval_seconds: 300, users: [], excluded_projects: [],
   hub: null, accepting_from: [],
-  last_push_at: null, last_ok_at: null, last_full_at: null, last_error: null, ...over,
+  last_push_at: null, last_ok_at: null, last_full_at: null, last_error: null,
+  shared: false, remote_edits: false,
+  last_pull_at: null, last_full_pull_at: null, last_pull_error: null, mirror_count: 0,
+  ...over,
 })
 
 const switches = (h: string) =>
@@ -67,7 +70,11 @@ describe("Abschnitt „Katalog-Sync“", () => {
 
   it("Standard: Sync aus, kein Hub, kein Nutzer gewählt, Speichern gesperrt", () => {
     const h = render(settings())
-    expect(switches(h)).toEqual([{ label: "catalog.sync_toggle", checked: false, disabled: false }])
+    expect(switches(h)).toEqual([
+      { label: "catalog.sync_toggle", checked: false, disabled: false },
+      { label: "catalog.shared_toggle", checked: false, disabled: false },
+      { label: "catalog.remote_edits_toggle", checked: false, disabled: true },
+    ])
     expect(h).toContain("catalog.hub_none")
     expect(h).toContain("catalog.users_none_selected")
     expect(h).not.toContain('aria-pressed="true"')
@@ -115,6 +122,58 @@ describe("Abschnitt „Katalog-Sync“", () => {
   })
 })
 
+describe("Schalter „Gemeinsame Taskpflege“ und „Bearbeiten durch andere Instanzen erlauben“", () => {
+  const render = (s: CatalogSettings, draft = toDraft(s)) =>
+    renderToStaticMarkup(
+      <CatalogSyncForm settings={s} draft={draft} users={[]} projects={[]} saving={false} saved={false} error=""
+        onChange={() => {}} onSave={() => {}} onReset={() => {}} />,
+    )
+
+  it("remote_edits ist ohne shared gesperrt", () => {
+    const h = render(settings({ shared: false }))
+    const s = switches(h)
+    expect(s.find(x => x.label === "catalog.remote_edits_toggle")?.disabled).toBe(true)
+  })
+  it("mit shared an ist remote_edits bedienbar", () => {
+    const h = render(settings({ shared: true }))
+    const s = switches(h)
+    expect(s.find(x => x.label === "catalog.remote_edits_toggle")?.disabled).toBe(false)
+  })
+  it("beide Schalter zeigen den gespeicherten Stand", () => {
+    const h = render(settings({ shared: true, remote_edits: true }))
+    const s = switches(h)
+    expect(s.find(x => x.label === "catalog.shared_toggle")?.checked).toBe(true)
+    expect(s.find(x => x.label === "catalog.remote_edits_toggle")?.checked).toBe(true)
+  })
+})
+
+describe("Status „zuletzt abgeholt“", () => {
+  const render = (s: CatalogSettings) =>
+    renderToStaticMarkup(
+      <CatalogSyncForm settings={s} draft={toDraft(s)} users={[]} projects={[]} saving={false} saved={false} error=""
+        onChange={() => {}} onSave={() => {}} onReset={() => {}} />,
+    )
+
+  it("ohne Abholen: „noch nie“, Zähler 0", () => {
+    const h = render(settings())
+    expect(h).toMatch(/data-part="last-pull">catalog\.last_pull <span[^>]*>catalog\.never<\/span>/)
+    expect(h).toMatch(/data-part="mirror-count">catalog\.mirror_count <span[^>]*>0<\/span>/)
+  })
+  it("mit Abholen: Datum formatiert und Anzahl", () => {
+    const h = render(settings({ last_pull_at: "2026-11-21T10:00:00.000+00:00", mirror_count: 7 }))
+    expect(h).not.toMatch(/data-part="last-pull">catalog\.last_pull <span[^>]*>catalog\.never<\/span>/)
+    expect(h).toMatch(/data-part="mirror-count">catalog\.mirror_count <span[^>]*>7<\/span>/)
+  })
+  it("bekannter Abhol-Fehlercode wird übersetzt", () => {
+    const h = render(settings({ last_pull_error: "peer_catalog_not_shared" }))
+    expect(h).toContain("catalog.pull_reason.peer_catalog_not_shared")
+  })
+  it("unbekannter Abhol-Fehlercode bekommt den allgemeinen Text mit Code", () => {
+    const h = render(settings({ last_pull_error: "etwas_neues" }))
+    expect(h).toContain("catalog.pull_reason.unknown")
+  })
+})
+
 describe("Knopf „Jetzt abgleichen“", () => {
   const render = (over: Record<string, unknown> = {}, draft?: ReturnType<typeof toDraft>) => {
     const s = settings({ enabled: true, users: ["till"], last_full_at: "2026-11-21T10:00:00.000+00:00" })
@@ -147,11 +206,12 @@ describe("Texte de/en", () => {
   })
   it("alle im Code genutzten catalog-Schlüssel existieren", () => {
     const used = ["peer_title", "hub_toggle", "hub_hint", "accept_toggle", "accept_hint", "only_active", "sync_title",
-      "sync_subtitle", "sync_toggle", "sync_hint", "hub_label", "hub_none", "hub_inactive", "accepting_label",
+      "sync_subtitle", "sync_toggle", "sync_hint", "shared_toggle", "shared_hint", "remote_edits_toggle",
+      "remote_edits_hint", "hub_label", "hub_none", "hub_inactive", "accepting_label",
       "interval_label", "interval_hint", "interval_invalid", "users_label", "users_empty", "users_none_selected",
       "projects_label", "projects_empty", "status_label", "last_ok", "last_push", "last_error", "never", "save",
       "saving", "saved", "reset", "load_error", "switch_hub_confirm", "last_full", "sync_now", "syncing",
-      "sync_now_ok", "sync_now_inactive", "sync_now_hint"]
+      "sync_now_ok", "sync_now_inactive", "sync_now_hint", "last_pull", "mirror_count", "last_pull_error"]
     for (const k of used) {
       expect(deFed.catalog).toHaveProperty(k)
       expect(enFed.catalog).toHaveProperty(k)
@@ -162,6 +222,13 @@ describe("Texte de/en", () => {
     for (const code of REASON_CODES) {
       expect(deFed.catalog.reason).toHaveProperty(code)
       expect(enFed.catalog.reason).toHaveProperty(code)
+    }
+  })
+  it("alle Fehlercodes des Abholens haben Texte de/en, dazu der allgemeine Text „unknown“", async () => {
+    const { PULL_REASON_CODES } = await import("./_catalogSync")
+    for (const code of [...PULL_REASON_CODES, "unknown"]) {
+      expect(deFed.catalog.pull_reason).toHaveProperty(code)
+      expect(enFed.catalog.pull_reason).toHaveProperty(code)
     }
   })
   it("409/400-Codes des Backends sind übersetzt (sonst sähe man den rohen Code)", () => {
