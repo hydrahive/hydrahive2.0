@@ -28,7 +28,7 @@ def _mirror_item(item_id, *, owner="testuser", project_id="o-dev", project_name=
 def setup(client):
     mirror_db.clear()
     with db() as conn:
-        conn.execute("DELETE FROM federation_catalog_project_map")
+        conn.execute("DELETE FROM federation_catalog_project_map WHERE username IN ('testuser', 'admin', 'anna')")
     tag = uuid.uuid4().hex[:6]          # Projekte früherer Läufe bleiben liegen: Namen je Lauf eindeutig
     dev = make_project(f"Hydrahive DEV {tag}", created_by="admin", members=["testuser"])
     garten = make_project(f"Garten {tag}", created_by="admin", members=["testuser"])
@@ -40,7 +40,7 @@ def setup(client):
     yield {"dev": dev, "garten": garten, "fremd": fremd, "tag": tag}
     mirror_db.clear()
     with db() as conn:
-        conn.execute("DELETE FROM federation_catalog_project_map")
+        conn.execute("DELETE FROM federation_catalog_project_map WHERE username IN ('testuser', 'admin', 'anna')")
 
 
 def _origins(client, headers):

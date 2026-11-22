@@ -34,7 +34,7 @@ def client_mode(client):
                      " VALUES ('fl-hub', 'hub', 'https://h.example', 'pk-fl', 'fp-hub', 'active', ?, 1)", (now_iso(),))
         conn.execute("INSERT OR IGNORE INTO federation_catalog_settings (id) VALUES (1)")
         conn.execute("UPDATE federation_catalog_settings SET enabled = 1, shared = 1 WHERE id = 1")
-        conn.execute("DELETE FROM federation_catalog_project_map")
+        conn.execute("DELETE FROM federation_catalog_project_map WHERE username IN ('testuser', 'admin', 'anna')")
     mirror_db.clear()
     rows = [_m("t-1", project_name=dev["name"], updated="2026-11-22T10:00:03Z"),
             _m("t-2", project_name=dev["name"], status="done", title="Steuer abgeben"),
@@ -50,7 +50,7 @@ def client_mode(client):
     with db() as conn:
         conn.execute("DELETE FROM federation_peers WHERE id = 'fl-hub'")
         conn.execute("UPDATE federation_catalog_settings SET enabled = 0, shared = 0 WHERE id = 1")
-        conn.execute("DELETE FROM federation_catalog_project_map")
+        conn.execute("DELETE FROM federation_catalog_project_map WHERE username IN ('testuser', 'admin', 'anna')")
 
 
 def _ids(rows):
