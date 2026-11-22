@@ -129,9 +129,13 @@ def new_catalog_pull(
     *,
     full: bool = False,
     limit: int = 500,
+    keys_after: list[str] | None = None,
 ) -> dict:
     """Client → Hub: Änderungen abholen (docs/specs/federation-shared-tasks.md
-    §Nachricht catalog_pull). ``seq`` ist derselbe Zähler wie beim Push."""
+    §Nachricht catalog_pull). ``seq`` ist derselbe Zähler wie beim Push.
+
+    ``keys_after`` (nur mit ``full``): ``keys_next`` der vorigen Antwort, um die
+    Schlüsselliste seitenweise zu holen (Ergänzung zur Spec, ≤ 5000 je Seite)."""
     return {
         "kind": "catalog_pull",
         "msg_id": str(uuid.uuid4()),
@@ -143,6 +147,7 @@ def new_catalog_pull(
         "local_after": dict(local_after),
         "full": bool(full),
         "limit": int(limit),
+        "keys_after": list(keys_after) if keys_after else None,
     }
 
 

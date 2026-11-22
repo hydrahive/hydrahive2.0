@@ -140,4 +140,6 @@ def test_ablehnung_steht_im_audit(client, admin_headers, env):
 def test_new_catalog_pull_form():
     p = proto.new_catalog_pull(5, ["testuser"], 7, {"task": None, "idea": None}, full=True)
     assert p["kind"] == "catalog_pull" and p["seq"] == 5 and p["after_rev"] == 7 and p["full"] is True
-    assert p["msg_id"] and p["limit"] == 500
+    assert p["msg_id"] and p["limit"] == 500 and p["keys_after"] is None
+    q = proto.new_catalog_pull(6, ["testuser"], 0, {}, full=True, keys_after=["fp", "task", "t-9"])
+    assert q["keys_after"] == ["fp", "task", "t-9"]
