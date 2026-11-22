@@ -87,3 +87,10 @@ def mirror_row(kind: str, username: str, origin_fp: str, item_id: str) -> dict |
             (kind, username, origin_fp, item_id),
         ).fetchone()
     return dict(row) if row else None
+
+
+def peer_id_for(origin_fp: str) -> str | None:
+    with db() as conn:
+        row = conn.execute("SELECT id FROM federation_peers WHERE replace(fingerprint, ' ', '') = ?",
+                           (origin_fp.replace(" ", ""),)).fetchone()
+    return row["id"] if row else None
