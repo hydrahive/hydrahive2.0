@@ -97,3 +97,22 @@ def test_shell_exec_fuehrt_gesperrten_befehl_nicht_aus(monkeypatch, tmp_path):
 
 def test_werkzeugbeschreibung_bewirbt_kein_ssh_mehr():
     assert "ssh user@host" not in shell._DESCRIPTION and "sshpass -p" not in shell._DESCRIPTION
+
+
+@pytest.mark.parametrize("cmd", [
+    r"grep -n -i -E '192\.168|/etc|ssh' f.md",          # Fehlalarm Notizbuch-Auftrag 22.11.2026
+    'grep -E "a|sudo|b" datei.txt',
+    "rg 'scp|rsync host:' docs/",
+    "echo 'kein ssh hier' | wc -l",
+])
+def test_words_inside_quoted_patterns_are_not_commands(cmd):
+    assert g.check_text(cmd) is None
+
+
+@pytest.mark.parametrize("cmd", [
+    "echo x | ssh host",                                  # echte Pipe in einen gesperrten Befehl bleibt gesperrt
+    "cat f | sudo tee /x",
+    "grep -E 'a|b' f; ssh host",
+])
+def test_real_pipes_into_blocked_commands_still_blocked(cmd):
+    assert g.check_text(cmd) is not None

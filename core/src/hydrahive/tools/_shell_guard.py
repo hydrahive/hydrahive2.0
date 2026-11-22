@@ -114,11 +114,13 @@ def check_text(cmd: str) -> str | None:
     """Sperrgrund (ohne Agenten-Prüfung) oder None."""
     raw = cmd or ""
     text = strip_heredocs(raw)
+    # split_top_level trennt schon an ; & | und Zeilenumbruch, aber nur AUSSERHALB von Anführungszeichen.
+    # Bis 22.11.2026 wurde jedes Stück zusätzlich stumpf an "|" geteilt: Ein Suchmuster wie
+    # grep -E 'x|ssh' wurde dadurch zum Befehl „ssh'“ (Fehlalarm beim Notizbuch-Auftrag).
     for seg in split_top_level(text):
-        for part in seg.split("|"):
-            reason = _segment_reason(part)
-            if reason:
-                return reason
+        reason = _segment_reason(seg)
+        if reason:
+            return reason
     for a, b in re.findall(r"\$\(([^()]*)\)|`([^`]*)`", text):
         reason = check_text(a or b)
         if reason:
