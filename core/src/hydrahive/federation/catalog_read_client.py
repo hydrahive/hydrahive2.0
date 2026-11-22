@@ -61,7 +61,7 @@ async def foreign_get(kind: str, username: str, origin_fp: str, item_id: str) ->
     """Wirft nie. ``None`` = nicht sichtbar (nicht in der Kopie, fremder Nutzer, Hub sagt 404)."""
     try:
         mode = foreign_db.mode()
-        if mode == "hub":
+        if mode == foreign_db.HUB:
             return await _on_hub(kind, username, origin_fp, item_id)
         if mode not in (foreign_db.CLIENT, foreign_db.CLIENT_OFFLINE):
             return None
