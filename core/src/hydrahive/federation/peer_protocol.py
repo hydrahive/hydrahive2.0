@@ -121,6 +121,46 @@ def new_catalog_item(in_reply_to: str, item: dict) -> dict:
     }
 
 
+def new_catalog_pull(
+    seq: int,
+    users: list[str],
+    after_rev: int,
+    local_after: dict,
+    *,
+    full: bool = False,
+    limit: int = 500,
+) -> dict:
+    """Client → Hub: Änderungen abholen (docs/specs/federation-shared-tasks.md
+    §Nachricht catalog_pull). ``seq`` ist derselbe Zähler wie beim Push."""
+    return {
+        "kind": "catalog_pull",
+        "msg_id": str(uuid.uuid4()),
+        "from": ident.fingerprint(ident.public_key_b64()),
+        "seq": int(seq),
+        "issued_at": int(time.time()),
+        "users": list(users),
+        "after_rev": int(after_rev),
+        "local_after": dict(local_after),
+        "full": bool(full),
+        "limit": int(limit),
+    }
+
+
+def new_catalog_items(in_reply_to: str, body: dict) -> dict:
+    """Hub → Client: signierte Antwort auf ``catalog_pull`` (wiederholt dessen ``msg_id``).
+
+    ``body`` enthält items, deleted, next_rev, local_next, more, reset_local,
+    full_keys, instances, ack_seq (siehe federation/catalog_pull.py)."""
+    return {
+        **body,
+        "kind": "catalog_items",
+        "msg_id": str(uuid.uuid4()),
+        "in_reply_to": in_reply_to,
+        "from": ident.fingerprint(ident.public_key_b64()),
+        "issued_at": int(time.time()),
+    }
+
+
 def verify_reply(peer: dict, signature: str, payload: object, kind: str, in_reply_to: str) -> dict:
     """Signierte Antwort des Partners prüfen: Signatur mit SEINEM Schlüssel,
     Nachrichtentyp, Frische und dass sie sich auf unsere Anfrage bezieht."""
