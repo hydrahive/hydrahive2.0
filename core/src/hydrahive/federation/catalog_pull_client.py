@@ -109,6 +109,10 @@ def _page_ok(body: dict) -> tuple[list, list, int, dict]:
     return good, dels, next_rev, local_next
 
 
+async def _pause(seconds: float) -> None:
+    await asyncio.sleep(seconds)
+
+
 async def _run(cfg: client_db.SyncConfig, full: bool) -> dict:
     rev, local = await asyncio.to_thread(mirror_db.state)
     keys: set[tuple[str, str, str]] = set()
@@ -116,7 +120,7 @@ async def _run(cfg: client_db.SyncConfig, full: bool) -> dict:
     stats = {"pages": 0, "items": 0, "deleted": 0, "full": full, "removed": 0}
     for page in range(MAX_PAGES):
         if page and GAP_SECONDS > 0:
-            await asyncio.sleep(GAP_SECONDS)
+            await _pause(GAP_SECONDS)
         body = await _request(cfg, {"after_rev": rev, "local_after": local, "full": full,
                                     "keys_after": keys_after})
         items, dels, rev, local = _page_ok(body)

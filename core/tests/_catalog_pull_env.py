@@ -39,8 +39,19 @@ def item(item_id, *, kind="task", owner="testuser", updated_at=T0, project_id=No
 
 
 def next_seq(fp: FakePeer) -> int:
-    _SEQ[fp.fp] = _SEQ.get(fp.fp, 0) + 1
-    return _SEQ[fp.fp]
+    """Nächste seq für einen gefälschten Partner: über dem Stand am Hub UND über dem
+    eigenen Zähler der Test-DB (die in den Client-Tests auch den Client spielt)."""
+    with db() as conn:
+        row = conn.execute(
+            "SELECT s.last_seq FROM federation_catalog_sources s JOIN federation_peers p ON p.id = s.peer_id "
+            "WHERE replace(p.fingerprint, ' ', '') = ?", (fp.fp.replace(" ", ""),),
+        ).fetchone()
+        conn.execute("INSERT OR IGNORE INTO federation_catalog_settings (id) VALUES (1)")
+        own = conn.execute("SELECT seq FROM federation_catalog_settings WHERE id = 1").fetchone()
+        value = max(_SEQ.get(fp.fp, 0), row[0] if row else 0, own[0] or 0) + 1
+        conn.execute("UPDATE federation_catalog_settings SET seq = MAX(seq, ?) WHERE id = 1", (value,))
+    _SEQ[fp.fp] = value
+    return value
 
 
 def push(client, fp, items=(), deleted=(), *, shared=True, full=None):
