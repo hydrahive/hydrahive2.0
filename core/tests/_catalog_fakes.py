@@ -53,7 +53,12 @@ class FakeSource:
         return dict(row, description="x") if row and row["owner"] == username else None
 
     def query(self, usernames, project, status, q, limit, offset):
-        return []
+        """Wie die Modul-Quellen: eigene Einträge, neueste zuerst, Titelsuche ohne Groß/klein."""
+        rows = [r for r in self.rows.values() if r["owner"] in (usernames or [])
+                and (not project or r["project_id"] == project) and (not status or r["status"] == status)
+                and (not q or q.lower() in r["title"].lower())]
+        rows.sort(key=lambda r: (r["updated_at"], r["item_id"]), reverse=True)
+        return [dict(r) for r in rows[offset:offset + limit]]
 
     def as_source(self) -> CatalogSource:
         return CatalogSource(kind=self.kind, list_changed=self.list_changed, list_versions=self.list_versions,

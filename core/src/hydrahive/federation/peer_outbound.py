@@ -6,7 +6,10 @@ wenn <partner> ein aktiver gekoppelter HydraHive-Server ist.
 from __future__ import annotations
 
 import asyncio
+import json
 import logging
+
+import httpx
 
 from hydrahive.db import federation_peers as peers_db
 from hydrahive.federation import peer_protocol as proto
@@ -59,3 +62,59 @@ def resolve_reply(peer: dict, payload: dict) -> bool:
         fut.set_result(payload)
     peers_db.touch(peer["id"])
     return True
+
+
+class ReplyUnavailable(Exception):
+    """Partner erreichbar, gibt aber nichts heraus (antwortet 404)."""
+
+
+# Obergrenze für eine Antwort beim signierten Nachladen (Security-Review #738, MEDIUM):
+# Ohne Grenze puffert der Hub eine beliebig große Antwort eines Partners im RAM, bevor
+# die Signatur geprüft wird. Gültig sind höchstens MAX_TEXT Zeichen Text; JSONResponse
+# schreibt UTF-8 ohne ASCII-Escape, also bis zu 4 Byte je Zeichen, dazu Metadaten.
+MAX_REPLY_BYTES = 4 * proto.MAX_TEXT + 65_536
+
+
+def _too_large() -> proto.PeerRejected:
+    return proto.PeerRejected("peer_payload_too_large", f"Antwort größer als {MAX_REPLY_BYTES} Byte")
+
+
+async def _post(peer: dict, path: str, payload: dict, timeout: float) -> tuple[httpx.Response, bytes]:
+    """POST und Antwort begrenzt lesen. Zu groß oder komprimiert → PeerRejected.
+
+    Komprimierung wird abgelehnt (``Accept-Encoding: identity``), damit die Grenze auf
+    den echten Bytes gilt und keine gzip-Bombe sie umgeht."""
+    headers = {**proto.signed_headers(payload), "Accept-Encoding": "identity"}
+    async with httpx.AsyncClient(timeout=timeout, verify=False) as client:  # noqa: S501 - Ed25519 statt TLS
+        async with client.stream("POST", peer["url"] + path, json=payload, headers=headers) as response:
+            if response.headers.get("content-encoding", "identity").lower() not in ("", "identity"):
+                raise proto.PeerRejected("peer_payload_invalid", "komprimierte Antwort")
+            length = response.headers.get("content-length", "")
+            if length.isdigit() and int(length) > MAX_REPLY_BYTES:
+                raise _too_large()
+            chunks: list[bytes] = []
+            size = 0
+            async for chunk in response.aiter_bytes():   # Komprimierung oben abgelehnt: Bytes = Rohdaten
+                size += len(chunk)
+                if size > MAX_REPLY_BYTES:
+                    raise _too_large()
+                chunks.append(chunk)
+            return response, b"".join(chunks)
+
+
+async def request_signed(peer: dict, path: str, payload: dict, *, reply_kind: str, timeout: float) -> dict:
+    """Signiert anfragen UND die signierte Antwort prüfen (Ergänzung zu send_signed,
+    das nur die Anfrage signiert). 404 → ReplyUnavailable; Netz/Timeout → httpx-Fehler;
+    ungültige oder zu große Antwort (> MAX_REPLY_BYTES) → PeerRejected. Der Aufrufer
+    (catalog_detail) behandelt PeerRejected wie „Ursprung offline“."""
+    response, raw = await _post(peer, path, payload, timeout)
+    if response.status_code == 404:
+        raise ReplyUnavailable(peer["name"])
+    response.raise_for_status()
+    try:
+        body = json.loads(raw)
+    except ValueError as e:
+        raise proto.PeerRejected("peer_payload_invalid", "Antwort ist kein JSON") from e
+    return proto.verify_reply(
+        peer, response.headers.get(proto.HEADER_SIGNATURE, ""), body, reply_kind, payload["msg_id"],
+    )

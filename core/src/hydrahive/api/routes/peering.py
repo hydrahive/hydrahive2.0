@@ -107,3 +107,27 @@ async def receive_catalog_push(request: Request):
                 content={"detail": {"code": exc.code, "params": {"last_seq": exc.last_seq}}},
             )
         return response
+
+
+@router.post("/catalog/fetch")
+async def answer_catalog_fetch(request: Request):
+    """Föderations-Katalog: Volltext an den eigenen Hub (federation-catalog.md §Ablauf 4).
+
+    Jeder Fehler — auch Signatur, Frische, falscher Absender — ergibt dasselbe
+    ``404`` ohne Code; der Grund steht nur im Audit.
+    """
+    from hydrahive.federation import catalog_hub, catalog_origin
+
+    peer_name, payload = request.headers.get(proto.HEADER_PEER, "")[:24] or "?", None
+    try:
+        verified = await _read(request, "catalog_fetch", id_field="msg_id")
+        peer_name, payload = verified.peer["name"], verified.payload
+        body, headers = await asyncio.to_thread(catalog_origin.answer_fetch, verified.peer, verified.payload)
+        return JSONResponse(content=body, headers=headers)
+    except Exception as exc:  # jeder Fehler sieht nach außen gleich aus (Spec: immer 404)
+        reason = getattr(exc, "reason", None) or getattr(exc, "code", None) or f"error:{type(exc).__name__}"
+        await asyncio.to_thread(
+            catalog_hub.audit, peer_name,
+            f"Nachladen abgelehnt: {reason} ({catalog_origin.describe(payload)})", severity="warning",
+        )
+        return JSONResponse(status_code=status.HTTP_404_NOT_FOUND, content={})

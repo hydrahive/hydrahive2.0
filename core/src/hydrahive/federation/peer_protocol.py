@@ -87,6 +87,49 @@ def new_catalog_push(
     }
 
 
+def new_catalog_fetch(item_kind: str, item_id: str, owner: str) -> dict:
+    """Hub → Ursprung: Volltext eines Katalog-Eintrags anfordern (Spec §Ablauf 4)."""
+    return {
+        "kind": "catalog_fetch",
+        "msg_id": str(uuid.uuid4()),
+        "from": ident.fingerprint(ident.public_key_b64()),
+        "issued_at": int(time.time()),
+        "item_kind": item_kind,
+        "item_id": item_id,
+        "owner": owner,
+    }
+
+
+def new_catalog_item(in_reply_to: str, item: dict) -> dict:
+    """Ursprung → Hub: signierte Antwort auf ``catalog_fetch`` (wiederholt dessen ``msg_id``)."""
+    return {
+        "kind": "catalog_item",
+        "msg_id": str(uuid.uuid4()),
+        "in_reply_to": in_reply_to,
+        "from": ident.fingerprint(ident.public_key_b64()),
+        "issued_at": int(time.time()),
+        "item": item,
+    }
+
+
+def verify_reply(peer: dict, signature: str, payload: object, kind: str, in_reply_to: str) -> dict:
+    """Signierte Antwort des Partners prüfen: Signatur mit SEINEM Schlüssel,
+    Nachrichtentyp, Frische und dass sie sich auf unsere Anfrage bezieht."""
+    if not isinstance(payload, dict):
+        raise PeerRejected("peer_payload_invalid", "Antwort ist kein Objekt")
+    if not ident.verify(peer["public_key"], payload, signature or ""):
+        raise PeerRejected("peer_signature_invalid", f"Antwort-Signatur von {peer['name']} ungültig")
+    if payload.get("kind") != kind:
+        raise PeerRejected("peer_payload_invalid", "falscher Antworttyp")
+    issued = payload.get("issued_at")
+    now = time.time()
+    if not isinstance(issued, int) or issued < now - MAX_AGE_SECONDS or issued > now + MAX_SKEW_SECONDS:
+        raise PeerRejected("peer_expired", f"Antwort von {peer['name']} abgelaufen")
+    if payload.get("in_reply_to") != in_reply_to:
+        raise PeerRejected("peer_payload_invalid", "Antwort gehört nicht zu unserer Anfrage")
+    return payload
+
+
 def signed_headers(payload: dict) -> dict[str, str]:
     return {
         HEADER_PEER: ident.fingerprint(ident.public_key_b64()).replace(" ", ""),
