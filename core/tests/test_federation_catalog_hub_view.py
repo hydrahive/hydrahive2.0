@@ -28,7 +28,7 @@ class FakeOrigin:
 
     def __init__(self) -> None:
         self.items: dict[str, dict] = {}
-        self.mode = "online"          # online · offline · timeout · gone · forged
+        self.mode = "online"          # online · offline · timeout · gone · forged · too_large
         self.calls: list[dict] = []
 
     async def __call__(self, peer, path, payload, *, reply_kind, timeout):
@@ -42,6 +42,8 @@ class FakeOrigin:
             raise ReplyUnavailable(peer["name"])
         if self.mode == "forged":
             raise proto.PeerRejected("peer_signature_invalid")
+        if self.mode == "too_large":                # Antwort über MAX_REPLY_BYTES
+            raise proto.PeerRejected("peer_payload_too_large")
         return {"kind": "catalog_item", "in_reply_to": payload["msg_id"], "item": dict(self.items[payload["item_id"]])}
 
 
@@ -136,7 +138,7 @@ def test_ak7_detail_live_und_snapshot(client, remote, auth_headers):
     assert _row(remote["peer"]["id"], "t-till")["snapshot_body"]
 
 
-@pytest.mark.parametrize("mode", ["offline", "timeout", "forged"])
+@pytest.mark.parametrize("mode", ["offline", "timeout", "forged", "too_large"])
 def test_ak7_ursprung_aus_zeigt_snapshot_mit_stand_und_zuletzt_gesehen(client, remote, auth_headers, mode):
     url = f"/api/federation/catalog/{remote['peer']['id']}/task/t-till"
     client.get(url, headers=auth_headers)                            # Snapshot entsteht

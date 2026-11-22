@@ -110,3 +110,88 @@ def test_new_catalog_fetch_und_item_form():
     assert set(req) == {"kind", "msg_id", "from", "issued_at", "item_kind", "item_id", "owner"}
     item = proto.new_catalog_item(req["msg_id"], {"item_id": "i-1"})
     assert item["kind"] == "catalog_item" and item["in_reply_to"] == req["msg_id"]
+
+
+# --- Größengrenze der Antwort (Security-Review #738, MEDIUM) ------------------------
+
+def test_grenze_reicht_fuer_gueltige_antwort():
+    # MAX_TEXT Zeichen à 4 Byte (UTF-8 ohne Escape) plus Metadaten passen hinein
+    assert peer_outbound.MAX_REPLY_BYTES >= 4 * proto.MAX_TEXT + 64 * 1024
+
+
+async def test_grosse_gueltige_antwort_mit_umlauten_wird_angenommen(origin):
+    peer, state = origin
+    req, call = await _ask(peer)
+    text = "ä" * proto.MAX_TEXT                        # 2 Byte je Zeichen, ohne Escape
+    state["reply"] = _reply(req, item={"item_id": "t-1", "description": text})
+    reply = await call
+    assert len(reply["item"]["description"]) == proto.MAX_TEXT
+
+
+@pytest.fixture
+def raw_origin(monkeypatch):
+    """Ursprung, der rohe Bytes mit frei wählbaren Headern liefert (auch ohne Content-Length)."""
+    state = {"content": b"", "headers": {}, "stream": False}
+
+    class _Chunks(httpx.AsyncByteStream):
+        def __init__(self, data: bytes) -> None:
+            self.data = data
+
+        async def __aiter__(self):
+            for i in range(0, len(self.data), 65_536):
+                yield self.data[i:i + 65_536]
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        if state["stream"]:                              # chunked: keine Content-Length
+            return httpx.Response(200, headers=state["headers"], stream=_Chunks(state["content"]))
+        return httpx.Response(200, headers=state["headers"], content=state["content"])
+
+    real_client = httpx.AsyncClient
+
+    def client_factory(*a, **kw):
+        kw.pop("verify", None)
+        return real_client(*a, transport=httpx.MockTransport(handler), **kw)
+    monkeypatch.setattr(peer_outbound.httpx, "AsyncClient", client_factory)
+    peer = {"name": "boese", "url": "https://boese.example", "public_key": FakePeer("boese").pub}
+    return peer, state
+
+
+@pytest.mark.parametrize("stream", [False, True], ids=["content-length", "chunked"])
+async def test_zu_grosse_antwort_wird_abgebrochen(raw_origin, stream):
+    peer, state = raw_origin
+    state["content"] = b"{" + b" " * (peer_outbound.MAX_REPLY_BYTES + 1) + b"}"
+    state["stream"] = stream
+    _req, call = await _ask(peer)
+    with pytest.raises(proto.PeerRejected) as exc:
+        await call
+    assert exc.value.code == "peer_payload_too_large"
+
+
+async def test_falsche_content_length_hilft_nicht(raw_origin):
+    peer, state = raw_origin
+    state["content"] = b"{" + b" " * (peer_outbound.MAX_REPLY_BYTES + 1) + b"}"
+    state["stream"] = True
+    state["headers"] = {"content-length": "10"}             # lügt
+    _req, call = await _ask(peer)
+    with pytest.raises((proto.PeerRejected, httpx.HTTPError)) as exc:
+        await call
+    if isinstance(exc.value, proto.PeerRejected):
+        assert exc.value.code == "peer_payload_too_large"
+
+
+async def test_komprimierte_antwort_abgelehnt(raw_origin):
+    peer, state = raw_origin
+    state["content"] = b"\x1f\x8b"                            # gzip-Kopf, Inhalt egal
+    state["headers"] = {"content-encoding": "gzip"}
+    _req, call = await _ask(peer)
+    with pytest.raises(proto.PeerRejected) as exc:
+        await call
+    assert exc.value.code == "peer_payload_invalid"
+
+
+async def test_anfrage_verlangt_unkomprimierte_antwort(origin):
+    peer, state = origin
+    req, call = await _ask(peer)
+    state["reply"] = _reply(req)
+    await call
+    assert state["seen"][0].headers["accept-encoding"] == "identity"

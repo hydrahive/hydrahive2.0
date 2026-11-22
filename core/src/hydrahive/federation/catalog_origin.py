@@ -35,6 +35,11 @@ NOTE_FIELDS = ("author", "agent_name", "body", "created_at")
 _RATE_MAX = 60
 _RATE_WINDOW_S = 60.0
 
+# Replay-Schutz und Rate-Limit liegen bewusst im Prozessspeicher (Spec: „im Speicher“).
+# Annahme: genau EIN uvicorn-Prozess (installer/modules/50-systemd.sh:106, ohne --workers).
+# Bei mehreren Workern gälte der Schutz nur je Worker, dann in SQLite auslagern.
+# Nach einem Neustart ist eine abgefangene Anfrage im 5-min-Fenster wieder gültig
+# (Security-Review #738, LOW, akzeptiert).
 _lock = threading.Lock()
 _seen: dict[str, float] = {}       # msg_id → läuft ab (monotonic)
 _rate: list[float] = []            # nur der eine Hub fragt an, ein Zähler reicht
