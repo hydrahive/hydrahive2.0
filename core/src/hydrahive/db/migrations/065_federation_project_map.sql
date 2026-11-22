@@ -1,5 +1,6 @@
 -- Gemeinsame Taskpflege G3 (docs/specs/federation-shared-tasks.md §Projektzuordnung):
--- manuelle Zuordnung eines Ursprungsprojekts zu einem eigenen Projekt, je Nutzer.
+-- manuelle Zuordnung eines Ursprungsprojekts zu einem eigenen Projekt, je Nutzer,
+-- und der Stand der Ursprünge auf dem Client (für „nicht aktuell“).
 --
 -- Die Zuordnung wird beim Lesen berechnet (manuell → gleicher Name → nicht
 -- zugeordnet) und NICHT gespeichert. Diese Tabelle hält nur manuelle Korrekturen:
@@ -18,6 +19,16 @@ CREATE TABLE IF NOT EXISTS federation_catalog_project_map (
     target             TEXT NOT NULL,
     updated_at         TEXT NOT NULL,
     PRIMARY KEY (username, origin_fp, origin_project_id)
+);
+
+-- Client: Stand der Ursprünge laut Hub (``instances`` aus catalog_pull), für
+-- ``origin_last_seen``/``stale`` der fremden Einträge (Spec §Kern-Schnittstelle).
+CREATE TABLE IF NOT EXISTS federation_catalog_mirror_instances (
+    origin_fp    TEXT PRIMARY KEY,
+    origin_name  TEXT,
+    last_seen    TEXT,
+    stale        INTEGER NOT NULL DEFAULT 0,
+    received_at  TEXT NOT NULL
 );
 
 COMMIT;

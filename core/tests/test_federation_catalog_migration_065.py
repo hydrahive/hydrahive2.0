@@ -23,3 +23,9 @@ def test_frisch_und_zweiter_lauf_aendern_nichts():
     conn.execute("INSERT INTO federation_catalog_project_map VALUES ('u', 'fp', 'p', 'hidden', 'x')")
     conn.executescript(SQL.read_text())                       # zweiter Lauf
     assert conn.execute("SELECT COUNT(*) FROM federation_catalog_project_map").fetchone()[0] == 1
+
+
+def test_tabelle_fuer_den_stand_der_urspruenge(client):
+    with db() as conn:
+        cols = {r["name"] for r in conn.execute("PRAGMA table_info(federation_catalog_mirror_instances)")}
+    assert cols == {"origin_fp", "origin_name", "last_seen", "stale", "received_at"}
