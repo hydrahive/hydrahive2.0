@@ -43,7 +43,7 @@ _ITEM_FIELDS = ("origin_fp", "origin_name", "kind", "item_id", "owner", "title",
 
 
 def _int(value: Any, name: str, *, low: int = 0) -> int:
-    if not isinstance(value, int) or isinstance(value, bool) or value < low:
+    if not isinstance(value, int) or isinstance(value, bool) or value < low or value > proto.MAX_INT:
         raise proto.PeerRejected("peer_payload_invalid", f"{name} ungültig")
     return value
 

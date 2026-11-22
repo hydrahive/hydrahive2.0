@@ -17,6 +17,8 @@ from hydrahive.federation import peer_identity as ident
 MAX_AGE_SECONDS = 300
 MAX_SKEW_SECONDS = 60
 MAX_TEXT = 200_000
+#: Größte Ganzzahl, die SQLite speichert. Größere Werte (seq, rev) sind ungültig, nicht 500.
+MAX_INT = 2**63 - 1
 
 HEADER_PEER = "X-HH-Peer"
 HEADER_SIGNATURE = "X-HH-Signature"

@@ -114,7 +114,7 @@ def test_gesperrter_client_wird_abgewiesen(client, admin_headers, env):
 def test_ungueltige_felder(client, env):
     for over in ({"users": "till"}, {"users": [1]}, {"after_rev": -1}, {"after_rev": True},
                  {"limit": 0}, {"local_after": {"task": ["nur-eins"]}}, {"local_after": []},
-                 {"keys_after": ["a", "b"]}):
+                 {"keys_after": ["a", "b"]}, {"after_rev": 2**63}, {"limit": 2**70}, {"seq": 2**63}):
         p = pull_payload(env["c"])
         p.update(over)                                           # nach dem Aufbau, ohne list()
         r = client.post(PULL, json=p, headers=env["c"].headers(p))

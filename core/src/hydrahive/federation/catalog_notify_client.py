@@ -48,7 +48,7 @@ def check(peer: dict, payload: dict) -> None:
     if not peer.get("is_hub") or not cfg.hub or cfg.hub.get("id") != peer.get("id"):
         raise Unavailable("peer_not_hub")
     rev = payload.get("rev")
-    if not isinstance(rev, int) or isinstance(rev, bool) or rev < 0:
+    if not isinstance(rev, int) or isinstance(rev, bool) or rev < 0 or rev > proto.MAX_INT:
         raise Unavailable("payload_invalid")
     if not _remember(payload["msg_id"]):
         raise Unavailable("peer_replay")

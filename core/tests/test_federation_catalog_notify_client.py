@@ -99,6 +99,7 @@ def test_abgelaufen_falscher_typ_fehlende_felder(client, hub):
     _assert_404(_send(client, fp, _note(kind="catalog_push")))
     _assert_404(_send(client, fp, _note(msg_id="")))
     _assert_404(_send(client, fp, _note(rev="viel")))
+    _assert_404(_send(client, fp, _note(rev=2**63)))                  # zu groß für SQLite: 404, kein 500
     assert _audit("peer_expired") and _audit("payload_invalid") and pulls == []
 
 

@@ -180,7 +180,7 @@ def accept_push(peer: dict, payload: dict) -> dict:
     if not peer.get("catalog_accept"):
         raise proto.PeerRejected("peer_catalog_not_accepted", "Katalog-Annahme für diesen Partner aus")
     seq = payload.get("seq")
-    if not isinstance(seq, int) or isinstance(seq, bool) or seq < 1:
+    if not isinstance(seq, int) or isinstance(seq, bool) or seq < 1 or seq > proto.MAX_INT:
         raise proto.PeerRejected("peer_payload_invalid", "seq fehlt")
     current = hub_db.last_seq(peer["id"])
     if seq <= current:
@@ -195,7 +195,8 @@ def accept_push(peer: dict, payload: dict) -> dict:
     deleted = _deleted(raw_deleted)
     full = _full_versions(payload.get("full_versions"))
     interval = payload.get("interval_seconds")
-    interval = interval if isinstance(interval, int) and not isinstance(interval, bool) and interval > 0 else None
+    interval = (interval if isinstance(interval, int) and not isinstance(interval, bool)
+                and 0 < interval <= 86_400 else None)   # nur Anzeige („nicht aktuell“), groß = ungültig
     shared = _opt_bool(payload.get("shared"))
     remote_edits = _opt_bool(payload.get("remote_edits"))
 
