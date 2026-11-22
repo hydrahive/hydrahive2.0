@@ -23,7 +23,6 @@ import { ToolsTab } from "@/features/agents/_ToolsTab"
 import type { McpServerBrief } from "@/features/agents/api"
 import type { Agent, ToolMeta } from "@/features/agents/types"
 import type { RegistryModel } from "@/features/llm/api"
-import { useEffortLevels } from "@/features/llm/effort"
 import { ScheduledTasksPanel } from "@/features/scheduledTasks/ScheduledTasksPanel"
 
 interface Props {
@@ -38,6 +37,8 @@ interface Props {
   onPromptChange: (prompt: string) => void
   soulActive: boolean
   onSoulSaved: () => void
+  /** Start-Reiter (Standard: Übersicht). */
+  initialTab?: string
 }
 
 interface TabDefinition {
@@ -58,10 +59,10 @@ export function ProjectAgentEditorTabs({
   onPromptChange,
   soulActive,
   onSoulSaved,
+  initialTab = "overview",
 }: Props) {
   const { t } = useTranslation("agents")
-  const [tab, setTab] = useState("overview")
-  const effortLevels = useEffortLevels(draft.llm_model)
+  const [tab, setTab] = useState(initialTab)
   const hasMail = draft.tools.includes("send_mail") || draft.tools.includes("read_mail")
   const allTabs: TabDefinition[] = [
     { id: "overview", label: "Übersicht", icon: LayoutGrid },
@@ -130,25 +131,9 @@ export function ProjectAgentEditorTabs({
             </div>
           )}
           {activeTab === "model" && (
-            <div className="space-y-4">
-              <ModelTab
-                draft={draft}
-                catalog={catalog}
-                onChange={(patch) => onChange(patch.llm_model ? { ...patch, reasoning_effort: "" } : patch)}
-              />
-              <Field label="Thinking-Tiefe">
-                <select
-                  value={draft.reasoning_effort ?? ""}
-                  disabled={effortLevels.length === 0}
-                  onChange={(event) => onChange({ reasoning_effort: event.target.value })}
-                  className={controlClass}
-                >
-                  <option value="">Modellstandard</option>
-                  {effortLevels.map((level) => <option key={level} value={level}>{effortLabel(level)}</option>)}
-                </select>
-                <p className="mt-1 text-[11px] text-[#9aa7bc]">Standard für den Agenten; eine Session-Auswahl hat Vorrang.</p>
-              </Field>
-            </div>
+            // Modell, Fallback, Denktiefe und Budget kommen nur aus dem Agenten-Template (Aufräumen 14.11.2026).
+            // Früher stand hier ein freies Feld „Thinking-Tiefe“ – Speichern scheiterte dann an agent_bound_to_template.
+            <ModelTab draft={draft} catalog={catalog} onChange={onChange} />
           )}
           {activeTab === "prompt" && <PromptTab prompt={prompt} onChange={onPromptChange} soulActive={soulActive} />}
           {activeTab === "tools" && (
@@ -168,10 +153,6 @@ export function ProjectAgentEditorTabs({
 }
 
 const controlClass = "w-full rounded-[4px] border border-s-rand bg-s-tief px-3 py-2 text-sm text-[#e8eef8] outline-none focus:border-[#69d7ff]/60 disabled:opacity-50"
-
-function effortLabel(level: string) {
-  return ({ low: "Low", medium: "Medium", high: "High", xhigh: "Extra High", max: "Max", ultra: "Ultra" } as Record<string, string>)[level] ?? level
-}
 
 function Field({ label, children }: { label: string; children: React.ReactNode }) {
   return (

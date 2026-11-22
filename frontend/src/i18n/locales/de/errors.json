@@ -169,5 +169,7 @@
   "peer_not_active": "Nur bei aktiver Kopplung möglich – erst den Fingerprint bestätigen.",
   "catalog_hub_exists": "Es gibt schon einen Hub ({{name}}). Dort zuerst „Als Hub verwenden“ ausschalten.",
   "catalog_hub_conflict": "Ein Server ist entweder Hub für andere („Katalog annehmen“) oder schickt selbst an einen Hub („Als Hub verwenden“) – nicht beides. Zuerst den anderen Schalter ausschalten.",
-  "catalog_user_unknown": "Nutzer {{username}} gibt es auf diesem Server nicht."
+  "catalog_user_unknown": "Nutzer {{username}} gibt es auf diesem Server nicht.",
+  "agent_bound_to_template": "Dieser Agent nutzt ein Agenten-Template. Modell, Denktiefe und Budget kommen von dort und lassen sich hier nicht ändern. Dauerhaft: anderes Template wählen oder das Template auf der LLM-Seite anpassen (Admin). Nur für einen Chat: Denktiefe oben im Chat wählen.",
+  "agent_needs_template": "Modell, Denktiefe und Budget gibt es nur noch über Agenten-Templates. Bitte zuerst im Reiter „Modell“ ein Template wählen."
 }
