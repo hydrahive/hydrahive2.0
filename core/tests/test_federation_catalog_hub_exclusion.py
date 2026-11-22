@@ -157,3 +157,18 @@ def test_unveraendert_setzt_kein_reset_local(client, admin_headers, fake_source)
     assert _reset_local_flags() == [0]
     with db() as conn:
         conn.execute("DELETE FROM federation_peers WHERE id = ?", (peer["id"],))
+
+
+def test_nutzer_abgewaehlt_und_projekt_ausgeschlossen_im_selben_aufruf(client, admin_headers, fake_source):
+    """Kombination: admin wird abgewählt UND proj-a ausgeschlossen. Jeder betroffene
+    Eintrag bekommt genau eine Löschzeile, nicht betroffene keine."""
+    fake_source["admin"] = [("a1", "2026-11-22T00:00:00Z", "proj-a"), ("a2", "2026-11-22T00:00:00Z", None)]
+    fake_source["testuser"] = [("t1", "2026-11-22T00:00:00Z", "proj-a"), ("t2", "2026-11-22T00:00:00Z", "proj-b")]
+    _settings_put(client, admin_headers, users=["admin", "testuser"], excluded_projects=[])
+
+    _settings_put(client, admin_headers, users=["testuser"], excluded_projects=["proj-a"])
+
+    dels = _deletions()
+    keys = sorted((d["owner"], d["item_id"]) for d in dels)
+    assert keys == [("admin", "a1"), ("admin", "a2"), ("testuser", "t1")]   # keine Doppel, t2 bleibt
+    assert len({d["rev"] for d in dels}) == 3
