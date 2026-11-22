@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import uuid
 
+from hydrahive.db import federation_catalog as catalog_db
 from hydrahive.db import federation_catalog_hub as hub_db
 from hydrahive.db import federation_peers as peers_db
 from hydrahive.db.connection import db
@@ -193,6 +194,70 @@ def test_e_shared_wiederkehr_vergibt_neue_rev_fuer_alle_eintraege(client):
     revs_after = {r["item_id"]: r["rev"] for r in _items(peer_id)}
     assert revs_after["t6"] > revs_before["t6"]
     assert revs_after["t7"] > revs_before["t7"]
+
+
+# --- d) Sichtbarkeit von O fällt weg: catalog_accept per Route -------------
+
+def test_d_catalog_accept_wegnehmen_schreibt_loeschzeilen(client):
+    peer_id = _peer("origin-d-accept")
+    hub_db.apply_push(
+        peer_id, seq=1, interval_seconds=300, now="2026-11-22T00:00:00.000+00:00",
+        items=[_item("t9", "2026-11-22T00:00:00.000+00:00")], deleted=[], rejected=[],
+        full_versions=None, shared=True,
+    )
+    assert len(_items(peer_id)) == 1
+    catalog_db.set_catalog_accept(peer_id, False)
+    assert len(_items(peer_id)) == 1  # Katalogzeile bleibt
+    dels = _deletions(_fp(peer_id))
+    assert len(dels) == 1 and dels[0]["item_id"] == "t9"
+
+
+def test_d_catalog_accept_wiedergeben_vergibt_neue_rev(client):
+    peer_id = _peer("origin-d-accept2")
+    hub_db.apply_push(
+        peer_id, seq=1, interval_seconds=300, now="2026-11-22T00:00:00.000+00:00",
+        items=[_item("t10", "2026-11-22T00:00:00.000+00:00")], deleted=[], rejected=[],
+        full_versions=None, shared=True,
+    )
+    rev_before = _items(peer_id)[0]["rev"]
+    catalog_db.set_catalog_accept(peer_id, False)
+    catalog_db.set_catalog_accept(peer_id, True)
+    rev_after = _items(peer_id)[0]["rev"]
+    assert rev_after > rev_before
+
+
+# --- d) Sichtbarkeit von O fällt weg: Statuswechsel (gesperrt) -------------
+
+def test_d_partner_sperren_schreibt_loeschzeilen(client):
+    peer_id = _peer("origin-d-status")
+    hub_db.apply_push(
+        peer_id, seq=1, interval_seconds=300, now="2026-11-22T00:00:00.000+00:00",
+        items=[_item("t11", "2026-11-22T00:00:00.000+00:00")], deleted=[], rejected=[],
+        full_versions=None, shared=True,
+    )
+    assert len(_items(peer_id)) == 1
+    peers_db.set_status(peer_id, "blocked")
+    assert len(_items(peer_id)) == 1  # Katalogzeile bleibt
+    dels = _deletions(_fp(peer_id))
+    assert len(dels) == 1 and dels[0]["item_id"] == "t11"
+
+
+def test_d_partner_wieder_aktivieren_vergibt_neue_rev(client):
+    peer_id = _peer("origin-d-status2")
+    hub_db.apply_push(
+        peer_id, seq=1, interval_seconds=300, now="2026-11-22T00:00:00.000+00:00",
+        items=[_item("t12", "2026-11-22T00:00:00.000+00:00")], deleted=[], rejected=[],
+        full_versions=None, shared=True,
+    )
+    rev_before = _items(peer_id)[0]["rev"]
+    peers_db.set_status(peer_id, "blocked")
+    peers_db.set_status(peer_id, "active")
+    rev_after = _items(peer_id)[0]["rev"]
+    assert rev_after > rev_before
+
+
+def test_set_status_unbekannter_peer_gibt_none_zurueck(client):
+    assert peers_db.set_status(str(uuid.uuid4()), "blocked") is None
 
 
 # --- g) Hub schaltet sein eigenes "shared" aus: keine Löschzeilen ----------

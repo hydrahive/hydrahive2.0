@@ -55,16 +55,34 @@ def create_peer(name: str, url: str, public_key: str, fingerprint: str) -> dict:
 
 
 def set_status(peer_id: str, status: str) -> dict | None:
+    """docs/specs/federation-shared-tasks.md §Schalter, Bedingung 2
+    ("O wird gesperrt"): ein Statuswechsel weg von/zu 'active' kann die
+    Sichtbarkeit von O im Föderations-Katalog ändern (Löschzeilen bzw. neue
+    rev), in derselben Transaktion wie der Statuswechsel selbst."""
+    from hydrahive.federation.catalog_visibility import on_visibility_change, origin_visible
+
     if status not in STATUSES:
         raise ValueError(f"ungültiger Status: {status}")
     confirmed = now_iso() if status == "active" else None
-    with db() as conn:
+    with db(immediate=True) as conn:
+        peer = conn.execute("SELECT * FROM federation_peers WHERE id = ?", (peer_id,)).fetchone()
+        if not peer:
+            return None
+        source = conn.execute(
+            "SELECT shared FROM federation_catalog_sources WHERE peer_id = ?", (peer_id,),
+        ).fetchone()
+        before = origin_visible(dict(peer), dict(source) if source else None)
         conn.execute(
             "UPDATE federation_peers SET status = ?, "
             "confirmed_at = COALESCE(?, confirmed_at) WHERE id = ?",
             (status, confirmed, peer_id),
         )
-    return get_peer(peer_id)
+        after_peer = dict(peer)
+        after_peer["status"] = status
+        after = origin_visible(after_peer, dict(source) if source else None)
+        on_visibility_change(conn, peer_id, before, after, now_iso())
+        row = conn.execute("SELECT * FROM federation_peers WHERE id = ?", (peer_id,)).fetchone()
+    return _row(row)
 
 
 def touch(peer_id: str) -> None:

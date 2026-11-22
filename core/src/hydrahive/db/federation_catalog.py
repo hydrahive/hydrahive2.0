@@ -9,6 +9,7 @@ from __future__ import annotations
 
 from typing import Any
 
+from hydrahive.db._utils import now_iso
 from hydrahive.db.connection import db
 
 _SETTINGS_COLUMNS = (
@@ -80,7 +81,15 @@ def set_hub(peer_id: str, is_hub: bool) -> dict | None:
 
 
 def set_catalog_accept(peer_id: str, accept: bool) -> dict | None:
-    """Annahme setzen, atomar gegen gleichzeitiges Setzen eines Hubs."""
+    """Annahme setzen, atomar gegen gleichzeitiges Setzen eines Hubs.
+
+    docs/specs/federation-shared-tasks.md §Schalter, Bedingung 2 ("der Hub
+    nimmt O catalog_accept weg"): ändert sich dadurch die Sichtbarkeit von O
+    im Föderations-Katalog, schreibt diese Funktion in derselben Transaktion
+    Löschzeilen (Wegfall) bzw. neue rev für alle Einträge von O (Wiederkehr).
+    """
+    from hydrahive.federation.catalog_visibility import on_visibility_change, origin_visible
+
     with db(immediate=True) as conn:
         peer = conn.execute("SELECT * FROM federation_peers WHERE id = ?", (peer_id,)).fetchone()
         if not peer:
@@ -90,9 +99,17 @@ def set_catalog_accept(peer_id: str, accept: bool) -> dict | None:
                 raise CatalogConflict("peer_not_active")
             if conn.execute("SELECT 1 FROM federation_peers WHERE is_hub = 1 LIMIT 1").fetchone():
                 raise CatalogConflict("catalog_hub_conflict")
+        source = conn.execute(
+            "SELECT shared FROM federation_catalog_sources WHERE peer_id = ?", (peer_id,),
+        ).fetchone()
+        before = origin_visible(dict(peer), dict(source) if source else None)
         conn.execute(
             "UPDATE federation_peers SET catalog_accept = ? WHERE id = ?", (1 if accept else 0, peer_id),
         )
+        after_peer = dict(peer)
+        after_peer["catalog_accept"] = 1 if accept else 0
+        after = origin_visible(after_peer, dict(source) if source else None)
+        on_visibility_change(conn, peer_id, before, after, now_iso())
         row = conn.execute("SELECT * FROM federation_peers WHERE id = ?", (peer_id,)).fetchone()
     return _row(row)
 
