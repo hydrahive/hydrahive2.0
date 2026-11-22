@@ -26,7 +26,7 @@ import logging
 from hydrahive.db import federation_catalog as catalog_db
 from hydrahive.db import federation_catalog_client as client_db
 from hydrahive.db import federation_catalog_revs as revs
-from hydrahive.federation import catalog_changes, catalog_hub_own, catalog_sync
+from hydrahive.federation import catalog_changes, catalog_hub_own, catalog_pull_client, catalog_sync
 
 logger = logging.getLogger(__name__)
 
@@ -109,7 +109,11 @@ async def timer_tick(runs: int) -> str:
     if not cfg.active:
         return "inactive"
     full = catalog_sync.full_due(cfg.last_full_at, runs)
-    return await catalog_sync.sync(full=full, reason="timer")
+    result = await catalog_sync.sync(full=full, reason="timer")
+    # Nach jedem Timer-Lauf abholen (federation-shared-tasks.md §Wann wird abgeholt).
+    # pull() prüft shared selbst und wirft nie; das Ergebnis des Pushs bleibt die Rückgabe.
+    await catalog_pull_client.pull(reason="timer")
+    return result
 
 
 async def event_tick() -> str | None:

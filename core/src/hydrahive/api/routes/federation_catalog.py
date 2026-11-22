@@ -133,6 +133,7 @@ def put_catalog_settings(body: CatalogSettingsBody, _: _Admin) -> dict:
 
     before_users = set(catalog_db.list_selected_users())
     before_projects = set(catalog_db.list_excluded_projects())
+    before_shared = bool(catalog_db.get_settings().get("shared"))
 
     catalog_db.update_settings(
         enabled=body.enabled, interval_seconds=body.interval_seconds,
@@ -145,6 +146,8 @@ def put_catalog_settings(body: CatalogSettingsBody, _: _Admin) -> dict:
     after_projects = set(body.excluded_projects)
     if before_users != after_users or before_projects != after_projects:
         catalog_db.reset_all_cursors()
+    if before_users != after_users or (before_shared and not body.shared):
+        catalog_db.clear_mirror()   # Kopie passt nicht mehr zur Auswahl bzw. Taskpflege aus
     safe_refresh_gate()
 
     # Spec §Schalter "Der Hub schließt bei sich etwas aus": Löschzeilen für

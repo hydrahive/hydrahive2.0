@@ -76,6 +76,7 @@ def set_hub(peer_id: str, is_hub: bool) -> dict | None:
         if bool(peer["is_hub"]) != is_hub:
             conn.execute("DELETE FROM federation_catalog_cursors")
             conn.execute("UPDATE federation_catalog_settings SET last_full_at = NULL WHERE id = 1")
+            _clear_mirror(conn)   # Hub-Wechsel: Kopie gehört zum alten Hub
         row = conn.execute("SELECT * FROM federation_peers WHERE id = ?", (peer_id,)).fetchone()
     return _row(row)
 
@@ -214,6 +215,18 @@ def set_excluded_projects(project_ids: list[str]) -> list[str]:
 
 
 # --- Cursor (federation_catalog_cursors) ------------------------------------
+
+def _clear_mirror(conn) -> None:
+    """Kopie leeren, Abhol-Stand auf „von vorn“ (federation-shared-tasks.md §Schalter)."""
+    conn.execute("DELETE FROM federation_catalog_mirror")
+    conn.execute("UPDATE federation_catalog_settings SET pull_rev = 0, pull_local_cursor = NULL, "
+                 "last_full_pull_at = NULL WHERE id = 1")
+
+
+def clear_mirror() -> None:
+    with db() as conn:
+        _clear_mirror(conn)
+
 
 def reset_all_cursors() -> None:
     """Voller Abgleich beim nächsten Lauf (Spec Ablauf 2: Hub-Wechsel oder
