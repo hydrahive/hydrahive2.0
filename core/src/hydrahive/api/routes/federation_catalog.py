@@ -18,6 +18,7 @@ from hydrahive.api.routes.federation_peers import _peer_or_404, _public
 from hydrahive.db import federation_catalog as catalog_db
 from hydrahive.db import federation_peers as peers_db
 from hydrahive.federation.catalog_changes import safe_refresh_gate
+from hydrahive.federation.catalog_hub_exclusion import apply_hub_exclusion_change
 
 logger = logging.getLogger(__name__)
 
@@ -145,6 +146,17 @@ def put_catalog_settings(body: CatalogSettingsBody, _: _Admin) -> dict:
     if before_users != after_users or before_projects != after_projects:
         catalog_db.reset_all_cursors()
     safe_refresh_gate()
+
+    # Spec §Schalter "Der Hub schließt bei sich etwas aus": Löschzeilen für
+    # abgewählte Nutzer/neu ausgeschlossene Projekte, reset_local für die
+    # Gegenrichtung. Darf die Antwort nie kippen.
+    try:
+        apply_hub_exclusion_change(
+            before_users=before_users, after_users=after_users,
+            before_excluded=before_projects, after_excluded=after_projects,
+        )
+    except Exception as e:  # pragma: no cover - reine Absicherung
+        logger.warning("Ausschluss beim Hub nicht verbucht: %s", e)
 
     return _settings_response()
 
