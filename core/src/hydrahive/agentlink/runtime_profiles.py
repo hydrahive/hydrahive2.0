@@ -12,6 +12,11 @@ DEFAULT_RUNTIME_PROFILE = "standard"
 
 _RESUME_TOKEN = re.compile(r"^[A-Za-z0-9_-]{8,128}$")
 _THREAD = re.compile(r"^[0-9a-f]{24}$")
+_CHANNEL = re.compile(r"^[a-z][a-z0-9_-]{0,31}$")
+#: Kanal-Segment vorhanden, aber unlesbar → trotzdem extern (fail closed, Ziel vault-agenten §1.4).
+UNKNOWN_CHANNEL = "extern"
+#: Aufträge von fremden Servern (Federation): Herkunft dort nicht prüfbar → extern.
+FEDERATION_CHANNEL = "federation"
 _PROFILE_CAPS: dict[str, tuple[int, int, int]] = {
     "quick": (8, 8_192, 180),
     "standard": (32, 16_384, 540),
@@ -127,6 +132,7 @@ def reason_with_profile(
     resume_token: str | None = None,
     thread: str | None = None,
     caller_depth: int | None = None,
+    channel: str | None = None,
 ) -> str:
     """Build the backward-compatible, versioned internal reason envelope.
 
@@ -153,6 +159,11 @@ def reason_with_profile(
         segments.append(f"hh-thread:v{RUNTIME_VERSION}:{thread}")
     if caller_depth:
         segments.append(f"hh-depth:v{RUNTIME_VERSION}:{int(caller_depth)}")
+    if channel:
+        # Kommunikationskanal des Auftraggebers (Ziel vault-agenten §1.4). Der reason ist signiert
+        # (agentlink/signing.py) – der Empfänger übernimmt den Kanal in die Sitzung des Auftragnehmers.
+        value = channel.strip().lower()
+        segments.append(f"hh-channel:v{RUNTIME_VERSION}:{value if _CHANNEL.fullmatch(value) else UNKNOWN_CHANNEL}")
     # Keep the human-readable reason while preventing task text from injecting
     # additional pipe-delimited control segments.
     encoded_summary = quote(" ".join(task_summary.split()), safe=" -_.")
@@ -213,6 +224,23 @@ def thread_from_reason(reason: str | None) -> str | None:
         if len(parts) != 3 or parts[1] != f"v{RUNTIME_VERSION}":
             return None
         return parts[2] if _THREAD.fullmatch(parts[2]) else None
+    return None
+
+
+def channel_from_reason(reason: str | None) -> str | None:
+    """Kanal des Auftraggebers aus dem Reason oder None (Web/intern).
+
+    Nach ``hh-task:`` zählt nichts (Freitext kann keinen Kanal setzen). Ein vorhandenes, aber unlesbares
+    Segment gilt als extern (fail closed)."""
+    for segment in (reason or "").split("|"):
+        if segment.startswith("hh-task:"):
+            break
+        if not segment.startswith("hh-channel:"):
+            continue
+        parts = segment.split(":", 2)
+        if len(parts) == 3 and parts[1] == f"v{RUNTIME_VERSION}" and _CHANNEL.fullmatch(parts[2]):
+            return parts[2]
+        return UNKNOWN_CHANNEL
     return None
 
 
