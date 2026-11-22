@@ -19,7 +19,7 @@ from hydrahive.agentlink import (
     ContextBlock, Handoff, State, TaskBlock, cancel_pending, post_state, register_pending,
 )
 from hydrahive.agentlink.checkpoints import split_checkpoint_findings
-from hydrahive.agentlink.runtime_profiles import normalize_profile, reason_with_profile
+from hydrahive.agentlink.runtime_profiles import FEDERATION_CHANNEL, normalize_profile, reason_with_profile
 from hydrahive.db import errors_log
 from hydrahive.db import federation_peers as peers_db
 from hydrahive.federation import peer_protocol as proto
@@ -97,7 +97,8 @@ async def accept_task(peer: dict, payload: dict) -> str:
         context=ContextBlock(),
         handoff=Handoff(
             to_agent=settings.agentlink_agent_id,
-            reason=reason_with_profile(target, profile, task[:120]),
+            # Herkunft auf dem fremden Server nicht prüfbar → extern (Ziel vault-agenten §1.4, fail closed)
+            reason=reason_with_profile(target, profile, task[:120], channel=FEDERATION_CHANNEL),
         ),
     )
     sent = await post_state(state)
