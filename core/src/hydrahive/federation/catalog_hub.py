@@ -75,6 +75,18 @@ def _opt_str(value: Any, limit: int = MAX_TEXT_FIELD) -> str | None:
     return value
 
 
+def _opt_bool(value: Any) -> bool:
+    """``shared``/``remote_edits`` aus dem Push (docs/specs/federation-shared-
+    tasks.md §Schalter). Fehlend = False (ältere Clients ohne die Felder).
+    Jeder andere Typ als bool/None lehnt den ganzen Push ab, wie bei den
+    übrigen Feldern (peer_payload_invalid)."""
+    if value is None:
+        return False
+    if not isinstance(value, bool):
+        raise proto.PeerRejected("peer_payload_invalid", "shared/remote_edits muss bool sein")
+    return value
+
+
 def _req_str(value: Any, limit: int) -> str:
     if not isinstance(value, str) or not value or len(value) > limit:
         raise ValueError
@@ -183,6 +195,8 @@ def accept_push(peer: dict, payload: dict) -> dict:
     full = _full_versions(payload.get("full_versions"))
     interval = payload.get("interval_seconds")
     interval = interval if isinstance(interval, int) and not isinstance(interval, bool) and interval > 0 else None
+    shared = _opt_bool(payload.get("shared"))
+    remote_edits = _opt_bool(payload.get("remote_edits"))
 
     items, rejected, reasons = [], [], {}
     for raw in raw_items:
@@ -199,6 +213,7 @@ def accept_push(peer: dict, payload: dict) -> dict:
         res = hub_db.apply_push(
             peer["id"], seq=seq, interval_seconds=interval, now=now_iso(),
             items=items, deleted=deleted, rejected=rejected, full_versions=full,
+            shared=shared, remote_edits=remote_edits,
         )
     except hub_db.SeqReplay as e:  # gleichzeitiger Push mit derselben seq
         raise CatalogReplay(e.last_seq) from e

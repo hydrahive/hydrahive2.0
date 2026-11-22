@@ -67,21 +67,35 @@ def apply_push(
     deleted: list[tuple[str, str]],
     rejected: list[tuple[str, str, str | None, str]],
     full_versions: dict[tuple[str, str], dict[str, str]] | None,
+    shared: bool = False,
+    remote_edits: bool = False,
 ) -> PushResult:
     """Verbucht einen geprüften Push. Wirft SeqReplay, wenn ``seq`` nicht neu ist.
 
     ``items``: gültige Metadaten · ``deleted``: (kind, item_id) · ``rejected``:
     (kind, item_id, updated_at, reason) · ``full_versions``: (owner, kind) →
     {item_id: updated_at} oder None.
+
+    ``shared``/``remote_edits`` (docs/specs/federation-shared-tasks.md
+    §Schalter): was diese Quelle gerade meldet, wird in
+    ``federation_catalog_sources`` abgelegt. Auftrag B schreibt an dieser
+    Stelle (Zugriff auf den ALTEN Wert über ``row["shared"]`` vor dem UPDATE
+    unten, neuer Wert ist das Funktionsargument) die Löschzeilen, wenn sich
+    die Sichtbarkeit ändert.
     """
     res = PushResult()
     with db(immediate=True) as conn:
         row = conn.execute(
-            "SELECT last_seq FROM federation_catalog_sources WHERE peer_id = ?", (peer_id,),
+            "SELECT last_seq, shared FROM federation_catalog_sources WHERE peer_id = ?", (peer_id,),
         ).fetchone()
         current = int(row["last_seq"]) if row else 0
         if seq <= current:
             raise SeqReplay(current)
+        # ALTER shared-Wert dieser Quelle steht hier in row["shared"] (None/0,
+        # wenn die Quelle neu ist), BEVOR die UPDATE-Anweisung unten ihn durch
+        # das Funktionsargument ``shared`` (NEUER Wert) ersetzt. Hier hängt
+        # Auftrag B ein, um bei einem Wechsel Löschzeilen zu schreiben (Spec
+        # §Schalter "Wenn die Sichtbarkeit wegfällt").
 
         for item in items:
             cur = conn.execute(_UPSERT, {**item, "peer_id": peer_id, "now": now})
@@ -116,13 +130,18 @@ def apply_push(
         ).fetchone()[0]
         conn.execute(
             "INSERT INTO federation_catalog_sources "
-            "(peer_id, last_seq, interval_seconds, last_push_at, last_full_at, item_count) "
-            "VALUES (?, ?, ?, ?, ?, ?) ON CONFLICT (peer_id) DO UPDATE SET "
+            "(peer_id, last_seq, interval_seconds, last_push_at, last_full_at, item_count, "
+            " shared, remote_edits) "
+            "VALUES (?, ?, ?, ?, ?, ?, ?, ?) ON CONFLICT (peer_id) DO UPDATE SET "
             "last_seq = excluded.last_seq, interval_seconds = excluded.interval_seconds, "
             "last_push_at = excluded.last_push_at, "
             "last_full_at = COALESCE(excluded.last_full_at, federation_catalog_sources.last_full_at), "
-            "item_count = excluded.item_count",
-            (peer_id, seq, interval_seconds, now, now if full_versions is not None else None, res.item_count),
+            "item_count = excluded.item_count, "
+            "shared = excluded.shared, remote_edits = excluded.remote_edits",
+            (
+                peer_id, seq, interval_seconds, now, now if full_versions is not None else None,
+                res.item_count, 1 if shared else 0, 1 if remote_edits else 0,
+            ),
         )
     return res
 

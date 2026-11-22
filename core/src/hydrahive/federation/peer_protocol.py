@@ -68,11 +68,18 @@ def new_catalog_push(
     items: list[dict],
     deleted: list[dict],
     full_versions: dict | None = None,
+    *,
+    shared: bool = False,
+    remote_edits: bool = False,
 ) -> dict:
     """Katalog-Push an den Hub (docs/specs/federation-catalog.md §Ablauf 3).
 
     Einmaligkeit über ``seq`` (streng steigend je Partner), ``msg_id`` dient nur
     der Zuordnung im Log.
+
+    ``shared``/``remote_edits`` (docs/specs/federation-shared-tasks.md
+    §Schalter): die eigenen Einstellungen, in jedem Push mitgemeldet, damit der
+    Hub sie in ``federation_catalog_sources`` ablegen kann. Standard aus.
     """
     return {
         "kind": "catalog_push",
@@ -84,6 +91,8 @@ def new_catalog_push(
         "items": list(items),
         "deleted": list(deleted),
         "full_versions": full_versions,
+        "shared": bool(shared),
+        "remote_edits": bool(remote_edits),
     }
 
 
