@@ -103,8 +103,9 @@ async def flush(now: float | None = None) -> int:
             _waiting.discard(p["id"])
     if not due:
         return 0
-    results = await asyncio.gather(*(_send(p, proto.new_catalog_notify(rev)) for p in due))
-    return sum(1 for r in results if r)
+    results = await asyncio.gather(*(_send(p, proto.new_catalog_notify(rev)) for p in due),
+                                   return_exceptions=True)   # ein Fehler darf nichts blockieren
+    return sum(1 for r in results if r is True)
 
 
 def _reset_for_tests() -> None:
