@@ -39,6 +39,10 @@ class CatalogSettingsBody(BaseModel):
     interval_seconds: int = Field(ge=60, le=3600)
     users: list[str] = Field(default_factory=list, max_length=200)
     excluded_projects: list[str] = Field(default_factory=list, max_length=500)
+    # Gemeinsame Taskpflege (docs/specs/federation-shared-tasks.md §Schalter),
+    # Standard aus. remote_edits bleibt ohne Wirkung, bis Till sie vor G4 bestätigt.
+    shared: bool = False
+    remote_edits: bool = False
 
     # Kein Zeichen-Muster: Nutzernamen sind bei der Anlage frei (routes/users.py).
     # Maßgeblich ist die Prüfung gegen list_users() in put_catalog_settings.
@@ -66,6 +70,8 @@ def _settings_response() -> dict:
     return {
         "enabled": bool(row["enabled"]),
         "interval_seconds": row["interval_seconds"],
+        "shared": bool(row["shared"]),
+        "remote_edits": bool(row["remote_edits"]),
         "users": catalog_db.list_selected_users(),
         "excluded_projects": catalog_db.list_excluded_projects(),
         "hub": (
@@ -127,7 +133,10 @@ def put_catalog_settings(body: CatalogSettingsBody, _: _Admin) -> dict:
     before_users = set(catalog_db.list_selected_users())
     before_projects = set(catalog_db.list_excluded_projects())
 
-    catalog_db.update_settings(enabled=body.enabled, interval_seconds=body.interval_seconds)
+    catalog_db.update_settings(
+        enabled=body.enabled, interval_seconds=body.interval_seconds,
+        shared=body.shared, remote_edits=body.remote_edits,
+    )
     catalog_db.set_selected_users(body.users)
     catalog_db.set_excluded_projects(body.excluded_projects)
 

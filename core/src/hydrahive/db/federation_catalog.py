@@ -121,12 +121,17 @@ def get_settings() -> dict:
     return _row(row)
 
 
-def update_settings(*, enabled: bool, interval_seconds: int) -> dict:
+def update_settings(*, enabled: bool, interval_seconds: int, shared: bool = False, remote_edits: bool = False) -> dict:
+    """``shared``/``remote_edits`` (docs/specs/federation-shared-tasks.md §Schalter,
+    Standard aus). ``remote_edits`` hat noch keine Wirkung — das bestätigt Till
+    vor Etappe G4 (Bearbeiten), siehe Spec Z. 86–90. Nur speichern, nichts tut
+    damit heute etwas."""
     with db() as conn:
         conn.execute("INSERT OR IGNORE INTO federation_catalog_settings (id) VALUES (1)")
         conn.execute(
-            "UPDATE federation_catalog_settings SET enabled = ?, interval_seconds = ? WHERE id = 1",
-            (1 if enabled else 0, interval_seconds),
+            "UPDATE federation_catalog_settings "
+            "SET enabled = ?, interval_seconds = ?, shared = ?, remote_edits = ? WHERE id = 1",
+            (1 if enabled else 0, interval_seconds, 1 if shared else 0, 1 if remote_edits else 0),
         )
         row = conn.execute(
             "SELECT * FROM federation_catalog_settings WHERE id = 1",
