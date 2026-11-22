@@ -43,6 +43,11 @@ export function TemplateSummary({ tpl }: { tpl: AgentTemplate }) {
         {t("template.budget_value", { it: tpl.budget.max_iterations, tok: tpl.budget.max_tokens,
           sec: tpl.budget.timeout_seconds })}
       </dd>
+      <dt className="text-zinc-500">{t("template.effort")}</dt>
+      <dd className="text-zinc-300" data-template-effort>
+        {tpl.budget.reasoning_effort || t("template.effort_default")}
+        <span className="block text-[10px] text-zinc-500">{t("template.effort_hint")}</span>
+      </dd>
       <dt className="text-zinc-500" />
       <dd className="text-zinc-500">{t("template.managed_hint")}</dd>
     </dl>

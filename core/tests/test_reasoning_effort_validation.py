@@ -57,6 +57,8 @@ def test_agent_patch_prueft_tiefe(client, admin_headers, monkeypatch):
     # Aufräumen 14.11.2026: neue Agenten sind gebunden, die Denktiefe kommt aus dem Template.
     bad = client.patch(f"/api/agents/{aid}", headers=admin_headers, json={"reasoning_effort": "high"})
     assert bad.status_code == 400 and "agent_bound_to_template" in bad.text
+    # Eigener Code mit Feldliste – die Oberfläche übersetzt ihn, statt den Rohtext zu zeigen.
+    assert bad.json()["detail"] == {"code": "agent_bound_to_template", "params": {"fields": "reasoning_effort"}}
 
 
 def test_modellwechsel_setzt_unpassende_tiefe_auf_standard(client, auth_headers, monkeypatch):

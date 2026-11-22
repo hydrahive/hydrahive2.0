@@ -169,5 +169,7 @@
   "peer_not_active": "Only possible with an active pairing – confirm the fingerprint first.",
   "catalog_hub_exists": "There is already a hub ({{name}}). Turn off “Use as hub” there first.",
   "catalog_hub_conflict": "A server either acts as hub for others (“Accept catalog”) or sends to a hub itself (“Use as hub”) – not both. Turn off the other switch first.",
-  "catalog_user_unknown": "User {{username}} does not exist on this server."
+  "catalog_user_unknown": "User {{username}} does not exist on this server.",
+  "agent_bound_to_template": "This agent uses an agent template. Model, reasoning effort and budget come from the template and cannot be changed here. Permanently: pick another template or edit the template on the LLM page (admin). For one chat only: choose the reasoning effort at the top of the chat.",
+  "agent_needs_template": "Model, reasoning effort and budget are only set via agent templates now. Please pick a template in the “Model” tab first."
 }

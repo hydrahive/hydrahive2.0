@@ -174,7 +174,8 @@ def test_patch_agent_rejects_excessive_handoff_timeout(client, admin_headers):
     )
 
     assert res.status_code == 400
-    assert error_code(res) == "validation_error"
+    # Neue Agenten sind an ein Template gebunden: das Budget kommt von dort (eigener Code statt validation_error).
+    assert error_code(res) == "agent_bound_to_template"
 
 
 def test_patch_agent_updates_field(client, admin_headers):

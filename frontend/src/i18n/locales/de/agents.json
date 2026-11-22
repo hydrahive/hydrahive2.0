@@ -182,7 +182,10 @@
     "save": "Speichern",
     "reset": "Zurücksetzen",
     "saved": "Template gespeichert. Neue Aufrufe nutzen es.",
-    "save_failed": "Template konnte nicht gespeichert werden."
+    "save_failed": "Template konnte nicht gespeichert werden.",
+    "effort": "Denktiefe",
+    "effort_default": "Modellstandard",
+    "effort_hint": "Kommt aus dem Agenten-Template. Für einen einzelnen Chat lässt sich die Denktiefe oben im Chat wählen – die hat Vorrang."
   },
   "delete_specialist": {
     "title": "Spezialist löschen",
