@@ -117,3 +117,20 @@ def test_zu_alter_stand_bekommt_vollen_abgleich(client, env, purged):
     assert normal["full"] is False                               # aktueller Stand: kein voller Abgleich
     fresh = verified(*pull(client, env["c"], after_rev=0))
     assert fresh["full"] is False                                # 0 heißt „von vorn“, ohne Schlüsselliste
+
+
+def test_voller_abgleich_ab_altem_stand_blaettert_bis_zum_ende(client, env, purged):
+    """Review #742: Folgeseiten eines erzwungenen vollen Abgleichs dürfen nicht wieder bei 0
+    anfangen. Der Client fragt nach der ersten Antwort mit full=true weiter (wie pull_client)."""
+    push(client, env["o"], [item(f"o-{n}") for n in range(3)])
+    first = verified(*pull(client, env["c"]))
+    with db() as conn:
+        conn.execute("UPDATE federation_catalog_counter SET purged_rev = ? WHERE id = 1", (first["next_rev"],))
+    after, full, pages, ids = 1, False, 0, []
+    while pages < 10:
+        body = verified(*pull(client, env["c"], after_rev=after, limit=1, full=full))
+        ids += [i["item_id"] for i in body["items"]]
+        after, full, pages = body["next_rev"], full or body["full"], pages + 1
+        if not body["more"]:
+            break
+    assert pages < 10 and sorted(ids) == ["o-0", "o-1", "o-2"]

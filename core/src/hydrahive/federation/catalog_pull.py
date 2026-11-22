@@ -12,8 +12,9 @@ Prüfreihenfolge (Schritt 1 erledigt die Route mit ``verify_incoming``):
 
 Eine Seite enthält höchstens ``limit`` (≤ 500) Einträge und Löschungen zusammen,
 bei ``full`` zusätzlich höchstens 5000 Schlüssel. Ist ``after_rev`` älter als das
-aufgeräumte Löschprotokoll (``min_partial_rev``), bekommt C automatisch einen
-vollen Abgleich (``full: true`` in der Antwort, ab ``rev`` 0).
+aufgeräumte Löschprotokoll (``min_partial_rev``) und fragt C ohne ``full``, bekommt C
+automatisch einen vollen Abgleich (``full: true`` in der Antwort, ab ``rev`` 0). Mit
+``full`` blättert C normal weiter; fehlende Löschungen erledigt die Schlüsselliste.
 """
 from __future__ import annotations
 
@@ -158,8 +159,11 @@ def accept_pull(peer: dict, payload: dict) -> tuple[dict, dict[str, str]]:
     full = payload.get("full") is True
     limit = min(_int(payload.get("limit", MAX_LIMIT), "limit", low=1), MAX_LIMIT)
     keys_after = _keys_after(payload.get("keys_after"))
-    if after_rev and after_rev < revs.min_partial_rev():
-        after_rev, full = 0, True            # Löschprotokoll schon aufgeräumt: voller Abgleich
+    if after_rev and after_rev < revs.min_partial_rev() and not full:
+        # Löschprotokoll schon aufgeräumt: voller Abgleich ab 0. Nur wenn der Client noch
+        # keinen vollen Abgleich fährt. Folgeseiten kommen mit full=true und eigenem after_rev,
+        # sonst stünde jede Folgeseite wieder bei 0 (Endlosschleife, Review #742).
+        after_rev, full = 0, True
     body = _page(peer, users, after_rev, local_after, limit)
     keys_next = None
     body["full_keys"] = None

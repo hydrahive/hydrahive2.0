@@ -173,7 +173,7 @@ def test_vorhandener_eigener_eintrag_ergibt_keine_loeschzeile(client, fake_sourc
 
     changed = hub_own.hub_distribute_step()
 
-    assert changed is False
+    assert changed is True        # geänderter eigener Eintrag: Clients anstupsen, aber keine Löschzeile
     with db() as conn:
         rows = conn.execute(
             "SELECT * FROM federation_catalog_deletions WHERE item_id = 'there-1'",

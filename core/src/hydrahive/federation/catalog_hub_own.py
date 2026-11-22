@@ -35,8 +35,8 @@ def _is_excluded(row: dict | None, excluded_projects: frozenset[str]) -> bool:
 
 def hub_distribute_step() -> bool:
     """Leert die Hub-Vormerkungen, schreibt Löschzeilen für Fehlendes/
-    Ausgeschlossenes. Rückgabe: ob sich etwas geändert hat (V3 hängt das
-    Anstupsen daran). Wirft nie — Fehler werden geloggt, der Timer-Lauf holt
+    Ausgeschlossenes. Rückgabe: ob ein vorgemerkter Eintrag verarbeitet wurde
+    (geändert, neu oder gelöscht), daran hängt das Anstupsen. Wirft nie — Fehler werden geloggt, der Timer-Lauf holt
     verpasste Löschungen über den stündlichen Abgleich nach (sinngemäß; der
     Hub hat hier keinen eigenen Abgleich, aber ein einzelner Fehler bricht
     den Lauf nicht ab).
@@ -71,5 +71,7 @@ def hub_distribute_step() -> bool:
                 revs.write_deletion(
                     conn, origin_fp=fp, kind=kind, item_id=item_id, owner=username, deleted_at=now,
                 )
-            changed = True
+        # Auch ein neuer oder geänderter eigener Eintrag ist eine Änderung, die Clients sehen
+        # (über local_after beim Abholen): Anstupsen (Review #742, sonst erst beim Timer).
+        changed = True
     return changed
