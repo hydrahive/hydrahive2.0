@@ -126,11 +126,27 @@ def test_voller_abgleich_ab_altem_stand_blaettert_bis_zum_ende(client, env, purg
     first = verified(*pull(client, env["c"]))
     with db() as conn:
         conn.execute("UPDATE federation_catalog_counter SET purged_rev = ? WHERE id = 1", (first["next_rev"],))
-    after, full, pages, ids = 1, False, 0, []
-    while pages < 10:
+    # Unter -n 4 liegen Einträge früherer Tests desselben Workers in der DB; der volle Abgleich
+    # liefert sie mit. Das Seitenbudget kommt deshalb aus der tatsächlichen Gesamtzahl (Referenz
+    # mit großen Seiten, die Seitengröße kann nach Bytes begrenzt sein), statt fest 10 zu sein.
+    expected, after, full = [], 1, False
+    for _ in range(200):
+        ref = verified(*pull(client, env["c"], after_rev=after, limit=500, full=full))
+        expected += [(i["origin_fp"], i["kind"], i["item_id"]) for i in ref["items"]]
+        after, full = ref["next_rev"], full or ref["full"]
+        if not ref["more"]:
+            break
+    assert full is True and not ref["more"]
+    expected.sort()
+    budget = len(expected) + 2
+    after, full, pages, keys = 1, False, 0, []
+    while pages < budget:
         body = verified(*pull(client, env["c"], after_rev=after, limit=1, full=full))
-        ids += [i["item_id"] for i in body["items"]]
+        keys += [(i["origin_fp"], i["kind"], i["item_id"]) for i in body["items"]]
         after, full, pages = body["next_rev"], full or body["full"], pages + 1
         if not body["more"]:
             break
-    assert pages < 10 and sorted(ids) == ["o-0", "o-1", "o-2"]
+    assert pages < budget, "kein Ende: Folgeseiten fangen wieder von vorn an"
+    assert len(keys) == len(set(keys)), "Einträge doppelt: Folgeseite fing wieder bei 0 an"
+    assert sorted(keys) == expected
+    assert {k[2] for k in keys if k[0] == env["o"].fp} >= {"o-0", "o-1", "o-2"}
