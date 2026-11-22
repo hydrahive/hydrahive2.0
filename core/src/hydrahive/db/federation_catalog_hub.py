@@ -13,6 +13,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 
+from hydrahive.db import federation_catalog_revs as revs
 from hydrahive.db.connection import db
 
 
@@ -101,6 +102,15 @@ def apply_push(
             cur = conn.execute(_UPSERT, {**item, "peer_id": peer_id, "now": now})
             if cur.rowcount:
                 res.upserted += 1
+                # rev bei JEDEM angenommenen Upsert neu (Spec §Änderungsnummer),
+                # auch bei updated_at-Gleichstand. Abgelehnte/ältere Upserts
+                # (WHERE oben greift nicht, rowcount=0) vergeben keine rev.
+                rev = revs.next_rev(conn)
+                conn.execute(
+                    "UPDATE federation_catalog_items SET rev = ? "
+                    "WHERE peer_id = ? AND kind = ? AND item_id = ?",
+                    (rev, peer_id, item["kind"], item["item_id"]),
+                )
                 conn.execute(
                     "DELETE FROM federation_catalog_rejected WHERE peer_id = ? AND kind = ? AND item_id = ?",
                     (peer_id, item["kind"], item["item_id"]),

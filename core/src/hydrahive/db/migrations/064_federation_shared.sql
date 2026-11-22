@@ -19,9 +19,14 @@ BEGIN;
 
 -- Hub: fortlaufende Änderungsnummer (eine Zeile). Startwert 0, wird im
 -- Backfill unten ggf. auf den Bestand hochgezogen.
+-- purged_rev (Auftrag B, Stück 3 "Aufräumen nach 7 Tagen"): höchste bisher
+-- aus federation_catalog_deletions entfernte rev. Damit erkennt ein Client,
+-- dessen Stand älter ist, dass ihm Löschzeilen fehlen könnten, und braucht
+-- einen vollen Abgleich statt eines Teilabgleichs (V2).
 CREATE TABLE IF NOT EXISTS federation_catalog_counter (
-    id   INTEGER PRIMARY KEY CHECK (id = 1),
-    rev  INTEGER NOT NULL DEFAULT 0
+    id          INTEGER PRIMARY KEY CHECK (id = 1),
+    rev         INTEGER NOT NULL DEFAULT 0,
+    purged_rev  INTEGER NOT NULL DEFAULT 0
 );
 
 -- Hub: kurzes Löschprotokoll für die Verteilung (Spec §Änderungsnummer auf

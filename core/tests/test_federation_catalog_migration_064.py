@@ -62,8 +62,9 @@ def test_migration_064_on_fresh_db(tmp_path: Path) -> None:
         items_cols = {r["name"] for r in conn.execute("PRAGMA table_info(federation_catalog_items)")}
         assert "rev" in items_cols
 
-        counter = conn.execute("SELECT rev FROM federation_catalog_counter WHERE id = 1").fetchone()
+        counter = conn.execute("SELECT rev, purged_rev FROM federation_catalog_counter WHERE id = 1").fetchone()
         assert counter["rev"] == 0
+        assert counter["purged_rev"] == 0
     finally:
         conn.close()
 
