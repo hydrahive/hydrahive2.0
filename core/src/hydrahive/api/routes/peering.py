@@ -157,6 +157,24 @@ async def receive_catalog_notify(request: Request):
     return {"ok": True}
 
 
+@router.post("/catalog/read")
+async def answer_catalog_read(request: Request):
+    """Gemeinsame Taskpflege: Volltext für einen Client über den Hub (federation-shared-tasks.md
+    §catalog_read). Jeder Fehler ergibt nach außen dasselbe 404, der Grund steht im Audit."""
+    from hydrahive.federation import catalog_hub, catalog_read_hub
+
+    peer_name = request.headers.get(proto.HEADER_PEER, "")[:24] or "?"
+    try:
+        verified = await _read(request, "catalog_read", id_field="msg_id")
+        peer_name = verified.peer["name"]
+        body, headers = await catalog_read_hub.answer_read(verified.peer, verified.payload)
+        return JSONResponse(content=body, headers=headers)
+    except Exception as exc:  # jeder Fehler sieht nach außen gleich aus
+        reason = getattr(exc, "reason", None) or getattr(exc, "code", None) or f"error:{type(exc).__name__}"
+        await asyncio.to_thread(catalog_hub.audit, peer_name, f"Lesen abgelehnt: {reason}", severity="warning")
+        return JSONResponse(status_code=status.HTTP_404_NOT_FOUND, content={})
+
+
 @router.post("/catalog/fetch")
 async def answer_catalog_fetch(request: Request):
     """Föderations-Katalog: Volltext an den eigenen Hub (federation-catalog.md §Ablauf 4).

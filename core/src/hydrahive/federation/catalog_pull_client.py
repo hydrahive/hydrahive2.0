@@ -127,6 +127,8 @@ async def _run(cfg: client_db.SyncConfig, full: bool) -> dict:
         if body.get("reset_local"):
             local = {k: None for k in mirror_db.KINDS}
         await asyncio.to_thread(mirror_db.apply_page, items, dels, rev, local, now_iso())
+        if page == 0:
+            await asyncio.to_thread(mirror_db.save_instances, body.get("instances"), now_iso())
         stats["pages"] += 1
         stats["items"] += len(items)
         stats["deleted"] += len(dels)

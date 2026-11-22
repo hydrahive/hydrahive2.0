@@ -193,3 +193,14 @@ async def test_timer_lauf_holt_ab_unter_derselben_sperre(client, cs, monkeypatch
     push(client, cs["o"], [item("o-1")])
     assert await catalog_runner.timer_tick(1) == "ok"
     assert [o[0] for o in order] == ["push", "pull"] and mirror_ids() == ["o-1"]
+
+
+async def test_stand_der_urspruenge_wird_gemerkt(client, cs):
+    push(client, cs["o"], [item("o-1")])
+    await pc.pull(full=False)
+    with db() as conn:
+        rows = {r["origin_name"]: dict(r) for r in conn.execute("SELECT * FROM federation_catalog_mirror_instances")}
+    assert "devbox" in rows and rows["devbox"]["stale"] == 0 and rows["devbox"]["origin_fp"] == cs["o"].fp
+    mirror_db.clear()
+    with db() as conn:
+        assert conn.execute("SELECT COUNT(*) FROM federation_catalog_mirror_instances").fetchone()[0] == 0

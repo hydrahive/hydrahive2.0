@@ -170,3 +170,27 @@ class ModuleContext:
             catalog_changes.mark_changed(kind, username, item_id)
         except Exception as e:  # nie in den Schreibpfad des Moduls durchreichen
             logger.debug("catalog_changed(%s) von Modul %s ignoriert: %s", kind, self.module_id, e)
+
+    def catalog_foreign_list(self, kind: str, username: str, project_id: str | None = "*",
+                             statuses: list[str] | None = None, q: str | None = None,
+                             limit: int = 100, offset: int = 0) -> list[dict]:
+        """Fremde Einträge (anderer Instanzen) eines Nutzers, Zuordnung angewandt
+        (docs/specs/federation-shared-tasks.md §Kern-Schnittstelle). Wirft nie, ohne
+        Gemeinsame Taskpflege leer. ``project_id``: lokale Projekt-ID, ``None`` (nur ohne
+        Projekt beim Ursprung) oder ``"*"`` (alle zugeordneten + ohne Projekt)."""
+        try:
+            from hydrahive.federation import catalog_foreign
+            return catalog_foreign.foreign_list(kind, username, project_id, statuses, q, limit, offset)
+        except Exception as e:
+            logger.debug("catalog_foreign_list(%s) von Modul %s fehlgeschlagen: %s", kind, self.module_id, e)
+            return []
+
+    async def catalog_foreign_get(self, kind: str, username: str, origin_fp: str, item_id: str) -> dict | None:
+        """Volltext eines fremden Eintrags, signiert über den Hub vom Ursprung (``catalog_read``).
+        ``None``, wenn der Eintrag nicht (mehr) sichtbar ist. Wirft nie."""
+        try:
+            from hydrahive.federation import catalog_read_client
+            return await catalog_read_client.foreign_get(kind, username, origin_fp, item_id)
+        except Exception as e:
+            logger.debug("catalog_foreign_get(%s) von Modul %s fehlgeschlagen: %s", kind, self.module_id, e)
+            return None

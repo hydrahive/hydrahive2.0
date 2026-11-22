@@ -219,6 +219,7 @@ def set_excluded_projects(project_ids: list[str]) -> list[str]:
 def _clear_mirror(conn) -> None:
     """Kopie leeren, Abhol-Stand auf „von vorn“ (federation-shared-tasks.md §Schalter)."""
     conn.execute("DELETE FROM federation_catalog_mirror")
+    conn.execute("DELETE FROM federation_catalog_mirror_instances")
     conn.execute("UPDATE federation_catalog_settings SET pull_rev = 0, pull_local_cursor = NULL, "
                  "last_full_pull_at = NULL WHERE id = 1")
 

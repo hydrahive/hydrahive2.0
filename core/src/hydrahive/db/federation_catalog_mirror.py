@@ -82,10 +82,24 @@ def keep_only(keys: set[tuple[str, str, str]]) -> int:
     return len(gone)
 
 
+def save_instances(instances: object, now: str) -> None:
+    """``instances`` aus der Pull-Antwort ersetzen den gemerkten Stand der Ursprünge."""
+    if not isinstance(instances, list):
+        return
+    rows = [(str(i["origin_fp"])[:128], str(i.get("origin_name") or "")[:128] or None,
+             i.get("last_seen") if isinstance(i.get("last_seen"), str) else None,
+             1 if i.get("stale") else 0, now)
+            for i in instances[:500] if isinstance(i, dict) and isinstance(i.get("origin_fp"), str)]
+    with db(immediate=True) as conn:
+        conn.execute("DELETE FROM federation_catalog_mirror_instances")
+        conn.executemany("INSERT OR REPLACE INTO federation_catalog_mirror_instances VALUES (?, ?, ?, ?, ?)", rows)
+
+
 def clear() -> None:
     """Kopie leeren und Stand auf „von vorn“ (Spec §Schalter „Der Client leert seine Kopie“)."""
     with db() as conn:
         conn.execute("DELETE FROM federation_catalog_mirror")
+        conn.execute("DELETE FROM federation_catalog_mirror_instances")
         conn.execute("INSERT OR IGNORE INTO federation_catalog_settings (id) VALUES (1)")
         conn.execute(
             "UPDATE federation_catalog_settings SET pull_rev = 0, pull_local_cursor = NULL, "

@@ -179,6 +179,16 @@ def new_catalog_notify(rev: int) -> dict:
     }
 
 
+def new_catalog_read(origin_fp: str, item_kind: str, item_id: str, owner: str) -> dict:
+    """Client → Hub: Volltext eines fremden Eintrags (federation-shared-tasks.md §catalog_read).
+    Ohne ``seq`` (läuft außerhalb der gemeinsamen Sperre), Replay-Schutz über ``msg_id``."""
+    return {
+        "kind": "catalog_read", "msg_id": str(uuid.uuid4()),
+        "from": ident.fingerprint(ident.public_key_b64()), "issued_at": int(time.time()),
+        "origin_fp": origin_fp, "item_kind": item_kind, "item_id": item_id, "owner": owner,
+    }
+
+
 def verify_reply(peer: dict, signature: str, payload: object, kind: str, in_reply_to: str) -> dict:
     """Signierte Antwort des Partners prüfen: Signatur mit SEINEM Schlüssel,
     Nachrichtentyp, Frische und dass sie sich auf unsere Anfrage bezieht."""
