@@ -133,7 +133,7 @@ def _page(peer: dict, users: list[str], after_rev: int, local_after: dict, limit
     own_items, local_next, own_more = own.changes(users, local_after, limit - len(merged))
     items += [{f: r.get(f) for f in _ITEM_FIELDS} for r in own_items]
     return {"items": items, "deleted": deleted, "next_rev": next_rev,
-            "local_next": local_next, "more": more or own_more}
+            "local_next": local_next, "more": more or own_more, "_partner_changes": bool(merged)}
 
 
 def _full_keys(peer: dict, users: list[str], keys_after: list[str] | None) -> tuple[list, list | None]:
@@ -174,7 +174,7 @@ def accept_pull(peer: dict, payload: dict) -> tuple[dict, dict[str, str]]:
     peers_db.touch(peer["id"])
     body.update(full=full, keys_next=keys_next, reset_local=reset,
                 instances=_instances(peer, datetime.now(timezone.utc)), ack_seq=seq)
-    if body["items"] or body["deleted"]:
+    if body.pop("_partner_changes") or full:   # eigene Einträge wiederholen die letzte Zeitstufe
         audit(peer["name"], f"Abholen seq {seq}: {len(body['items'])} Einträge, "
                             f"{len(body['deleted'])} Löschungen{' (voll)' if full else ''}")
     reply = proto.new_catalog_items(payload["msg_id"], body)
