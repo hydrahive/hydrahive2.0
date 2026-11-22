@@ -109,6 +109,54 @@ async def receive_catalog_push(request: Request):
         return response
 
 
+@router.post("/catalog/pull")
+async def receive_catalog_pull(request: Request):
+    """Gemeinsame Taskpflege: Client holt Einträge der anderen Instanzen ab
+    (federation-shared-tasks.md §Nachricht catalog_pull). Antwort signiert."""
+    from hydrahive.federation import catalog_hub, catalog_pull
+
+    peer_name = request.headers.get(proto.HEADER_PEER, "")[:24] or "?"
+    try:
+        verified = await _read(request, "catalog_pull", id_field="msg_id")
+        peer_name = verified.peer["name"]
+        body, headers = await asyncio.to_thread(catalog_pull.accept_pull, verified.peer, verified.payload)
+        return JSONResponse(content=body, headers=headers)
+    except proto.PeerRejected as exc:
+        await asyncio.to_thread(
+            catalog_hub.audit, peer_name, f"Abholen abgelehnt: {exc.code} ({str(exc)[:200]})", severity="warning",
+        )
+        response = _rejected(exc)
+        if isinstance(exc, catalog_hub.CatalogReplay):
+            response = JSONResponse(
+                status_code=response.status_code,
+                content={"detail": {"code": exc.code, "params": {"last_seq": exc.last_seq}}},
+            )
+        return response
+
+
+@router.post("/catalog/notify")
+async def receive_catalog_notify(request: Request):
+    """Gemeinsame Taskpflege: der eigene Hub stupst an (federation-shared-tasks.md
+    §Anstupsen). Stößt gebündelt ein Abholen an, wartet nicht darauf.
+
+    Jeder Fehler (auch Signatur, Frische, falscher Absender, Wiederholung) ergibt
+    dasselbe ``404`` ohne Code; der Grund steht nur im Audit.
+    """
+    from hydrahive.federation import catalog_hub, catalog_notify_client
+
+    peer_name = request.headers.get(proto.HEADER_PEER, "")[:24] or "?"
+    try:
+        verified = await _read(request, "catalog_notify", id_field="msg_id")
+        peer_name = verified.peer["name"]
+        await asyncio.to_thread(catalog_notify_client.check, verified.peer, verified.payload)
+    except Exception as exc:  # jeder Fehler sieht nach außen gleich aus
+        reason = getattr(exc, "reason", None) or getattr(exc, "code", None) or f"error:{type(exc).__name__}"
+        await asyncio.to_thread(catalog_hub.audit, peer_name, f"Anstupsen abgelehnt: {reason}", severity="warning")
+        return JSONResponse(status_code=status.HTTP_404_NOT_FOUND, content={})
+    catalog_notify_client.trigger()
+    return {"ok": True}
+
+
 @router.post("/catalog/fetch")
 async def answer_catalog_fetch(request: Request):
     """Föderations-Katalog: Volltext an den eigenen Hub (federation-catalog.md §Ablauf 4).

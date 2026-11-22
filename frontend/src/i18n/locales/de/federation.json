@@ -136,6 +136,7 @@
   "tabs": {
     "workstations": "Workstations",
     "peers": "Server",
+    "catalog": "Katalog",
     "clients": "Clients",
     "datamining": "Datamining"
   },
@@ -150,6 +151,10 @@
     "sync_subtitle": "Ideen und Tasks (nur Metadaten) an den Hub schicken",
     "sync_toggle": "Sync einschalten",
     "sync_hint": "Der Versand folgt in einer späteren Etappe; hier werden nur die Einstellungen gespeichert.",
+    "shared_toggle": "Gemeinsame Taskpflege",
+    "shared_hint": "Teilt die eigenen synchronisierten Einträge mit den anderen Instanzen und zeigt deren Einträge hier.",
+    "remote_edits_toggle": "Bearbeiten durch andere Instanzen erlauben",
+    "remote_edits_hint": "Wirkt ab der Etappe Bearbeiten. Nur mit „Gemeinsame Taskpflege“ einschaltbar.",
     "hub_label": "Hub:",
     "hub_none": "Kein Hub gewählt – oben bei einem aktiven Server „Als Hub verwenden“ einschalten.",
     "hub_inactive": "Kopplung nicht aktiv",
@@ -166,6 +171,9 @@
     "last_ok": "Letzter erfolgreicher Abgleich:",
     "last_push": "Letzter Versuch:",
     "last_error": "Letzter Fehler:",
+    "last_pull": "Zuletzt abgeholt:",
+    "mirror_count": "Einträge anderer Instanzen:",
+    "last_pull_error": "Letzter Fehler beim Abholen:",
     "never": "noch nie",
     "save": "Speichern",
     "saving": "Speichert …",
@@ -191,6 +199,52 @@
       "hub_bad_ack": "Hub hat nicht richtig bestätigt.",
       "sync_failed": "Abgleich fehlgeschlagen (Details im Server-Log).",
       "source_failed": "Eine Datenquelle (Ideen oder Tasks) konnte nicht gelesen werden."
+    },
+    "pull_reason": {
+      "peer_catalog_not_shared": "Hub teilt die Gemeinsame Taskpflege nicht (mehr).",
+      "peer_catalog_not_accepted": "Hub nimmt den Katalog nicht an (dort „Katalog annehmen“ einschalten).",
+      "hub_unreachable": "Hub nicht erreichbar.",
+      "peer_signature_invalid": "Hub lehnt die Signatur ab (Kopplung prüfen).",
+      "peer_replay": "Hub lehnt die Nachrichtennummer ab, der nächste Lauf versucht es wieder.",
+      "hub_bad_ack": "Hub hat nicht richtig bestätigt.",
+      "hub_bad_reply": "Antwort des Hubs unvollständig oder beschädigt.",
+      "peer_payload_too_large": "Antwort zu groß.",
+      "pull_failed": "Abholen fehlgeschlagen (Details im Server-Log).",
+      "http_404": "Hub lehnt die Anfrage ab (404).",
+      "unknown": "Abholen fehlgeschlagen ({{code}})."
+    }
+  },
+  "catalog_tab": {
+    "title": "Katalog",
+    "subtitle": "Ideen und Tasks anderer Instanzen (nur lesen)",
+    "search_placeholder": "Suchen …",
+    "kind_all": "Alle Arten",
+    "kind_task": "Task",
+    "kind_idea": "Idee",
+    "instance_label": "Instanz",
+    "project_label": "Projekt",
+    "status_label": "Status",
+    "col_kind": "Art",
+    "col_short_id": "ID",
+    "col_title": "Titel",
+    "col_status": "Status",
+    "col_project": "Projekt",
+    "col_instance": "Instanz",
+    "col_updated": "Geändert am",
+    "empty": "Noch keine Einträge anderer Instanzen. Gemeinsame Taskpflege einschalten und einen Hub setzen.",
+    "load_error": "Katalog konnte nicht geladen werden.",
+    "load_more": "Mehr laden",
+    "loading_more": "Lädt …",
+    "status": {
+      "open": "offen",
+      "in_progress": "in Arbeit",
+      "done": "erledigt",
+      "cancelled": "abgebrochen",
+      "new": "neu",
+      "review": "zu prüfen",
+      "planned": "geplant",
+      "parked": "zurückgestellt",
+      "dropped": "verworfen"
     }
   }
 }

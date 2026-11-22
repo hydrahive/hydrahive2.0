@@ -74,15 +74,23 @@ def _json(response) -> dict:
     return body if isinstance(body, dict) else {}
 
 
-async def send_message(hub: dict, interval: int, items: list, deleted: list, full: dict | None) -> list[dict]:
+async def send_message(
+    hub: dict, interval: int, items: list, deleted: list, full: dict | None,
+    *, shared: bool = False, remote_edits: bool = False,
+) -> list[dict]:
     """Eine Nachricht senden und das Ack prüfen. Rückgabe: ``resync``-Liste.
 
     ``peer_replay`` mit ``last_seq`` (z. B. nach Backup-Restore): einmal auf
     ``last_seq + 1`` springen und wiederholen. Wirft SyncFailed(Code).
+
+    ``shared``/``remote_edits``: eigene Schalter (docs/specs/federation-shared-
+    tasks.md §Schalter), in jedem Push mitgemeldet.
     """
     for attempt in range(2):
         seq = await asyncio.to_thread(client_db.next_seq)
-        payload = proto.new_catalog_push(seq, interval, items, deleted, full)
+        payload = proto.new_catalog_push(
+            seq, interval, items, deleted, full, shared=shared, remote_edits=remote_edits,
+        )
         try:
             response = await send_signed(hub, PUSH_PATH, payload)
         except httpx.HTTPStatusError as e:
@@ -157,7 +165,10 @@ async def _send_all(cfg: client_db.SyncConfig, msgs: list) -> list[dict]:
         if i and GAP_SECONDS > 0:
             await _pause(GAP_SECONDS)
         await asyncio.to_thread(client_db.record_status, push_at=now_iso())
-        resync += await send_message(cfg.hub, cfg.interval_seconds, items, deleted, full)
+        resync += await send_message(
+            cfg.hub, cfg.interval_seconds, items, deleted, full,
+            shared=cfg.shared, remote_edits=cfg.remote_edits,
+        )
     return resync
 
 

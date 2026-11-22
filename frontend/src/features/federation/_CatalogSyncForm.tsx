@@ -1,6 +1,9 @@
 import { useTranslation } from "react-i18next"
 import { CatalogSwitch } from "./_CatalogSwitch"
-import { INTERVAL_MAX, INTERVAL_MIN, isDirty, parseInterval, reasonTexts, toggleIn, type CatalogDraft } from "./_catalogSync"
+import {
+  INTERVAL_MAX, INTERVAL_MIN, isDirty, parseInterval, pullReasonText, reasonTexts, setShared, toggleIn,
+  type CatalogDraft,
+} from "./_catalogSync"
 import type { CatalogSettings } from "./types"
 
 interface Props {
@@ -42,6 +45,22 @@ export function CatalogSyncForm(p: Props) {
         hint={t("catalog.sync_hint")}
         onChange={enabled => p.onChange({ ...draft, enabled })}
       />
+
+      <div className="space-y-2 border-t border-white/[4%] pt-2.5" data-part="shared">
+        <CatalogSwitch
+          checked={draft.shared}
+          label={t("catalog.shared_toggle")}
+          hint={t("catalog.shared_hint")}
+          onChange={shared => p.onChange(setShared(draft, shared))}
+        />
+        <CatalogSwitch
+          checked={draft.remote_edits}
+          label={t("catalog.remote_edits_toggle")}
+          hint={t("catalog.remote_edits_hint")}
+          disabled={!draft.shared}
+          onChange={remote_edits => p.onChange({ ...draft, remote_edits })}
+        />
+      </div>
 
       <div className="text-[11px] space-y-0.5" data-part="hub">
         <span className="text-zinc-400">{t("catalog.hub_label")} </span>
@@ -105,6 +124,17 @@ export function CatalogSyncForm(p: Props) {
         {settings.last_error && (
           <p className="text-red-400" data-part="last-error">
             {t("catalog.last_error")} {reasonTexts(settings.last_error).map(x => (x.textId ? t(x.textId) : x.raw)).join(" · ")}
+          </p>
+        )}
+        <p className="text-zinc-500" data-part="last-pull">
+          {t("catalog.last_pull")} <span className="text-zinc-300">{fmt(settings.last_pull_at)}</span>
+        </p>
+        <p className="text-zinc-500" data-part="mirror-count">
+          {t("catalog.mirror_count")} <span className="text-zinc-300">{settings.mirror_count}</span>
+        </p>
+        {settings.last_pull_error && (
+          <p className="text-red-400" data-part="last-pull-error">
+            {t("catalog.last_pull_error")} {t(pullReasonText(settings.last_pull_error).textId, { code: settings.last_pull_error })}
           </p>
         )}
         {p.onSyncNow && (

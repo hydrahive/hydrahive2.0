@@ -47,5 +47,31 @@ others send it their entries (metadata only, the full text is loaded live later)
 - A server either acts as hub for others **or** sends to a hub itself, not both.
   Otherwise a message tells you which switch to turn off first.
 - **Catalog sync** — sync on/off, interval (60–3600 seconds), which users are sent
-  (default: none) and which projects are never sent. Actual sending comes in a later
-  stage; until then only the settings are stored.
+  (default: none) and which projects are never sent. Sending runs automatically
+  every few minutes and immediately when a sent entry changes.
+
+## Shared task management
+
+Builds on the federation catalog: your own ideas and tasks are shared with the other
+paired instances, and their entries show up here for reading. Only **metadata** is
+shared (title, status, project, …) — the full text always stays on the instance
+where the entry was created and is loaded live when needed. Entries are only
+visible under the same username: `till` on this instance only sees entries from
+`till` on other instances, nobody else.
+
+Two switches in the "Catalog sync" section control this:
+
+- **"Shared task management"** — shares your own synced entries with the other
+  instances **and** shows their entries here. Both directions are tied to one
+  switch; there is no separate show-only or share-only option.
+- **"Allow editing by other instances"** — can only be turned on once "Shared task
+  management" is on. With "Shared task management" alone, your own entries are only
+  **visible** elsewhere, not editable. This switch only takes effect from the
+  editing stage onward — until then it changes nothing yet.
+
+## "Catalog" tab
+
+Shows the copy of other instances' entries, **read only**. Columns: kind
+(task/idea), short ID, title, status, project, instance, last updated. Filter by
+instance, project, status and kind, plus a search field. Without "Shared task
+management" turned on or without a hub set, the list stays empty.
