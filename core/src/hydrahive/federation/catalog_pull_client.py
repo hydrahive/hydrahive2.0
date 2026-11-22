@@ -87,7 +87,7 @@ async def _request(cfg: client_db.SyncConfig, payload_args: dict) -> dict:
 def _error(response: httpx.Response) -> tuple[str, object]:
     try:
         detail = response.json().get("detail")
-    except (ValueError, AttributeError):
+    except (ValueError, AttributeError, httpx.ResponseNotRead):   # nie den Grund verschlucken
         detail = None
     detail = detail if isinstance(detail, dict) else {}
     return detail.get("code") or f"http_{response.status_code}", (detail.get("params") or {}).get("last_seq")
