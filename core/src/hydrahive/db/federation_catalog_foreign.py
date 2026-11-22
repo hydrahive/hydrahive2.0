@@ -21,18 +21,39 @@ _COLS = ("origin_fp", "origin_name", "kind", "item_id", "owner", "title", "statu
          "project_id", "project_name", "created_at", "updated_at")
 
 
+CLIENT, CLIENT_OFFLINE, HUB = "client", "client_offline", "hub"
+
+
 def mode() -> str | None:
-    """``client``, ``hub`` oder ``None`` (Gemeinsame Taskpflege aus bzw. ohne Hub/Partner)."""
+    """``client``, ``client_offline``, ``hub`` oder ``None``.
+
+    ``client_offline``: Gemeinsame Taskpflege an, aber kein aktiver Hub (gesperrt, entfernt)
+    oder Sync aus, und die Kopie ist nicht leer. Die Kopie bleibt dann mit „Hub nicht
+    erreichbar“ sichtbar (Spec §Schalter, AK G14). ``None``: Gemeinsame Taskpflege aus (die
+    Kopie ist dann geleert) bzw. weder Hub noch Partner noch Kopie.
+    """
     with db() as conn:
         row = conn.execute("SELECT enabled, shared FROM federation_catalog_settings WHERE id = 1").fetchone()
         if not row or not row["shared"]:
             return None
         hub = conn.execute("SELECT status FROM federation_peers WHERE is_hub = 1 LIMIT 1").fetchone()
         if hub and hub["status"] == "active" and row["enabled"]:
-            return "client"
+            return CLIENT
         if conn.execute("SELECT 1 FROM federation_peers WHERE catalog_accept = 1 LIMIT 1").fetchone():
-            return "hub"
+            return HUB
+        if conn.execute("SELECT 1 FROM federation_catalog_mirror LIMIT 1").fetchone():
+            return CLIENT_OFFLINE
     return None
+
+
+def pull_state() -> tuple[str | None, int]:
+    """(letztes erfolgreiches Abholen, Intervall in s) für ``stale`` auf dem Client."""
+    with db() as conn:
+        row = conn.execute("SELECT last_pull_at, interval_seconds FROM federation_catalog_settings "
+                           "WHERE id = 1").fetchone()
+    if not row:
+        return None, 300
+    return row["last_pull_at"], int(row["interval_seconds"] or 300)
 
 
 def _filters(statuses: list[str] | None, q: str | None, prefix: str) -> tuple[str, list]:
