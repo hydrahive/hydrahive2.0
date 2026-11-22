@@ -28,7 +28,7 @@ def test_hoechstens_500_je_seite_auch_wenn_mehr_verlangt(client, env):
 def test_blaettern_ueber_eintraege_und_loeschungen(client, env):
     push(client, env["o"], [item("o-1"), item("o-2"), item("o-3")])
     push(client, env["o"], deleted=[{"kind": "task", "item_id": "o-1"}])
-    seen, deleted, after, pages = [], [], 0, 0
+    seen, deleted, after, pages = [], [], env["base"], 0
     while True:
         body = verified(*pull(client, env["c"], after_rev=after, limit=1))
         assert len(body["items"]) + len(body["deleted"]) <= 1

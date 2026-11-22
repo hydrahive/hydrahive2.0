@@ -24,6 +24,10 @@ PULL = "/api/peering/catalog/pull"
 PUSH = "/api/peering/catalog/push"
 T0 = "2026-11-22T10:00:00Z"
 _SEQ: dict[str, int] = {}
+# Stand nach dem Aufbau: Andere Tests in derselben DB hinterlassen Löschzeilen
+# (z. B. entfernte Partner), die ein Pull ab rev 0 zu Recht mitliefert. Die Tests
+# holen deshalb standardmäßig ab diesem Stand, wie ein Client, der aktuell ist.
+_BASE = {"rev": 0}
 
 
 def item(item_id, *, kind="task", owner="testuser", updated_at=T0, project_id=None, **over):
@@ -48,7 +52,8 @@ def push(client, fp, items=(), deleted=(), *, shared=True, full=None):
     return r
 
 
-def pull_payload(fp, *, users=("testuser",), after_rev=0, local_after=None, full=False, limit=500, **over):
+def pull_payload(fp, *, users=("testuser",), after_rev=None, local_after=None, full=False, limit=500, **over):
+    after_rev = _BASE["rev"] if after_rev is None else after_rev
     p = {"kind": "catalog_pull", "msg_id": str(uuid.uuid4()), "from": "x", "seq": next_seq(fp),
          "issued_at": int(time.time()), "users": list(users), "after_rev": after_rev,
          "local_after": local_after or {"task": None, "idea": None}, "full": full, "limit": limit}
@@ -138,7 +143,9 @@ def env(client, admin_headers):
         c_fp, c_peer = _pair(client, admin_headers, "hydrahome")
         o_fp, o_peer = _pair(client, admin_headers, "devbox")
         push(client, c_fp)                      # C meldet shared
-        yield {"c": c_fp, "c_peer": c_peer, "o": o_fp, "o_peer": o_peer, "src": src}
+        from hydrahive.db.federation_catalog_pull import current_rev
+        _BASE["rev"] = current_rev()
+        yield {"base": _BASE["rev"], "c": c_fp, "c_peer": c_peer, "o": o_fp, "o_peer": o_peer, "src": src}
         for p in (c_peer, o_peer):
             client.delete(f"/api/federation/peers/{p['id']}", headers=admin_headers)
         with db() as conn:
