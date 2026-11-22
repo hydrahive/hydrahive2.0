@@ -56,6 +56,8 @@ def on_visibility_change(conn: sqlite3.Connection, peer_id: str, before: bool, a
     """
     if before == after:
         return
+    from hydrahive.federation import catalog_notify   # Anstupsen (V7), nur Speicher, wirft nie
+    catalog_notify.mark(exclude=peer_id)
     peer = conn.execute(
         "SELECT fingerprint FROM federation_peers WHERE id = ?", (peer_id,),
     ).fetchone()

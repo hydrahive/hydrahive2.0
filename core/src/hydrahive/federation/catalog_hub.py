@@ -22,6 +22,7 @@ from hydrahive.db import errors_log
 from hydrahive.db import federation_catalog_hub as hub_db
 from hydrahive.db import federation_peers as peers_db
 from hydrahive.db._utils import now_iso
+from hydrahive.federation import catalog_notify
 from hydrahive.federation import peer_protocol as proto
 
 logger = logging.getLogger(__name__)
@@ -218,6 +219,8 @@ def accept_push(peer: dict, payload: dict) -> dict:
     except hub_db.SeqReplay as e:  # gleichzeitiger Push mit derselben seq
         raise CatalogReplay(e.last_seq) from e
     peers_db.touch(peer["id"])
+    if res.upserted or res.deleted or res.pruned:
+        catalog_notify.mark(exclude=peer["id"])   # Anstupsen (V7); der Absender kennt seine Änderung
     if res.upserted or res.deleted or res.pruned or reasons or res.resync:
         audit(peer["name"], (
             f"Push seq {seq} angenommen: {res.upserted} Einträge, {res.deleted} gelöscht, "

@@ -26,7 +26,7 @@ import logging
 from hydrahive.db import federation_catalog as catalog_db
 from hydrahive.db import federation_catalog_client as client_db
 from hydrahive.db import federation_catalog_revs as revs
-from hydrahive.federation import catalog_changes, catalog_hub_own, catalog_pull_client, catalog_sync
+from hydrahive.federation import catalog_changes, catalog_hub_own, catalog_notify, catalog_pull_client, catalog_sync
 
 logger = logging.getLogger(__name__)
 
@@ -92,10 +92,13 @@ async def hub_tick() -> bool:
     geändert hat (V3 hängt dort das Anstupsen an)."""
     async with catalog_sync._lock():
         try:
-            return await asyncio.to_thread(catalog_hub_own.hub_distribute_step)
+            changed = await asyncio.to_thread(catalog_hub_own.hub_distribute_step)
         except Exception as e:  # darf den Loop nie stoppen
             logger.warning("Katalog-Verteilung (eigene Einträge) fehlgeschlagen: %s", e, exc_info=True)
             return False
+    if changed:
+        catalog_notify.mark()                 # eigene Änderung des Hubs: alle Empfänger (V7)
+    return changed
 
 
 async def timer_tick(runs: int) -> str:
@@ -150,6 +153,7 @@ async def run_events(stop: asyncio.Event) -> None:
         if await _wait(stop, POLL):
             return
         if not catalog_changes.is_dirty() and not catalog_changes.is_hub_dirty():
+            await catalog_notify.flush()      # Anstupsen aus Pushes (wirft nie, ≤ 1 je Client/10 s)
             continue
         if await _wait(stop, BUNDLE):   # bündeln: weitere Änderungen dürfen dazukommen
             return
@@ -158,6 +162,7 @@ async def run_events(stop: asyncio.Event) -> None:
         except Exception as e:
             logger.warning("Katalog-Sync: Event-Push fehlgeschlagen: %s", e, exc_info=True)
         await hub_tick()  # fängt Fehler selbst ab, wirft nie
+        await catalog_notify.flush()
 
 
 def start(stop: asyncio.Event) -> list[asyncio.Task]:
