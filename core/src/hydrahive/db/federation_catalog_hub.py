@@ -15,6 +15,7 @@ from dataclasses import dataclass, field
 
 from hydrahive.db import federation_catalog_revs as revs
 from hydrahive.db.connection import db
+from hydrahive.federation.catalog_visibility import on_visibility_change, origin_visible
 
 
 class SeqReplay(Exception):
@@ -79,10 +80,10 @@ def apply_push(
 
     ``shared``/``remote_edits`` (docs/specs/federation-shared-tasks.md
     §Schalter): was diese Quelle gerade meldet, wird in
-    ``federation_catalog_sources`` abgelegt. Auftrag B schreibt an dieser
-    Stelle (Zugriff auf den ALTEN Wert über ``row["shared"]`` vor dem UPDATE
-    unten, neuer Wert ist das Funktionsargument) die Löschzeilen, wenn sich
-    die Sichtbarkeit ändert.
+    ``federation_catalog_sources`` abgelegt. Ändert sich dabei die
+    Sichtbarkeit von O (``origin_visible``, Bedingung 2 der Spec), schreibt
+    ``on_visibility_change`` Löschzeilen (Wegfall) bzw. neue ``rev`` für alle
+    Einträge von O (Wiederkehr) — in derselben Transaktion wie der Wechsel.
     """
     res = PushResult()
     with db(immediate=True) as conn:
@@ -92,11 +93,14 @@ def apply_push(
         current = int(row["last_seq"]) if row else 0
         if seq <= current:
             raise SeqReplay(current)
-        # ALTER shared-Wert dieser Quelle steht hier in row["shared"] (None/0,
-        # wenn die Quelle neu ist), BEVOR die UPDATE-Anweisung unten ihn durch
-        # das Funktionsargument ``shared`` (NEUER Wert) ersetzt. Hier hängt
-        # Auftrag B ein, um bei einem Wechsel Löschzeilen zu schreiben (Spec
-        # §Schalter "Wenn die Sichtbarkeit wegfällt").
+        # Sichtbarkeit VOR dem Wechsel: peer-Status/catalog_accept ändern sich
+        # hier nicht, nur row["shared"] (ALTER Wert) vs. shared (NEUER Wert,
+        # Funktionsargument). Peer-Zeile für catalog_accept/status brauchen
+        # wir trotzdem, Bedingung 2 prüft alle drei.
+        peer = conn.execute(
+            "SELECT catalog_accept, status, fingerprint FROM federation_peers WHERE id = ?", (peer_id,),
+        ).fetchone()
+        before_visible = origin_visible(dict(peer) if peer else None, dict(row) if row else None)
 
         for item in items:
             cur = conn.execute(_UPSERT, {**item, "peer_id": peer_id, "now": now})
@@ -117,11 +121,23 @@ def apply_push(
                 )
             else:
                 res.skipped_older += 1
+        origin_fp = peer["fingerprint"]
         for kind, item_id in deleted:
-            res.deleted += conn.execute(
+            existing = conn.execute(
+                "SELECT owner FROM federation_catalog_items WHERE peer_id = ? AND kind = ? AND item_id = ?",
+                (peer_id, kind, item_id),
+            ).fetchone()
+            cur = conn.execute(
                 "DELETE FROM federation_catalog_items WHERE peer_id = ? AND kind = ? AND item_id = ?",
                 (peer_id, kind, item_id),
-            ).rowcount
+            )
+            res.deleted += cur.rowcount
+            if cur.rowcount and existing:
+                # Spec §Änderungsnummer: Push mit "deleted" → Löschzeile.
+                revs.write_deletion(
+                    conn, origin_fp=origin_fp, kind=kind, item_id=item_id,
+                    owner=existing["owner"], deleted_at=now,
+                )
             conn.execute(
                 "DELETE FROM federation_catalog_rejected WHERE peer_id = ? AND kind = ? AND item_id = ?",
                 (peer_id, kind, item_id),
@@ -133,7 +149,7 @@ def apply_push(
             [(peer_id, k, i, u, r) for k, i, u, r in rejected],
         )
         if full_versions is not None:
-            _reconcile(conn, peer_id, full_versions, res)
+            _reconcile(conn, peer_id, full_versions, res, origin_fp, now)
 
         res.item_count = conn.execute(
             "SELECT COUNT(*) FROM federation_catalog_items WHERE peer_id = ?", (peer_id,),
@@ -153,10 +169,20 @@ def apply_push(
                 res.item_count, 1 if shared else 0, 1 if remote_edits else 0,
             ),
         )
+        # Sichtbarkeit NACH dem Wechsel (Spec §Schalter "Wenn die Sichtbarkeit
+        # wegfällt"/Wiederkehr): Bedingung 2 mit dem NEUEN shared-Wert, Peer
+        # selbst (catalog_accept/status) ändert sich in diesem Pfad nicht.
+        after_visible = origin_visible(
+            dict(peer) if peer else None, {"shared": 1 if shared else 0},
+        )
+        on_visibility_change(conn, peer_id, before_visible, after_visible, now)
     return res
 
 
-def _reconcile(conn, peer_id: str, full: dict[tuple[str, str], dict[str, str]], res: PushResult) -> None:
+def _reconcile(
+    conn, peer_id: str, full: dict[tuple[str, str], dict[str, str]], res: PushResult,
+    origin_fp: str, now: str,
+) -> None:
     """Stündlicher Abgleich: Hub entfernt, was fehlt; Abweichungen → resync.
 
     Abgeglichen werden nur Arten, die in der Liste vorkommen (bei irgendeinem
@@ -172,10 +198,17 @@ def _reconcile(conn, peer_id: str, full: dict[tuple[str, str], dict[str, str]], 
     listed = {(kind, item_id) for (_o, kind), versions in full.items() for item_id in versions}
     for r in stored:
         if (r["kind"], r["item_id"]) not in listed:
-            res.pruned += conn.execute(
+            cur = conn.execute(
                 "DELETE FROM federation_catalog_items WHERE peer_id = ? AND kind = ? AND item_id = ?",
                 (peer_id, r["kind"], r["item_id"]),
-            ).rowcount
+            )
+            res.pruned += cur.rowcount
+            if cur.rowcount:
+                # Spec §Änderungsnummer: Abgleich entfernt Fehlendes → Löschzeile.
+                revs.write_deletion(
+                    conn, origin_fp=origin_fp, kind=r["kind"], item_id=r["item_id"],
+                    owner=r["owner"], deleted_at=now,
+                )
     for r in conn.execute(
         "SELECT kind, item_id FROM federation_catalog_rejected WHERE peer_id = ?", (peer_id,),
     ).fetchall():
