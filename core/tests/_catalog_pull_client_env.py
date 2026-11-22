@@ -59,7 +59,13 @@ def cs(client, env, monkeypatch):
         r = await asyncio.to_thread(client.post, path, json=payload, headers=env["c"].headers(payload))
         if r.status_code == 404:
             raise ReplyUnavailable(peer["name"])
-        r.raise_for_status()
+        if r.status_code >= 400:
+            # Der TestClient kann auf httpx2 laufen (neueres Starlette, so in der CI): dessen
+            # raise_for_status wirft httpx2.HTTPStatusError. Die echte Strecke (request_signed)
+            # wirft httpx.HTTPStatusError, also genau diesen Fehler nachbauen.
+            request = httpx.Request("POST", peer["url"] + path)
+            response = httpx.Response(r.status_code, content=r.content, headers=dict(r.headers), request=request)
+            raise httpx.HTTPStatusError(f"{r.status_code}", request=request, response=response)
         body = r.json()
         if state["tamper"]:
             body["items"] = [{"origin_fp": "x", "kind": "task", "item_id": "untergeschoben", "owner": "testuser"}]
