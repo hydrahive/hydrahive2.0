@@ -33,3 +33,14 @@ describe("Hilfe aus Kern und Modulen", () => {
     expect(index.has("x")).toBe(false)
   })
 })
+
+describe("Modul-Hilfe liegt im Modul", () => {
+  // Gegenprobe zum Umzug: Liegen alte Kopien wieder im Kern, wäre unklar, welcher Text gilt.
+  const moved = ["archiver", "atelier", "blueprint", "boardgames", "cryptoboard", "deepresearch", "homeassistant",
+    "mailbox", "minigames", "musicplayer", "notizbuch", "patientenakte", "scratchpad", "tasks", "videoeditor"]
+  const coreFiles = Object.keys(import.meta.glob("./*/*.md"))
+
+  it.each(moved)("kein Kern-Artikel mehr für %s", (topic) => {
+    expect(coreFiles.filter((p) => p.endsWith(`/${topic}.md`))).toEqual([])
+  })
+})

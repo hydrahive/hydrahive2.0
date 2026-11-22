@@ -18,10 +18,7 @@ export type CoreHelpTopic =
   | "llm" | "credentials" | "system" | "extensions" | "modules" | "users" | "settings" | "access"
   // Einstieg
   | "onboarding" | "helpdesk"
-  // Module (bis ihre Hilfe ins Modul umgezogen ist)
-  | "atelier" | "patientenakte" | "cryptoboard" | "notizbuch" | "scratchpad"
-  | "deepresearch" | "homeassistant" | "archiver" | "blueprint" | "boardgames"
-  | "minigames" | "musicplayer" | "tasks" | "videoeditor" | "mailbox"
+  // Modul-Themen stehen nicht hier: Jedes Modul bringt seine Hilfe selbst mit (<modul>/frontend/help/<lang>/<id>.md).
 
 export type HelpTopic = CoreHelpTopic | (string & {})
 
