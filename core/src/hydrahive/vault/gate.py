@@ -16,7 +16,7 @@ from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from hydrahive.api.middleware._resolve import API_KEY_PREFIX
 from hydrahive.api.middleware.auth import AuthPrincipal, require_principal_or_query
 from hydrahive.api.middleware.errors import coded
-from hydrahive.vault import pins, tokens
+from hydrahive.vault import pins, tokens, unlocks
 
 _bearer = HTTPBearer(auto_error=False)
 
@@ -40,5 +40,6 @@ def require_vault_unlocked(
     refreshed = tokens.refresh(x_hh_vault or vault, principal.user_id, generation=gen, now=time.time())
     if refreshed and pins.is_set(principal.user_id):
         response.headers["X-HH-Vault-Refresh"] = refreshed
+        unlocks.use(principal.user_id)   # gleiche Uhr für Agenten-Werkzeuge (vault/unlocks.py)
         return principal
     raise coded(status.HTTP_423_LOCKED, "vault_locked", pin_set=pins.is_set(principal.user_id))
