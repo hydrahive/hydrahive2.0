@@ -150,7 +150,7 @@
     "sync_title": "Catalog sync",
     "sync_subtitle": "Send ideas and tasks (metadata only) to the hub",
     "sync_toggle": "Enable sync",
-    "sync_hint": "Sending follows in a later stage; for now only the settings are stored.",
+    "sync_hint": "Task and idea metadata is sent to the hub every few minutes and immediately on changes.",
     "shared_toggle": "Shared task management",
     "shared_hint": "Shares your own synced entries with the other instances and shows their entries here.",
     "remote_edits_toggle": "Allow editing by other instances",

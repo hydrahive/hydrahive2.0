@@ -150,7 +150,7 @@
     "sync_title": "Katalog-Sync",
     "sync_subtitle": "Ideen und Tasks (nur Metadaten) an den Hub schicken",
     "sync_toggle": "Sync einschalten",
-    "sync_hint": "Der Versand folgt in einer späteren Etappe; hier werden nur die Einstellungen gespeichert.",
+    "sync_hint": "Metadaten der Tasks und Ideen gehen an den Hub: alle paar Minuten und sofort bei Änderungen.",
     "shared_toggle": "Gemeinsame Taskpflege",
     "shared_hint": "Teilt die eigenen synchronisierten Einträge mit den anderen Instanzen und zeigt deren Einträge hier.",
     "remote_edits_toggle": "Bearbeiten durch andere Instanzen erlauben",
