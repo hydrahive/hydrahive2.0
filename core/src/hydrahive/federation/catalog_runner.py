@@ -26,7 +26,7 @@ import logging
 from hydrahive.db import federation_catalog as catalog_db
 from hydrahive.db import federation_catalog_client as client_db
 from hydrahive.db import federation_catalog_revs as revs
-from hydrahive.federation import catalog_changes, catalog_sync
+from hydrahive.federation import catalog_changes, catalog_hub_own, catalog_sync
 
 logger = logging.getLogger(__name__)
 
@@ -83,6 +83,21 @@ def _purge_deletions_if_hub() -> None:
         logger.warning("Katalog-Sync: Aufräumen des Löschprotokolls fehlgeschlagen: %s", e)
 
 
+async def hub_tick() -> bool:
+    """Eigene Hub-Einträge verteilen (Auftrag B3), unter derselben Sperre wie
+    der Client-Push (``catalog_sync._lock``). Getrennt von ``timer_tick``/
+    ``event_tick``: löst NIE einen Client-Push aus, auch wenn diese Instanz
+    selbst keinen Hub hat (dann ist ``catalog_changes.drain_hub()`` immer
+    leer, siehe ``catalog_changes.refresh_gate``). Rückgabe: ob sich etwas
+    geändert hat (V3 hängt dort das Anstupsen an)."""
+    async with catalog_sync._lock():
+        try:
+            return await asyncio.to_thread(catalog_hub_own.hub_distribute_step)
+        except Exception as e:  # darf den Loop nie stoppen
+            logger.warning("Katalog-Verteilung (eigene Einträge) fehlgeschlagen: %s", e, exc_info=True)
+            return False
+
+
 async def timer_tick(runs: int) -> str:
     """Ein Timer-Lauf. ``runs`` zählt die Timer-Läufe seit dem Start (ab 1)."""
     await asyncio.to_thread(_purge_deletions_if_hub)
@@ -123,10 +138,14 @@ async def run_timer(stop: asyncio.Event) -> None:
 
 
 async def run_events(stop: asyncio.Event) -> None:
+    """Bündelt Client-Push UND eigene Hub-Verteilung mit derselben 10-s-Pause
+    (Spec §Änderungsnummer: "gleiche Sperre, gleiche 10-s-Bündelung wie beim
+    Push"). Beide laufen unabhängig — fehlt eine Vormerkung der einen Seite,
+    bleibt die andere trotzdem möglich."""
     while not stop.is_set():
         if await _wait(stop, POLL):
             return
-        if not catalog_changes.is_dirty():
+        if not catalog_changes.is_dirty() and not catalog_changes.is_hub_dirty():
             continue
         if await _wait(stop, BUNDLE):   # bündeln: weitere Änderungen dürfen dazukommen
             return
@@ -134,6 +153,7 @@ async def run_events(stop: asyncio.Event) -> None:
             await event_tick()
         except Exception as e:
             logger.warning("Katalog-Sync: Event-Push fehlgeschlagen: %s", e, exc_info=True)
+        await hub_tick()  # fängt Fehler selbst ab, wirft nie
 
 
 def start(stop: asyncio.Event) -> list[asyncio.Task]:

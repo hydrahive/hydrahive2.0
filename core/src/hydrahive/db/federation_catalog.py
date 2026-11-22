@@ -129,6 +129,21 @@ def gate_inputs() -> tuple[bool, str | None, list[str]]:
     return (bool(row and row["enabled"]), hub["status"] if hub else None, [r["username"] for r in users])
 
 
+def hub_gate_inputs() -> tuple[bool, bool, list[str]]:
+    """Rein lesend: (ist diese Instanz Hub für mind. einen Partner, eigenes
+    `shared`, Nutzerauswahl). Für den Hub-Zweig von `ctx.catalog_changed`
+    (federation/catalog_changes.py, Spec §Änderungsnummer "Vormerkung eigener
+    Hub-Einträge"). Nutzerauswahl ist dieselbe Tabelle wie beim Client-Push —
+    "Für Einträge des Hubs gelten zusätzlich die Nutzerauswahl ... des Hubs
+    (dieselben Tabellen wie auf einem Client)".
+    """
+    with db() as conn:
+        is_hub = conn.execute("SELECT 1 FROM federation_peers WHERE catalog_accept = 1 LIMIT 1").fetchone()
+        row = conn.execute("SELECT shared FROM federation_catalog_settings WHERE id = 1").fetchone()
+        users = conn.execute("SELECT username FROM federation_catalog_users ORDER BY username").fetchall()
+    return (bool(is_hub), bool(row and row["shared"]), [r["username"] for r in users])
+
+
 def get_settings() -> dict:
     with db() as conn:
         conn.execute("INSERT OR IGNORE INTO federation_catalog_settings (id) VALUES (1)")
