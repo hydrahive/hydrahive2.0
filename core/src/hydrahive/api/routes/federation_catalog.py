@@ -16,6 +16,7 @@ from hydrahive.api.middleware.errors import coded
 from hydrahive.api.middleware.users import list_users
 from hydrahive.api.routes.federation_peers import _peer_or_404, _public
 from hydrahive.db import federation_catalog as catalog_db
+from hydrahive.db import federation_catalog_mirror_view as mirror_view
 from hydrahive.db import federation_peers as peers_db
 from hydrahive.federation.catalog_changes import safe_refresh_gate
 from hydrahive.federation.catalog_hub_exclusion import apply_hub_exclusion_change
@@ -83,6 +84,11 @@ def _settings_response() -> dict:
         "last_ok_at": row["last_ok_at"],
         "last_full_at": row["last_full_at"],
         "last_error": row["last_error"],
+        # Gemeinsame Taskpflege: Abholen beim Hub (federation-shared-tasks.md §Oberfläche Cockpit)
+        "last_pull_at": row.get("last_pull_at"),
+        "last_full_pull_at": row.get("last_full_pull_at"),
+        "last_pull_error": row.get("last_pull_error"),
+        "mirror_count": mirror_view.count(),
     }
 
 

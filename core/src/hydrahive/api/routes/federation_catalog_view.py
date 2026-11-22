@@ -15,6 +15,7 @@ from fastapi import APIRouter, Depends, Query, status
 
 from hydrahive.api.middleware.auth import AuthPrincipal, require_principal
 from hydrahive.api.middleware.errors import coded
+from hydrahive.db import federation_catalog_mirror_view as mirror_view
 from hydrahive.federation import catalog_detail, catalog_view
 
 router = APIRouter(prefix="/api/federation/catalog", tags=["federation"])
@@ -47,6 +48,31 @@ async def list_catalog(
         kind=kind, q=q or None, limit=limit, offset=offset,
     )
     return await asyncio.to_thread(catalog_view.list_catalog, _owners(user), params)
+
+
+@router.get("/mirror")
+async def list_mirror(
+    user: _User,
+    instance: Annotated[list[str] | None, Query()] = None,
+    project: Annotated[str | None, Query(max_length=200)] = None,
+    status_: Annotated[list[str] | None, Query(alias="status")] = None,
+    kind: Annotated[str | None, Query(pattern="^(task|idea)$")] = None,
+    q: Annotated[str | None, Query(max_length=200)] = None,
+    limit: Annotated[int, Query(ge=1, le=200)] = 50,
+    offset: Annotated[int, Query(ge=0, le=mirror_view.MAX_OFFSET)] = 0,
+) -> dict:
+    """Kopie auf dem Client lesen (federation-shared-tasks.md §Oberfläche Cockpit), nur lesen.
+    Gleiche Sichtbarkeit wie die Hub-Liste: eigener Nutzername, Admins alles.
+    ``instance`` = ``origin_fp`` (mehrfach möglich). Antwort mit ``facets`` für die Filter."""
+    owners = _owners(user)
+    f = mirror_view.MirrorFilter(
+        owners=owners, instances=[i for i in (instance or []) if i][:50] or None,
+        project=project or None, statuses=[s for s in (status_ or []) if s][:12],
+        kind=kind, q=q or None, limit=limit, offset=offset,
+    )
+    page = await asyncio.to_thread(mirror_view.list_page, f)
+    page["facets"] = await asyncio.to_thread(mirror_view.facets, owners)
+    return page
 
 
 @router.get("/{peer_id}/{kind}/{item_id}")
