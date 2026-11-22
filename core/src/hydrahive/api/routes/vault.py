@@ -14,7 +14,7 @@ from pydantic import BaseModel, Field
 from hydrahive.api.middleware import users
 from hydrahive.api.middleware.auth import AuthPrincipal, require_admin, require_session_principal
 from hydrahive.api.middleware.errors import coded
-from hydrahive.vault import lockout, pins, tokens
+from hydrahive.vault import lockout, pins, tokens, unlocks
 
 router = APIRouter(prefix="/api/vault", tags=["vault"])
 Session = Annotated[AuthPrincipal, Depends(require_session_principal)]
@@ -39,6 +39,7 @@ def _set(p: AuthPrincipal, pin: str) -> dict:
     except pins.PinFormatError as e:
         raise coded(status.HTTP_422_UNPROCESSABLE_ENTITY, "vault_pin_format", message=str(e)) from e
     lockout.reset(p.user_id)
+    unlocks.close(p.user_id)               # PIN-Wechsel schließt auch für Agenten; erst „Entsperren“ öffnet wieder
     return {"vault_token": tokens.issue(p.user_id, generation=gen, now=time.time())}
 
 
@@ -69,7 +70,9 @@ def unlock(body: PinIn, p: Session) -> dict:
         lockout.record_failure(p.user_id)
         raise coded(status.HTTP_401_UNAUTHORIZED, "vault_pin_wrong", pin_set=pins.is_set(p.user_id))
     lockout.reset(p.user_id)
-    return {"vault_token": tokens.issue(p.user_id, generation=pins.generation(p.user_id), now=time.time())}
+    gen = pins.generation(p.user_id)
+    unlocks.open_(p.user_id, generation=gen)
+    return {"vault_token": tokens.issue(p.user_id, generation=gen, now=time.time())}
 
 
 @router.post("/lock")
@@ -77,6 +80,7 @@ def lock(p: Session) -> dict:
     """Sofort sperren: alle Vault-Tokens dieses Nutzers werden ungültig (generation +1, PIN bleibt)."""
     if pins.is_set(p.user_id):
         pins.bump(p.user_id)
+    unlocks.close(p.user_id)               # sperrt auch die Agenten sofort
     return {"ok": True}
 
 
@@ -95,4 +99,5 @@ def reset_by_admin(user_id: str) -> dict:
         raise coded(status.HTTP_404_NOT_FOUND, "user_not_found")
     pins.reset(user_id)
     lockout.reset(user_id)
+    unlocks.close(user_id)
     return {"ok": True}

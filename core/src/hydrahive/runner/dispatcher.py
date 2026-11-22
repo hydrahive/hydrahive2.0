@@ -13,6 +13,7 @@ from hydrahive.runner._crash_log import record_crash
 from hydrahive.runner._media import extract_media
 from hydrahive.runner._module_view import module_view_media
 from hydrahive.tools import REGISTRY, ToolContext, ToolResult
+from hydrahive.vault import agent_gate as vault_gate
 
 logger = logging.getLogger(__name__)
 
@@ -67,6 +68,9 @@ async def execute_tool(
             f"Keine Freigabe für '{tool_name}' ({denied_cap}). "
             "Ein Admin kann sie unter Admin → Freigaben erteilen."
         )
+    elif (vault_block := vault_gate.blocked(tool_name, ctx.user_id)) is not None:
+        # Vault-Werkzeug bei gesperrtem Vault: Werkzeug läuft gar nicht (Ziel vault-agenten §1.2)
+        result = vault_block
     elif tool_name.startswith(mcp_bridge.PREFIX):
         # MCP-Tool: an Bridge dispatchen, Result in unser Format wandeln
         try:
