@@ -107,3 +107,38 @@ def test_real_manual_is_found():
     topics = manual.topics("de")
     assert "agents" in topics and "llm" in topics and "guide" in topics
     assert len(topics) >= 40
+
+
+def _module_help(repo: Path, module: str, lang: str, topic: str, text: str) -> None:
+    d = repo / "frontend" / "src" / "modules" / module / "help" / lang
+    d.mkdir(parents=True, exist_ok=True)
+    (d / f"{topic}.md").write_text(text)
+    manual.clear_cache()
+
+
+def test_module_brings_own_help(repo):
+    """Module bringen ihre Hilfe mit (<modul>/frontend/help/<lang>/<topic>.md → frontend/src/modules/<id>/help)."""
+    _module_help(repo, "haushaltsbuch", "de", "haushaltsbuch", "# Haushaltsbuch\n\n## Krypto-Import\n\nLedger übernehmen.\n")
+    assert "haushaltsbuch" in manual.topics("de")
+    assert manual.read("haushaltsbuch", "de").startswith("# Haushaltsbuch")
+    assert manual.search("Krypto Import", "de")[0]["topic"] == "haushaltsbuch"
+
+
+def test_module_help_wins_over_core_article(repo):
+    """Gleiches Thema in Kern und Modul: das Modul ist aktueller (wird mit dem Modul gepflegt)."""
+    _module_help(repo, "agents-mod", "de", "agents", "# Agenten (aus Modul)\n")
+    assert manual.read("agents", "de").startswith("# Agenten (aus Modul)")
+    assert manual.read("agents", "en").startswith("# Agents")      # EN nur im Kern → Kern
+
+
+def test_module_help_ignores_symlinks_and_bad_names(repo, tmp_path):
+    outside = tmp_path / "geheim.md"
+    outside.write_text("GEHEIM")
+    d = repo / "frontend" / "src" / "modules" / "evil" / "help" / "de"
+    d.mkdir(parents=True)
+    (d / "leak.md").symlink_to(outside)
+    (d / "Böse Name.md").write_text("x")
+    (repo / "frontend" / "src" / "modules" / "evil" / "help" / "xx-yy").mkdir()
+    manual.clear_cache()
+    assert "leak" not in manual.topics("de")
+    assert manual.read("leak", "de") is None
