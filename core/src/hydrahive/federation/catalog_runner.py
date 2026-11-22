@@ -6,7 +6,8 @@ Zwei Hintergrund-Loops mit gemeinsamem Stop-Event, gestartet in ``api/lifespan.p
   danach ``interval_seconds`` — bei jedem Durchlauf neu aus den Einstellungen,
   damit Änderungen ohne Neustart wirken. Jeder Lauf schickt das Delta (oder ein
   leeres Lebenszeichen); ist der Abgleich fällig (``full_due``), auch die
-  Versionsliste.
+  Versionsliste. Räumt zusätzlich das Löschprotokoll auf, wenn diese Instanz
+  Hub ist (Spec §Änderungsnummer "Aufräumen nach 7 Tagen").
 - **Event-Push** (``run_events``): ``ctx.catalog_changed`` merkt im Speicher vor
   (``catalog_changes``, aus beliebigen Threads). Der Loop sieht das spätestens
   nach ``POLL`` (1 s, reiner Speicherzugriff), wartet ``BUNDLE`` (10 s) Bündelung
@@ -22,7 +23,9 @@ from __future__ import annotations
 import asyncio
 import logging
 
+from hydrahive.db import federation_catalog as catalog_db
 from hydrahive.db import federation_catalog_client as client_db
+from hydrahive.db import federation_catalog_revs as revs
 from hydrahive.federation import catalog_changes, catalog_sync
 
 logger = logging.getLogger(__name__)
@@ -55,8 +58,34 @@ def _interval() -> int:
     return min(MAX_INTERVAL, max(MIN_INTERVAL, value))
 
 
+def _is_hub_with_accepted_partner() -> bool:
+    """Nur dann räumt dieser Lauf das Löschprotokoll auf (Spec §Aufräumen nach
+    7 Tagen): diese Instanz ist Hub für mindestens einen Partner. Fehler
+    loggen, nie werfen — ein Lesefehler soll den Timer-Lauf nicht abbrechen."""
+    try:
+        return bool(catalog_db.any_accepting())
+    except Exception as e:
+        logger.warning("Katalog-Sync: Hub-Status für Aufräumen nicht lesbar: %s", e)
+        return False
+
+
+def _purge_deletions_if_hub() -> None:
+    """Spec §Änderungsnummer "Aufräumen nach 7 Tagen": einmal je Timer-Lauf,
+    nur auf dem Hub. Wirft nie — ein Fehler hier darf den Katalog-Sync nicht
+    abbrechen, der nächste Lauf versucht es erneut."""
+    if not _is_hub_with_accepted_partner():
+        return
+    try:
+        removed = revs.purge_deletions()
+        if removed:
+            logger.info("Katalog-Sync: %s Löschzeilen älter als 7 Tage entfernt", removed)
+    except Exception as e:
+        logger.warning("Katalog-Sync: Aufräumen des Löschprotokolls fehlgeschlagen: %s", e)
+
+
 async def timer_tick(runs: int) -> str:
     """Ein Timer-Lauf. ``runs`` zählt die Timer-Läufe seit dem Start (ab 1)."""
+    await asyncio.to_thread(_purge_deletions_if_hub)
     try:
         cfg = await asyncio.to_thread(client_db.load_config)
     except Exception as e:
