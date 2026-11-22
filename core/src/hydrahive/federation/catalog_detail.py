@@ -81,7 +81,9 @@ def _offline(row: dict, peer: dict | None) -> dict:
     return _result(row, source="snapshot" if snap else "none", content=snap, peer=peer, online=False)
 
 
-async def open_remote(peer_id: str, kind: str, item_id: str, viewer: str, *, is_admin: bool) -> dict:
+async def open_remote(peer_id: str, kind: str, item_id: str, viewer: str, *, is_admin: bool,
+                      timeout: float | None = None) -> dict:
+    timeout = FETCH_TIMEOUT if timeout is None else timeout
     row = await asyncio.to_thread(view_db.get_row, peer_id, kind, item_id)
     if row is None or (not is_admin and row["owner"] != viewer):
         raise NotVisible()
@@ -91,8 +93,8 @@ async def open_remote(peer_id: str, kind: str, item_id: str, viewer: str, *, is_
     payload = proto.new_catalog_fetch(kind, item_id, row["owner"])
     try:
         reply = await asyncio.wait_for(
-            request_signed(peer, FETCH_PATH, payload, reply_kind="catalog_item", timeout=FETCH_TIMEOUT),
-            timeout=FETCH_TIMEOUT,
+            request_signed(peer, FETCH_PATH, payload, reply_kind="catalog_item", timeout=timeout),
+            timeout=timeout,
         )
     except ReplyUnavailable:
         await asyncio.to_thread(audit, peer["name"], f"Nachladen {kind} {item_id[:8]}: Ursprung gibt nichts heraus")
