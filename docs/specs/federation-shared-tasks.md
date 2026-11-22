@@ -85,9 +85,9 @@ Je Instanz, in Föderation → Katalog (Admin):
 „Bearbeiten durch andere Instanzen erlauben“ ist kein zweiter Teilen-Schalter, sondern
 ein zusätzlicher Schutz für Schreibzugriffe von außen: Mit `shared` allein sind die
 eigenen Einträge anderswo sichtbar, aber nicht änderbar. **Sicherheitsergänzung dieser
-Spec, nicht Teil von Tills Entscheidungen 1 und 7.** Till bestätigt sie vor Etappe G4
-(Bearbeiten). Lehnt er sie ab, entfällt `remote_edits`, und `shared` erlaubt auch das
-Bearbeiten.
+Spec, nicht Teil von Tills Entscheidungen 1 und 7.** Von Till bestätigt am 22.11.2026:
+`remote_edits` wird gebaut, mit `shared` allein sind eigene Einträge anderswo nur
+sichtbar.
 
 Der Client meldet beide Werte in jedem `catalog_push` mit (neue Felder `shared`,
 `remote_edits`). Der Hub speichert sie in `federation_catalog_sources`. Auf dem Hub
