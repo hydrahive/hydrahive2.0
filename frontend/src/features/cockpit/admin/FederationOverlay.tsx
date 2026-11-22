@@ -4,6 +4,7 @@ import { Plus } from "lucide-react"
 import { useTranslation } from "react-i18next"
 import { WorkstationsPanel } from "@/features/federation/WorkstationsPanel"
 import { PeersSection } from "@/features/federation/_PeersSection"
+import { CatalogTab } from "@/features/federation/_CatalogTab"
 import { ClientConnectionsSection } from "@/features/federation/_ClientConnectionsSection"
 import { DataminingInstancesSection } from "@/features/federation/_DataminingInstancesSection"
 import { FEDERATION_TABS, parseFederationTab, type FederationTab } from "@/features/federation/federationTabs"
@@ -43,6 +44,7 @@ export function FederationOverlay({ onClose }: { onClose: () => void }) {
           tabs={FEDERATION_TABS.map((id) => ({ id, label: t(`tabs.${id}`) }))}>
           {tab === "workstations" && <WorkstationsPanel showAdd={showAdd} onShowAdd={setShowAdd} />}
           {tab === "peers" && <PeersSection />}
+          {tab === "catalog" && <CatalogTab />}
           {tab === "clients" && <ClientConnectionsSection />}
           {tab === "datamining" && <DataminingInstancesSection />}
         </AdminTabs>

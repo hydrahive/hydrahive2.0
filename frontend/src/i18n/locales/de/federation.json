@@ -136,6 +136,7 @@
   "tabs": {
     "workstations": "Workstations",
     "peers": "Server",
+    "catalog": "Katalog",
     "clients": "Clients",
     "datamining": "Datamining"
   },
@@ -211,6 +212,39 @@
       "pull_failed": "Abholen fehlgeschlagen (Details im Server-Log).",
       "http_404": "Hub lehnt die Anfrage ab (404).",
       "unknown": "Abholen fehlgeschlagen ({{code}})."
+    }
+  },
+  "catalog_tab": {
+    "title": "Katalog",
+    "subtitle": "Ideen und Tasks anderer Instanzen (nur lesen)",
+    "search_placeholder": "Suchen …",
+    "kind_all": "Alle Arten",
+    "kind_task": "Task",
+    "kind_idea": "Idee",
+    "instance_label": "Instanz",
+    "project_label": "Projekt",
+    "status_label": "Status",
+    "col_kind": "Art",
+    "col_short_id": "ID",
+    "col_title": "Titel",
+    "col_status": "Status",
+    "col_project": "Projekt",
+    "col_instance": "Instanz",
+    "col_updated": "Geändert am",
+    "empty": "Noch keine Einträge anderer Instanzen. Gemeinsame Taskpflege einschalten und einen Hub setzen.",
+    "load_error": "Katalog konnte nicht geladen werden.",
+    "load_more": "Mehr laden",
+    "loading_more": "Lädt …",
+    "status": {
+      "open": "offen",
+      "in_progress": "in Arbeit",
+      "done": "erledigt",
+      "cancelled": "abgebrochen",
+      "new": "neu",
+      "review": "zu prüfen",
+      "planned": "geplant",
+      "parked": "zurückgestellt",
+      "dropped": "verworfen"
     }
   }
 }

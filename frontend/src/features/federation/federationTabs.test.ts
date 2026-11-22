@@ -3,8 +3,8 @@ import { describe, expect, it } from "vitest"
 import { FEDERATION_TABS, parseFederationTab } from "./federationTabs"
 
 describe("Föderations-Reiter", () => {
-  it("vier Reiter in fester Reihenfolge", () => {
-    expect(FEDERATION_TABS).toEqual(["workstations", "peers", "clients", "datamining"])
+  it("fünf Reiter in fester Reihenfolge, Katalog nach Server", () => {
+    expect(FEDERATION_TABS).toEqual(["workstations", "peers", "catalog", "clients", "datamining"])
   })
   it("ohne Angabe: Workstations", () => {
     expect(parseFederationTab(null)).toBe("workstations")

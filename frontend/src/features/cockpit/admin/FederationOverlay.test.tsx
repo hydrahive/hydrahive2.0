@@ -8,6 +8,7 @@ vi.mock("react-i18next", () => ({ useTranslation: () => ({ t: (k: string) => k }
 vi.mock("./AdminOverlay", () => ({ AdminOverlay: ({ children }: { children: ReactNode }) => <div>{children}</div> }))
 vi.mock("@/features/federation/WorkstationsPanel", () => ({ WorkstationsPanel: () => <div data-part="workstations" /> }))
 vi.mock("@/features/federation/_PeersSection", () => ({ PeersSection: () => <div data-part="peers" /> }))
+vi.mock("@/features/federation/_CatalogTab", () => ({ CatalogTab: () => <div data-part="catalog" /> }))
 vi.mock("@/features/federation/_ClientConnectionsSection", () => ({ ClientConnectionsSection: () => <div data-part="clients" /> }))
 vi.mock("@/features/federation/_DataminingInstancesSection", () => ({ DataminingInstancesSection: () => <div data-part="datamining" /> }))
 import { FederationOverlay } from "./FederationOverlay"
@@ -20,8 +21,8 @@ const selected = (h: string) => [...h.matchAll(/<button[^>]*role="tab"[^>]*aria-
   .map((m) => m[1].replace(/<[^>]+>/g, "").trim())
 
 describe("Admin-Fenster Föderation", () => {
-  it("vier Reiter", () => {
-    expect(render("/admin?section=federation").match(/role="tab"/g)).toHaveLength(4)
+  it("fünf Reiter", () => {
+    expect(render("/admin?section=federation").match(/role="tab"/g)).toHaveLength(5)
   })
   it("ohne Reiter in der URL: nur Workstations", () => {
     const h = render("/admin?section=federation")
@@ -32,6 +33,11 @@ describe("Admin-Fenster Föderation", () => {
     const h = render("/admin?section=federation&tab=clients")
     expect(parts(h)).toEqual(["clients"])
     expect(selected(h)).toEqual(["tabs.clients"])
+  })
+  it("Reiter Katalog, nach Server", () => {
+    const h = render("/admin?section=federation&tab=catalog")
+    expect(parts(h)).toEqual(["catalog"])
+    expect(selected(h)).toEqual(["tabs.catalog"])
   })
   it("unbekannter Reiter: Workstations", () => {
     expect(parts(render("/admin?section=federation&tab=xyz"))).toEqual(["workstations"])

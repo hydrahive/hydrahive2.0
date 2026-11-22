@@ -136,6 +136,7 @@
   "tabs": {
     "workstations": "Workstations",
     "peers": "Servers",
+    "catalog": "Catalog",
     "clients": "Clients",
     "datamining": "Datamining"
   },
@@ -211,6 +212,39 @@
       "pull_failed": "Pull failed (details in the server log).",
       "http_404": "The hub rejects the request (404).",
       "unknown": "Pull failed ({{code}})."
+    }
+  },
+  "catalog_tab": {
+    "title": "Catalog",
+    "subtitle": "Ideas and tasks of other instances (read only)",
+    "search_placeholder": "Search …",
+    "kind_all": "All kinds",
+    "kind_task": "Task",
+    "kind_idea": "Idea",
+    "instance_label": "Instance",
+    "project_label": "Project",
+    "status_label": "Status",
+    "col_kind": "Kind",
+    "col_short_id": "ID",
+    "col_title": "Title",
+    "col_status": "Status",
+    "col_project": "Project",
+    "col_instance": "Instance",
+    "col_updated": "Updated",
+    "empty": "No entries from other instances yet. Turn on shared task management and set a hub.",
+    "load_error": "Could not load the catalog.",
+    "load_more": "Load more",
+    "loading_more": "Loading …",
+    "status": {
+      "open": "open",
+      "in_progress": "in progress",
+      "done": "done",
+      "cancelled": "cancelled",
+      "new": "new",
+      "review": "review",
+      "planned": "planned",
+      "parked": "parked",
+      "dropped": "dropped"
     }
   }
 }
