@@ -207,6 +207,15 @@ server {
 }
 EOF
 
+# Testseite eines Projekts auf Port 8445 (installer/lib/nginx-project-preview.sh, Merkmal hh_project_preview_auth).
+# Gleiches Zertifikat wie der Hauptblock; Cache unter dem Homebrew-Präfix (nginx läuft als root, LaunchDaemon unten).
+# shellcheck source=../lib/nginx-project-preview.sh
+source "$(dirname "$(readlink -f "$0" 2>/dev/null || echo "$0")")/../lib/nginx-project-preview.sh"
+HH_PREVIEW_CACHE="$(brew --prefix)/var/cache/hydrahive-project-preview"
+sudo mkdir -p "$HH_PREVIEW_CACHE"
+hh_project_preview_block "${CERT_DIR}/server.crt" "${CERT_DIR}/server.key" "127.0.0.1:${HH_PORT}" "$HH_PREVIEW_CACHE" \
+  >> "$NGINX_NEW"
+
 NGINX_BIN="$(brew --prefix)/bin/nginx"
 if [ -x "$NGINX_BIN" ] && [ -f "$NGINX_CONF" ]; then
   mv -f "$NGINX_CONF" "$NGINX_CONF.bak"

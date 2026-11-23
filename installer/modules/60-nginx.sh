@@ -309,6 +309,15 @@ server {
 }
 EOF
 
+# Testseite eines Projekts auf Port 8445 (installer/lib/nginx-project-preview.sh, Merkmal hh_project_preview_auth).
+# Gleiches Zertifikat wie der Hauptblock. Cache der Prüfung gehört nginx (www-data).
+# shellcheck source=../lib/nginx-project-preview.sh
+source "$(dirname "${BASH_SOURCE[0]}")/../lib/nginx-project-preview.sh"
+HH_PREVIEW_CACHE=/var/cache/hydrahive-project-preview
+install -d -m 0700 -o www-data -g www-data "$HH_PREVIEW_CACHE" 2>/dev/null || install -d -m 0700 "$HH_PREVIEW_CACHE"
+hh_project_preview_block "$TLS_DIR/hydrahive.crt" "$TLS_DIR/hydrahive.key" "$HH_HOST:$HH_PORT" "$HH_PREVIEW_CACHE" \
+  >> "$CONF_FILE"
+
 ln -sf "$CONF_FILE" /etc/nginx/sites-enabled/hydrahive2
 rm -f /etc/nginx/sites-enabled/default
 

@@ -245,7 +245,7 @@ BREW_PREFIX="/usr/local"
 NGINX_CONF="$BREW_PREFIX/etc/nginx/servers/hydrahive2.conf"
 if [ -f "$NGINX_CONF" ]; then
   NEEDS_NGINX=""
-  for marker in hh_agentlink_auth hh_peering_tailnet hh_module_sandbox hh_security_headers; do
+  for marker in hh_agentlink_auth hh_peering_tailnet hh_module_sandbox hh_security_headers hh_project_preview_auth; do
     grep -q "$marker" "$NGINX_CONF" || NEEDS_NGINX=1
   done
   if [ -n "$NEEDS_NGINX" ]; then

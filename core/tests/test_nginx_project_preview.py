@@ -118,3 +118,48 @@ def test_nginx_t_akzeptiert_den_block(tmp_path):
                         "-c", str(tmp_path / "nginx.conf")], capture_output=True, text=True)
     assert r.returncode == 0, r.stderr
     assert "syntax is ok" in r.stderr and "test is successful" in r.stderr
+
+
+# --- Installer und Update richten den Block ohne Handarbeit ein (T7) -----------------------------------------------
+
+MARKER = "hh_project_preview_auth"
+
+
+def test_linux_installer_haengt_den_block_an_die_hauptconfig():
+    text = (ROOT / "installer/modules/60-nginx.sh").read_text()
+    assert 'source "$(dirname "${BASH_SOURCE[0]}")/../lib/nginx-project-preview.sh"' in text
+    call = text.index("hh_project_preview_block ")
+    assert '"$TLS_DIR/hydrahive.crt"' in text[call:call + 200] and '>> "$CONF_FILE"' in text[call:call + 260]
+    assert call < text.index("\nnginx -t\n")                       # vor der Prüfung und dem Reload
+
+
+def test_mac_installer_haengt_den_block_vor_der_pruefung_an():
+    text = (ROOT / "installer/modules-mac/60-nginx.sh").read_text()
+    assert "/../lib/nginx-project-preview.sh\"" in text
+    call = text.index("hh_project_preview_block ")
+    assert '"${CERT_DIR}/server.crt"' in text[call:call + 200] and '>> "$NGINX_NEW"' in text[call:call + 260]
+    assert "brew --prefix)/var/cache/hydrahive-project-preview" in text
+    assert call < text.index('-t >/dev/null 2>&1; then')            # vor nginx -t mit Rücknahme
+
+
+def test_update_sh_schreibt_config_neu_wenn_block_fehlt():
+    text = (ROOT / "installer/update.sh").read_text()
+    assert f'grep -q "{MARKER}"' in text and "NEEDS_REWRITE=1" in text.split(f'grep -q "{MARKER}"', 1)[1].splitlines()[0]
+
+
+def test_update_mac_sh_kennt_das_merkmal():
+    text = (ROOT / "installer/update-mac.sh").read_text()
+    loop = next(line for line in text.splitlines() if line.strip().startswith("for marker in"))
+    assert MARKER in loop.split("; do")[0].split()
+
+
+def test_update_sh_marker_greift_bei_alter_config(tmp_path):
+    """Echte Probe der update.sh-Zeile: alte Config ohne Block → neu schreiben; mit Block → nichts tun."""
+    line = next(line.strip() for line in (ROOT / "installer/update.sh").read_text().splitlines()
+                if f'grep -q "{MARKER}"' in line)
+    conf = tmp_path / "hydrahive2"
+    for content, want in (("server { listen 443 ssl; }\n", "1"), (f"# {MARKER}\n", "0")):
+        conf.write_text(content)
+        r = subprocess.run(["bash", "-c", f'NEEDS_REWRITE=0; NGINX_CONF="$1"; {line}; echo $NEEDS_REWRITE', "_", str(conf)],
+                           capture_output=True, text=True, check=True)
+        assert r.stdout.strip() == want
