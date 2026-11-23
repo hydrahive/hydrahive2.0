@@ -111,6 +111,8 @@ def pack(raw: Path, dest: Path) -> int:
     """``dest`` endet auf .zst oder .gz. Ein Fehler hinterlässt keine halbe ``dest``; ``raw`` wird immer entfernt."""
     tmp_out = dest.parent / (dest.name + ".tmp")
     tmp_out.unlink(missing_ok=True)
+    if raw.is_symlink() or not raw.is_file():           # raw liegt in einem Ordner des DB-Besitzers: nie einem Link folgen
+        raise SnapshotError(f"{raw} ist keine reguläre Datei")
     try:
         if dest.name.endswith(".zst") and not shutil.which("zstd"):
             raise SnapshotError("zstd nicht gefunden")

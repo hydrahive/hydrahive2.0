@@ -4,8 +4,9 @@
 # Wird von update.sh gesourct und läuft als root. Noch KEIN automatischer Rückweg (U4): hier entsteht nur die
 # Sicherung samt Anleitung für einen Rückweg von Hand.
 #
-# Ordner je Lauf:  $HH_DATA_DIR/backups/update/<UTC>_<alter-commit-kurz>/   (root:root, 0700)
-#   meta.env            KEY=Wert (siehe hh_meta_set)        sessions.db.zst  VACUUM INTO + quick_check + zstd
+# Ordner je Lauf:  /var/backups/hydrahive2/update/<UTC>_<alter-commit-kurz>/   (root:root, 0700)
+#   Bewusst NICHT unter $HH_DATA_DIR (gehört dem Dienstnutzer): dort könnte er per Symlink root-Schreibzugriffe umlenken.
+#   meta.env            KEY=Wert (siehe hh_meta_set)        sessions.db.zst  VACUUM INTO + quick_check + zstd (ohne zstd: .gz)
 #   etc-hydrahive2.tar  Konfiguration (0600)                 units/           Unit, nginx-Site, sudoers
 #   dist/               frontend/dist                        modules-frontend/ frontend/src/modules
 #   venv.tar.zst        nur bei geändertem Python/pyproject  update-safety.sh, db_snapshot.py (Kopie, §4 Grundsatz)
@@ -14,10 +15,22 @@
 # Erwartet aus update.sh: log, err, HH_REPO_DIR, HH_USER, HH_DATA_DIR, HH_CONFIG_DIR (und für Schritt 2 HH_GIT).
 # Bash-3.2-tauglich ist das hier nicht nötig (nur Linux), aber ohne Bash-4-Besonderheiten geschrieben.
 
-HH_BACKUP_ROOT_DEFAULT_SUBDIR="backups/update"
 HH_SAFETY_LIB_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
-hh_backup_root() { printf '%s\n' "${HH_BACKUP_ROOT:-$HH_DATA_DIR/$HH_BACKUP_ROOT_DEFAULT_SUBDIR}"; }
+hh_backup_root() { printf '%s\n' "${HH_BACKUP_ROOT:-/var/backups/hydrahive2/update}"; }
+
+# Endung der Kompression: zstd, sonst gzip (zstd ist nicht überall installiert; das Update darf daran nicht scheitern).
+hh_zext() { if command -v zstd >/dev/null 2>&1; then echo zst; else echo gz; fi; }
+
+# Ein Verzeichnis, in das root schreibt, muss echt, root-eigen (hier: Besitzer = aufrufender Nutzer) und für Gruppe/Andere
+# nicht schreibbar sein – sonst könnte der Dienstnutzer es austauschen und root-Schreibzugriffe umlenken.
+hh_assert_private_dir() {
+  local d=$1 owner mode
+  [ -d "$d" ] && [ ! -L "$d" ] || err "Sicherungsordner $d ist kein echtes Verzeichnis – nichts verändert."
+  owner="$(stat -c %u "$d" 2>/dev/null)"; mode="$(stat -c %a "$d" 2>/dev/null)"
+  [ "$owner" = "$EUID" ] || err "Sicherungsordner $d gehört nicht root (Besitzer $owner) – nichts verändert."
+  case "$mode" in *[2367]?|*[2367]) err "Sicherungsordner $d ist für andere schreibbar ($mode) – nichts verändert." ;; esac
+}
 
 # ---------------------------------------------------------------------------------------------------------------
 # Hilfen
@@ -118,6 +131,8 @@ hh_backup_need_bytes() {   # <db-nutzdaten> <venv-bytes>
 # Platz prüfen: auf dem Dateisystem des Sicherungsordners UND dem von sessions.db (WAL, VACUUM-Zwischendatei).
 hh_backup_check_space() {   # <need> <backup-root> <db>
   local need=$1 root=$2 db=$3 free path
+  # Der Sicherungsordner existiert noch nicht (es wird vor der Prüfung nichts angelegt): den nächsten vorhandenen Elternordner messen.
+  while [ ! -d "$root" ] && [ "$root" != "/" ]; do root="$(dirname "$root")"; done
   for path in "$root" "$(dirname "$db")"; do
     free=$(hh_free_bytes "$path")
     [ -n "$free" ] || err "Freien Platz auf $path nicht ermittelbar – nichts verändert."
@@ -128,30 +143,32 @@ hh_backup_check_space() {   # <need> <backup-root> <db>
 }
 
 hh_backup_make_dir() {   # <alter-commit>
-  local root stamp short
+  local root stamp short parent
   root=$(hh_backup_root)
+  parent="$(dirname "$root")"
+  ( umask 077; mkdir -p "$parent" "$root" ) || err "Sicherungsordner $root nicht anlegbar – nichts verändert."
+  hh_assert_private_dir "$parent"
+  hh_assert_private_dir "$root"
   stamp="$(date -u +%Y%m%dT%H%M%SZ)"
   short="${1:0:8}"
   HH_BACKUP_DIR="$root/${stamp}_${short}"
-  ( umask 077; mkdir -p "$root" "$HH_BACKUP_DIR" ) || err "Sicherungsordner $HH_BACKUP_DIR nicht anlegbar – nichts verändert."
-  chmod 700 "$root" "$HH_BACKUP_DIR"
+  ( umask 077; mkdir "$HH_BACKUP_DIR" ) || err "Sicherungsordner $HH_BACKUP_DIR nicht anlegbar – nichts verändert."
   export HH_BACKUP_DIR
 }
 
-hh_backup_db() {   # <db> <ziel.zst>
+hh_backup_db() {   # <db> <ziel.zst|.gz>
   local db=$1 dest=$2 py work raw out
   py=$(hh_safety_python)
-  # Die Kopie läuft als Besitzer der DB: root würde bei gestopptem Dienst -wal/-shm root-eigen anlegen.
-  work="$(dirname "$(hh_backup_root)")/.work"
-  ( umask 077; mkdir -p "$work" ) || return 1
-  [ "$(id -u)" -eq 0 ] && chown "$HH_USER:$HH_USER" "$work" 2>/dev/null
-  chmod 700 "$work"
-  chmod 711 "$(dirname "$(hh_backup_root)")" 2>/dev/null
-  raw="$work/update-$$.db"
+  # Die Kopie läuft als Besitzer der DB (root würde bei gestopptem Dienst -wal/-shm root-eigen anlegen). Das
+  # Arbeitsverzeichnis legt deshalb auch der DB-Besitzer an: root führt auf Pfaden des Dienstnutzers kein chown/chmod aus.
+  work=$(hh_as_dbowner mktemp -d "$HH_DATA_DIR/.update-work.XXXXXX") \
+    || err "Arbeitsordner für die DB-Sicherung nicht anlegbar – nichts verändert"
+  raw="$work/update.db"
   out=$(hh_as_dbowner_lowprio "$py" "$HH_SAFETY_LIB_DIR/db_snapshot.py" copy "$db" "$raw" 2>&1) \
-    || { rm -f "$raw"; err "DB-Sicherung fehlgeschlagen ($out) – nichts verändert"; }
+    || { hh_as_dbowner rm -rf "$work"; err "DB-Sicherung fehlgeschlagen ($out) – nichts verändert"; }
   out=$(hh_lowprio "$py" "$HH_SAFETY_LIB_DIR/db_snapshot.py" pack "$raw" "$dest" 2>&1) \
-    || { rm -f "$raw" "$dest"; err "DB-Sicherung fehlgeschlagen ($out) – nichts verändert"; }
+    || { hh_as_dbowner rm -rf "$work"; rm -f "$dest"; err "DB-Sicherung fehlgeschlagen ($out) – nichts verändert"; }
+  hh_as_dbowner rm -rf "$work"
   out=$("$py" "$HH_SAFETY_LIB_DIR/db_snapshot.py" verify "$dest" 2>&1) \
     || { rm -f "$dest"; err "DB-Sicherung nicht lesbar ($out) – nichts verändert"; }
   hh_meta_set DB_BACKUP_BYTES "$(stat -c %s "$dest")"
@@ -185,13 +202,21 @@ hh_backup_files() {   # <venv:0|1>
       || err "Sicherung von frontend/src/modules fehlgeschlagen – nichts verändert"
   fi
   if [ "$1" = "1" ]; then
-    ( set -o pipefail; tar -C "$HH_REPO_DIR" -cf - .venv | zstd -3 -T0 -q -o "$dir/venv.tar.zst" ) \
-      || err "Sicherung des Python-venv fehlgeschlagen – nichts verändert"
+    if [ "$(hh_zext)" = zst ]; then
+      ( set -o pipefail; tar -C "$HH_REPO_DIR" -cf - .venv | zstd -3 -T0 -q -o "$dir/venv.tar.zst" ) \
+        || err "Sicherung des Python-venv fehlgeschlagen – nichts verändert"
+    else
+      ( set -o pipefail; tar -C "$HH_REPO_DIR" -czf "$dir/venv.tar.gz" .venv ) \
+        || err "Sicherung des Python-venv fehlgeschlagen – nichts verändert"
+    fi
   fi
 }
 
 hh_backup_write_guide() {
-  local dir=$HH_BACKUP_DIR old=$1 db="$HH_DATA_DIR/sessions.db"
+  local dir=$HH_BACKUP_DIR old=$1 db="$HH_DATA_DIR/sessions.db" ext unz venvcmd
+  ext="$(hh_zext)"
+  if [ "$ext" = zst ]; then unz="zstd -d -o $db $dir/sessions.db.zst"; venvcmd="zstd -dc $dir/venv.tar.zst | tar -C $HH_REPO_DIR -xf -"
+  else unz="gzip -dc $dir/sessions.db.gz > $db"; venvcmd="tar -C $HH_REPO_DIR -xzf $dir/venv.tar.gz"; fi
   cat > "$dir/ROLLBACK.txt" <<EOF
 Rückweg von Hand (automatischer Rückweg folgt mit Etappe U4)
 Sicherung: $dir
@@ -201,7 +226,7 @@ Alter Commit: $old
 2. Kaputten Stand NICHT löschen, zur Seite legen:
      mkdir -p $dir/kaputt && mv $db $db-wal $db-shm $dir/kaputt/ 2>/dev/null
 3. Datenbank zurückspielen:
-     zstd -d -o $db $dir/sessions.db.zst && chown $HH_USER:$HH_USER $db
+     $unz && chown $HH_USER:$HH_USER $db
 4. Code zurück:
      sudo -u $HH_USER git -C $HH_REPO_DIR reset --hard $old
 5. Frontend zurück (kein Neubau nötig):
@@ -210,8 +235,8 @@ Alter Commit: $old
 6. Konfiguration (nur bei Bedarf):
      tar -C $(dirname "$HH_CONFIG_DIR") -xf $dir/etc-hydrahive2.tar
      Units: cp -a $dir/units/* an die ursprünglichen Orte, danach systemctl daemon-reload
-7. venv (nur wenn $dir/venv.tar.zst existiert):
-     rm -rf $HH_REPO_DIR/.venv && zstd -dc $dir/venv.tar.zst | tar -C $HH_REPO_DIR -xf -
+7. venv (nur wenn $dir/venv.tar.$ext existiert):
+     rm -rf $HH_REPO_DIR/.venv && $venvcmd
      sonst: sudo -u $HH_USER $HH_REPO_DIR/.venv/bin/pip install -e $HH_REPO_DIR/core
 8. systemctl start hydrahive2.service; curl -fsS http://127.0.0.1:8001/api/health
 EOF
@@ -248,7 +273,6 @@ hh_safety_backup() {
       || err "DB-Größe nicht ermittelbar ($est) – nichts verändert"
   fi
   need=$(hh_backup_need_bytes "$est" "$venv_bytes")
-  mkdir -p "$root" 2>/dev/null || true
   hh_backup_check_space "$need" "$root" "${db}"
 
   hh_backup_make_dir "$old"
@@ -265,7 +289,7 @@ hh_safety_backup() {
 
   if [ -f "$db" ]; then
     log "Datenbank sichern (VACUUM INTO, geprüft)"
-    hh_backup_db "$db" "$HH_BACKUP_DIR/sessions.db.zst"
+    hh_backup_db "$db" "$HH_BACKUP_DIR/sessions.db.$(hh_zext)"
   else
     log "Keine sessions.db unter $HH_DATA_DIR – DB-Sicherung entfällt"
   fi
@@ -305,6 +329,18 @@ hh_backup_prune() {
   done < <(ls -1 "$root" 2>/dev/null | grep -E '^[0-9]{8}T[0-9]{6}Z_[0-9a-f]+$|^[0-9]{8}T[0-9]{6}Z_unbekannt$' | sort -r)
 }
 
+# Hat das Update schon etwas verändert? Entscheidend ist der ZUSTAND, nicht eine Shell-Variable: Nach einem Re-exec
+# ist HH_PHASE_B leer, der Code aber schon neu (Review #760, Fund 1). Im Zweifel: ja (Sicherung behalten).
+hh_safety_changed() {
+  local old head
+  [ -n "${HH_PHASE_B:-}" ] && return 0
+  [ -n "${HH_UPDATE_REEXECED:-}" ] && return 0
+  old="$(hh_meta_get OLD_COMMIT "$HH_BACKUP_DIR")"
+  head="$($HH_GIT rev-parse HEAD 2>/dev/null || true)"
+  [ -n "$head" ] && [ -n "$old" ] && [ "$old" != "unbekannt" ] && [ "$head" = "$old" ] && return 1
+  return 0
+}
+
 # Aus dem trap von update.sh, VOR der Schlusszeile. Verändert den Exit-Code nie.
 hh_safety_finish() {
   local rc=$1 new old status
@@ -326,7 +362,7 @@ hh_safety_finish() {
       hh_meta_set STATUS ok                    # bis U4: Dienst aktiv; Health und Migrationsstand folgen mit Phase C
     fi
     hh_backup_prune || true
-  elif [ -z "${HH_PHASE_B:-}" ]; then
+  elif ! hh_safety_changed; then
     # Git-Schritt abgelehnt o. Ä.: es wurde nichts verändert, die Sicherung wird nicht gebraucht.
     rm -rf --one-file-system -- "$HH_BACKUP_DIR"
     log "Nichts verändert."

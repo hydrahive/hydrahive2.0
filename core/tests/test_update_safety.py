@@ -7,6 +7,7 @@ from __future__ import annotations
 import os
 import sqlite3
 import subprocess
+import shutil
 from pathlib import Path
 
 import pytest
@@ -78,6 +79,7 @@ def env(tmp_path: Path) -> dict:
 def _env(e: dict, **extra: str) -> dict:
     base = {"PATH": f"{e['bin']}:/usr/bin:/bin", "HH_REPO_DIR": str(e["repo"]), "HH_USER": "hydrahive",
             "HH_DATA_DIR": str(e["data"]), "HH_CONFIG_DIR": str(e["cfg"]), "HH_UPDATE_LOCK": str(e["lock"]),
+            "HH_BACKUP_ROOT": str(e["tmp"] / "varbackups" / "update"),
             "HH_UNIT_FILE": str(e["unit"]), "HH_NGINX_SITE": str(e["tmp"] / "nginx-site"),
             "HH_SUDOERS_FILE": str(e["tmp"] / "sudoers"), "HOME": str(e["tmp"])}
     base.update(extra)
@@ -107,7 +109,7 @@ def _run_head(e: dict, **extra: str) -> subprocess.CompletedProcess:
 
 
 def _backups(e: dict) -> list[Path]:
-    root = e["data"] / "backups" / "update"
+    root = e["tmp"] / "varbackups" / "update"
     return sorted(p for p in root.iterdir() if p.is_dir()) if root.exists() else []
 
 
@@ -230,7 +232,7 @@ def test_platz_wird_auch_auf_dem_dateisystem_der_db_geprueft(env):
         f"case \"$last\" in {env['data']}) echo '/dev/d 1000000 999000 1000 99% /';; *) echo '/dev/b 99999999999999 1 99999999999999 1% /';; esac\n")
     (env["bin"] / "df").chmod(0o755)
     # der Sicherungsordner liegt unter data/ → beide Pfade zeigen auf data; eigenes Backup-Root daneben
-    r = _run_head(env, HH_BACKUP_ROOT=str(env["tmp"] / "backups-woanders"))
+    r = _run_head(env, HH_BACKUP_ROOT=str(env["tmp"] / "backups-woanders" / "update"))
     assert r.returncode != 0
     assert "Zu wenig Platz" in r.stdout + r.stderr and "nichts verändert" in r.stdout
 
@@ -352,8 +354,10 @@ def _prune(env: dict, **extra: str) -> subprocess.CompletedProcess:
 
 
 def _fake_backup(env: dict, stamp: str, status: str, *, kaputt: bool = False) -> Path:
-    d = env["data"] / "backups" / "update" / f"{stamp}_abcdef12"
+    d = env["tmp"] / "varbackups" / "update" / f"{stamp}_abcdef12"
     d.mkdir(parents=True)
+    d.parent.parent.chmod(0o755)
+    d.parent.chmod(0o700)
     (d / "meta.env").write_text(f"STATUS={status}\n")
     (d / "sessions.db.zst").write_text("x")
     if kaputt:
@@ -381,7 +385,7 @@ def test_aufbewahrung_loescht_nie_rueckweg_und_unterbrochene(env):
 
 
 def test_aufbewahrung_fasst_fremde_ordner_nicht_an(env):
-    fremd = env["data"] / "backups" / "update" / "meine-notizen"
+    fremd = env["tmp"] / "varbackups" / "update" / "meine-notizen"
     fremd.mkdir(parents=True)
     (fremd / "meta.env").write_text("STATUS=ok\n")
     for i in range(1, 5):
@@ -398,7 +402,7 @@ def test_erfolgreiches_update_raeumt_alte_sicherungen_auf(env):
     bleibt = _backups(env)
     assert len(bleibt) == 2 and all(_meta(d)["STATUS"] == "ok" for d in bleibt)
     assert any(not d.name.endswith("_abcdef12") for d in bleibt), "die neue Sicherung muss dabei sein"
-    assert not (env["data"] / "backups" / "update" / "20261101T100000Z_abcdef12").exists()
+    assert not (env["tmp"] / "varbackups" / "update" / "20261101T100000Z_abcdef12").exists()
 
 
 # --- Verdrahtung in update.sh ---------------------------------------------------------------------------------------
@@ -421,3 +425,116 @@ def test_endzeile_kommt_nach_dem_aufraeumen_und_exit_code_bleibt():
 def test_bibliothek_und_skript_haben_gueltige_syntax():
     for f in (UPDATE, LIB / "update-safety.sh"):
         assert subprocess.run(["bash", "-n", str(f)]).returncode == 0
+
+
+# --- Review #760: Fund 1 (Re-exec-Fehlerpfad), Fund 2/3 (Symlinks, root-eigener Ordner), Fund 4 (kein zstd) ----------
+
+def _finish(env: dict, rc: int, meta: str, *, reexec: bool, head_is_old: bool) -> tuple[subprocess.CompletedProcess, Path]:
+    d = env["tmp"] / "backup-x"
+    d.mkdir()
+    (d / "meta.env").write_text(meta)
+    head = _git(env["repo"], "rev-parse", "HEAD")
+    old = head if head_is_old else "0" * 40
+    (d / "meta.env").write_text(meta + f"OLD_COMMIT={old}\n")
+    src = LIB / "update-safety.sh"
+    script = (f'log() {{ echo "$*"; }}\nerr() {{ echo "ERR $*" >&2; exit 1; }}\nsource "{src}"\n'
+              f'HH_GIT="git -C {env["repo"]}"\nHH_BACKUP_DIR="{d}"\nhh_safety_finish {rc}\n')
+    extra = {"HH_UPDATE_REEXECED": "1"} if reexec else {}
+    return subprocess.run(["bash", "-c", script], env=_env(env, **extra), capture_output=True, text=True), d
+
+
+def test_fehler_nach_reexec_behaelt_die_sicherung(env):
+    """Fund 1: nach dem Re-exec ist HH_PHASE_B leer, der Code aber schon neu → Sicherung bleiben."""
+    r, d = _finish(env, 1, "STATUS=gesichert\n", reexec=True, head_is_old=False)
+    assert r.returncode == 0 and d.exists() and "Nichts verändert" not in r.stdout
+    assert "ROLLBACK.txt" in r.stdout
+
+
+def test_fehler_bei_geaendertem_head_behaelt_die_sicherung_auch_ohne_variable(env):
+    r, d = _finish(env, 1, "STATUS=gesichert\n", reexec=False, head_is_old=False)
+    assert d.exists() and "Nichts verändert" not in r.stdout
+
+
+def test_fehler_bei_unveraendertem_head_ohne_reexec_raeumt_auf(env):
+    r, d = _finish(env, 1, "STATUS=gesichert\n", reexec=False, head_is_old=True)
+    assert not d.exists() and "Nichts verändert" in r.stdout
+
+
+def test_erfolg_ohne_neuen_commit_entfernt_die_sicherung(env):
+    r, d = _finish(env, 0, "STATUS=gesichert\n", reexec=False, head_is_old=True)
+    assert not d.exists()
+
+
+def test_symlink_als_sicherungsordner_wird_abgelehnt(env):
+    """Fund 2/3: der Sicherungsordner darf kein Symlink sein (Umlenkung root-Schreibzugriffe)."""
+    _push_new_commit(env)
+    ziel = env["tmp"] / "ziel"
+    ziel.mkdir()
+    root = env["tmp"] / "varbackups"
+    root.mkdir()
+    root.chmod(0o755)
+    (root / "update").symlink_to(ziel)
+    r = _run_head(env)
+    assert r.returncode != 0 and "kein echtes Verzeichnis" in r.stdout + r.stderr
+    assert list(ziel.iterdir()) == []
+
+
+def test_fuer_andere_schreibbarer_sicherungsordner_wird_abgelehnt(env):
+    _push_new_commit(env)
+    root = env["tmp"] / "varbackups" / "update"
+    root.mkdir(parents=True)
+    root.parent.chmod(0o755)
+    root.chmod(0o777)
+    r = _run_head(env)
+    assert r.returncode != 0 and "schreibbar" in r.stdout + r.stderr
+    assert _backups(env) == []
+
+
+def test_default_sicherungsordner_liegt_nicht_unter_dem_datenordner():
+    t = (LIB / "update-safety.sh").read_text()
+    assert "/var/backups/hydrahive2/update" in t
+    assert "$HH_DATA_DIR/backups" not in t and "/.work" not in t
+
+
+def test_kein_root_chown_auf_pfaden_des_dienstnutzers():
+    """Der Arbeitsordner der DB-Kopie wird vom DB-Besitzer angelegt (mktemp), root macht dort kein chown/chmod."""
+    t = (LIB / "update-safety.sh").read_text()
+    assert "hh_as_dbowner mktemp -d" in t
+    assert 'chown "$HH_USER:$HH_USER" "$work"' not in t
+
+
+def test_pack_lehnt_symlink_als_zwischendatei_ab(tmp_path):
+    ziel = tmp_path / "geheim.txt"
+    ziel.write_text("geheim")
+    raw = tmp_path / "raw.db"
+    raw.symlink_to(ziel)
+    r = subprocess.run(["python3", str(SNAP), "pack", str(raw), str(tmp_path / "x.zst")], capture_output=True, text=True)
+    assert r.returncode == 2 and "keine reguläre Datei" in r.stderr
+    assert ziel.read_text() == "geheim"
+
+
+def _path_ohne_zstd(tmp_path: Path) -> str:
+    d = tmp_path / "ohne-zstd"
+    d.mkdir()
+    for src in (Path("/usr/bin"), Path("/bin")):
+        if not src.is_dir():
+            continue
+        for f in src.iterdir():
+            if f.name.startswith("zstd") or (d / f.name).exists() or (d / f.name).is_symlink():
+                continue
+            (d / f.name).symlink_to(f)
+    return str(d)
+
+
+def test_ohne_zstd_faellt_die_sicherung_auf_gzip_zurueck(env):
+    """Fund 4: fehlt zstd, scheitert das Update nicht, die DB-Sicherung ist .gz und lesbar."""
+    _push_new_commit(env)
+    path = f"{env['bin']}:{_path_ohne_zstd(env['tmp'])}"
+    r = subprocess.run(["bash", "-c", _head_script(env)], env={**_env(env), "PATH": path}, capture_output=True,
+                       text=True, timeout=120, cwd=env["repo"])
+    assert r.returncode == 0, r.stdout + r.stderr
+    (d,) = _backups(env)
+    assert (d / "sessions.db.gz").is_file() and not (d / "sessions.db.zst").exists()
+    assert "gzip -dc" in (d / "ROLLBACK.txt").read_text()
+    ok = subprocess.run(["python3", str(SNAP), "verify", str(d / "sessions.db.gz")], capture_output=True, text=True)
+    assert ok.stdout.strip() == "ok"
