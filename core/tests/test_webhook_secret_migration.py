@@ -80,3 +80,19 @@ def test_ack_nur_fuer_projekt_admin(client, admin_headers, auth_headers):
     assert client.post(f"/api/projects/{pid}/webhook/ack", headers=auth_headers).status_code == 403
     assert project_config.get(pid)["webhook_secret_auto"] is True
     assert client.post(f"/api/projects/{pid}/webhook/ack").status_code in (401, 403)
+
+
+def test_lifespan_ruft_migration_nach_init_db_auf():
+    """Der Test-Client ersetzt den lifespan; hier wird abgesichert, dass der Start die Migration aufruft."""
+    import inspect
+
+    from hydrahive.api import lifespan as lifespan_mod
+    src = inspect.getsource(lifespan_mod.lifespan)
+    assert "ensure_webhook_secrets()" in src
+    assert src.index("init_db()") < src.index("ensure_webhook_secrets()")
+
+
+def test_has_webhook_secret_flag_ignoriert_leerzeichen_secret():
+    from hydrahive.projects.public_view import public_view
+    assert public_view({"id": "x", "webhook_secret": "   "})["has_webhook_secret"] is False
+    assert public_view({"id": "x", "webhook_secret": "abc"})["has_webhook_secret"] is True
