@@ -14,6 +14,7 @@ import logging
 from pathlib import Path
 
 from hydrahive.vms import _passthrough_db as passthrough_db
+from hydrahive.vms._lsblk import LsblkError, lsblk_json
 from hydrahive.vms.models import HostDisk, PassthroughDisk
 
 logger = logging.getLogger(__name__)
@@ -38,25 +39,9 @@ async def list_host_disks() -> list[HostDisk]:
     Filtert Loop-Devices heraus.
     """
     try:
-        proc = await asyncio.create_subprocess_exec(
-            "lsblk",
-            "--json",
-            "--output",
-            "NAME,PATH,SIZE,TYPE,MOUNTPOINT,MODEL,SERIAL",
-            "--tree",
-            stdout=asyncio.subprocess.PIPE,
-            stderr=asyncio.subprocess.PIPE,
-        )
-        stdout, _ = await asyncio.wait_for(proc.communicate(), timeout=10.0)
-    except FileNotFoundError:
-        raise PassthroughError("lsblk_missing")
-    except asyncio.TimeoutError:
-        raise PassthroughError("lsblk_timeout")
-
-    try:
-        data = json.loads(stdout)
-    except json.JSONDecodeError:
-        raise PassthroughError("lsblk_parse_error")
+        data = await lsblk_json(["--output", "NAME,PATH,SIZE,TYPE,MOUNTPOINT,MODEL,SERIAL", "--tree"])
+    except LsblkError as e:
+        raise PassthroughError(e.code) from e
 
     return [
         _parse_disk(d)
@@ -94,25 +79,9 @@ def _is_mounted(path: str, all_disks: list[dict]) -> bool:
 async def list_unmounted_host_disks() -> list[HostDisk]:
     """Nur Disks ohne aktive Mount-Points (inkl. Partitionen)."""
     try:
-        proc = await asyncio.create_subprocess_exec(
-            "lsblk",
-            "--json",
-            "--output",
-            "NAME,PATH,SIZE,TYPE,MOUNTPOINT,MODEL,SERIAL",
-            "--tree",
-            stdout=asyncio.subprocess.PIPE,
-            stderr=asyncio.subprocess.PIPE,
-        )
-        stdout, _ = await asyncio.wait_for(proc.communicate(), timeout=10.0)
-    except FileNotFoundError:
-        raise PassthroughError("lsblk_missing")
-    except asyncio.TimeoutError:
-        raise PassthroughError("lsblk_timeout")
-
-    try:
-        data = json.loads(stdout)
-    except json.JSONDecodeError:
-        raise PassthroughError("lsblk_parse_error")
+        data = await lsblk_json(["--output", "NAME,PATH,SIZE,TYPE,MOUNTPOINT,MODEL,SERIAL", "--tree"])
+    except LsblkError as e:
+        raise PassthroughError(e.code) from e
 
     all_raw = data.get("blockdevices", [])
     result: list[HostDisk] = []
@@ -175,23 +144,9 @@ def _validate_path(device_path: str) -> None:
 
 async def _assert_unmounted(device_path: str) -> None:
     try:
-        proc = await asyncio.create_subprocess_exec(
-            "lsblk",
-            "--json",
-            "--output",
-            "NAME,PATH,MOUNTPOINT",
-            device_path,
-            stdout=asyncio.subprocess.PIPE,
-            stderr=asyncio.subprocess.PIPE,
-        )
-        stdout, _ = await asyncio.wait_for(proc.communicate(), timeout=10.0)
-    except (FileNotFoundError, asyncio.TimeoutError):
+        data = await lsblk_json(["--output", "NAME,PATH,MOUNTPOINT", device_path])
+    except LsblkError:
         return  # lsblk-Fehler → wir lassen durch, Kernel sperrt gemountete Devices ohnehin
-
-    try:
-        data = json.loads(stdout)
-    except json.JSONDecodeError:
-        return
 
     for dev in data.get("blockdevices", []):
         if _has_any_mountpoint(dev):
