@@ -144,7 +144,7 @@ hh_fix_pihole_ordering
 hh_verify_dns
 
 # Das ganze System mit aktualisieren, nicht nur HydraHive (docs/specs/system-updates.md, Task f24c39bf).
-# Nach der Selbstheilung (DNS) und vor Node.js (ein angehobenes Node.js ist so schon für den Frontend-Bau da).
+# Nach der Selbstheilung (DNS). Das Vollupgrade selbst läuft am Ende (F9, siehe unten).
 # Abschalten: HH_SYSTEM_UPGRADE=no in install.conf.
 # shellcheck source=lib/system-upgrade.sh
 source "$HH_REPO_DIR/installer/lib/system-upgrade.sh"

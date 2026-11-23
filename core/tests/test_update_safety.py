@@ -36,6 +36,10 @@ def _make_db(path: Path, rows: int = 500) -> None:
 
 @pytest.fixture
 def env(tmp_path: Path) -> dict:
+    return make_env(tmp_path)
+
+
+def make_env(tmp_path: Path) -> dict:
     """Origin + Arbeitskopie (mit den Installer-Bibliotheken committed), Daten-/Config-Ordner, Attrappen."""
     origin = tmp_path / "origin.git"
     seed = tmp_path / "seed"

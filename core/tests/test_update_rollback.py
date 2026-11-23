@@ -15,9 +15,17 @@ from pathlib import Path
 
 import pytest
 
-from tests.test_update_safety import (  # noqa: F401  (env ist eine Fixture)
-    LIB, SNAP, UPDATE, _backups, _env, _git, _head_script, _meta, _push_new_commit, env,
+from tests.test_update_safety import (
+    LIB, SNAP, UPDATE, _backups, _env, _git, _head_script, _meta, _push_new_commit, make_env,
 )
+
+
+
+@pytest.fixture
+def env(tmp_path: Path) -> dict:
+    """Dieselbe Attrappen-Umgebung wie in test_update_safety (Origin, Arbeitskopie, Daten, Fakes)."""
+    return make_env(tmp_path)
+
 
 NO_ROLLBACK = os.environ.get("HH_TEST_NO_ROLLBACK") == "1"
 UPDATE_TEXT = UPDATE.read_text()

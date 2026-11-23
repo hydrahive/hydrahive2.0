@@ -139,7 +139,7 @@ def test_env_file_is_rebuilt_on_every_update() -> None:
     # Auch ohne Unit-Rewrite: Änderungen an secret_key/pg_mirror.dsn kommen an.
     text = UPDATE.read_text()
     rewrite = text.index('bash "$HH_REPO_DIR/installer/modules/50-systemd.sh"')
-    restart = text.index('log "Service neu starten"\nsystemctl restart hydrahive2.service')
+    restart = text.index("systemctl restart hydrahive2.service", text.index('log "Service neu starten"'))
     rebuild = text.index("write_service_secrets", rewrite)
     assert rewrite < rebuild < restart
 
