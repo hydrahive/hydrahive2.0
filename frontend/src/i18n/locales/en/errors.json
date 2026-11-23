@@ -171,5 +171,10 @@
   "catalog_hub_conflict": "A server either acts as hub for others (“Accept catalog”) or sends to a hub itself (“Use as hub”) – not both. Turn off the other switch first.",
   "catalog_user_unknown": "User {{username}} does not exist on this server.",
   "agent_bound_to_template": "This agent uses an agent template. Model, reasoning effort and budget come from the template and cannot be changed here. Permanently: pick another template or edit the template on the LLM page (admin). For one chat only: choose the reasoning effort at the top of the chat.",
-  "agent_needs_template": "Model, reasoning effort and budget are only set via agent templates now. Please pick a template in the “Model” tab first."
+  "agent_needs_template": "Model, reasoning effort and budget are only set via agent templates now. Please pick a template in the “Model” tab first.",
+  "samba_not_installed": "Samba is not set up. An admin can install it under System → Add-on modules.",
+  "samba_no_access": "Samba is installed, but HydraHive cannot reach /etc/samba/hh-projects.d (missing read permission on /etc/samba). An admin can fix this with “sudo chmod 755 /etc/samba” or by updating HydraHive.",
+  "samba_no_write_access": "HydraHive may not write to /etc/samba/hh-projects.d. An admin can set up Samba again under System → Add-on modules.",
+  "samba_failed": "The share could not be set up.",
+  "samba_bad_project": "Invalid project ID for the share."
 }
