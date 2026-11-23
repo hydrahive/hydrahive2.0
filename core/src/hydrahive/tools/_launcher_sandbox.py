@@ -41,7 +41,7 @@ _BWRAP = "/usr/bin/bwrap"
 _SYSTEM_RO = ("/usr", "/bin", "/sbin", "/lib", "/lib32", "/lib64", "/libx32", "/etc", "/sys", "/snap")
 #: Umgebung in der Sandbox: nur diese Schlüssel aus dem vorbereiteten env (shell._build_env) + feste Werte.
 _ENV_KEEP = ("PATH", "LANG", "LC_ALL", "TERM", "TZ", "GH_TOKEN", "GITHUB_TOKEN", "GITEA_TOKEN", "PYTHONPATH",
-             "NODE_OPTIONS", "CI")
+             "NODE_OPTIONS", "CI", "HH_PREVIEW_PORT")
 UNAVAILABLE = ("Sandbox nicht verfügbar (bubblewrap fehlt oder startet nicht). Der Befehl wurde aus Sicherheitsgründen "
                "nicht ausgeführt. Melde das als Blocker; ein Admin prüft das Update von HydraHive.")
 

@@ -176,5 +176,8 @@
   "samba_no_access": "Samba ist installiert, aber HydraHive kommt nicht an den Ordner /etc/samba/hh-projects.d (fehlende Leserechte auf /etc/samba). Ein Admin behebt das mit „sudo chmod 755 /etc/samba“ oder einem Update von HydraHive.",
   "samba_no_write_access": "HydraHive darf im Ordner /etc/samba/hh-projects.d nicht schreiben. Ein Admin richtet Samba unter System → Zusatz-Module neu ein.",
   "samba_failed": "Die Freigabe ließ sich nicht einrichten.",
-  "samba_bad_project": "Ungültige Projekt-ID für die Freigabe."
+  "samba_bad_project": "Ungültige Projekt-ID für die Freigabe.",
+  "project_preview_login_required": "Testseite nicht angemeldet – öffne sie über „Testseite öffnen“ im Projekt.",
+  "project_preview_wrong_project": "Diese Anmeldung gilt für ein anderes Projekt – öffne die Testseite über das richtige Projekt.",
+  "preview_port_exhausted": "Alle Ports für Testseiten sind vergeben – ein Admin kann den Bereich erweitern (HH_PREVIEW_PORT_MIN/MAX)."
 }
