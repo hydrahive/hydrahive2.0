@@ -56,6 +56,9 @@ async def ingest(
     # user_id kommt NICHT aus dem Request — der Key bindet an genau einen
     # konfigurierten User (Single-Device-Ingest). Verhindert Cross-User-PHI-Schreiben.
     user = settings.health_ingest_user
+    if not user:
+        # Kein Standard-Nutzer mehr (früher fest 'till'): ohne Eintrag nichts unter fremdem Namen ablegen.
+        raise HTTPException(status_code=409, detail="health_ingest_user_missing")
 
     data = payload.get("data", payload)
     metrics = data.get("metrics", []) if isinstance(data, dict) else []

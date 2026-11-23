@@ -128,7 +128,7 @@ Extensions sind anders: ihre Installer können privilegierte Shell- oder Docker-
 
 ### Linux
 
-Der primäre Installer zielt auf einen dedizierten apt-basierten Ubuntu/Debian-Host. Das Repository hat explizites Upgrade-Handling für Ubuntu 24.04 und 26.04. Auf anderen Releases zuerst Python 3.12 und Host-Komponenten-Kompatibilität prüfen.
+Der primäre Installer zielt auf einen dedizierten apt-basierten Ubuntu/Debian-Host. Neuinstallationen sind auf Ubuntu 26.04 LTS getestet; Ubuntu 24.04 wird unterstützt und hat einen Upgrade-Weg auf 26.04. Auf anderen Releases zuerst Python 3.12 und Host-Komponenten-Kompatibilität prüfen.
 
 ```bash
 git clone https://github.com/hydrahive/hydrahive2.0.git
@@ -159,10 +159,10 @@ Die Zertifikats-Warnung ist erwartet, bis das generierte Zertifikat vertraut ode
 
 Der Linux-Installer kann innerhalb von **WSL2** ausgeführt werden. Das ist der empfohlene Windows-Weg; den Installer innerhalb der Linux-Distribution ausführen, nicht aus PowerShell und nicht aus einem Windows-Git-Checkout.
 
-1. WSL2 mit Ubuntu 24.04 aus einer PowerShell mit Administratorrechten installieren:
+1. WSL2 mit Ubuntu 26.04 LTS aus einer PowerShell mit Administratorrechten installieren:
 
    ```powershell
-   wsl --install -d Ubuntu-24.04
+   wsl --install -d Ubuntu-26.04
    ```
 
    Windows neu starten, falls dazu aufgefordert, und beim ersten Ubuntu-Start den Linux-Benutzer anlegen.

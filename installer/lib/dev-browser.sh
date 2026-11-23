@@ -18,6 +18,27 @@ _dev_browser_version() {
   sed -n 's/^[[:space:]]*"version":[[:space:]]*"\([^"]*\)".*/\1/p' "$root/dev-browser/package.json" 2>/dev/null | head -1
 }
 
+# Nächstliegende Plattform, die Playwright für Linux kennt: ubuntu24.04 mit passender Architektur.
+# Nur für Ubuntu-Abkömmlinge neuer als 24.04 (sonst leer → kein Rückfall).
+_dev_browser_fallback_platform() {
+  local id="" ver="" arch osr="${HH_OS_RELEASE:-/etc/os-release}"
+  [ -r "$osr" ] || return 0
+  id="$(. "$osr" && echo "${ID:-}")"
+  ver="$(. "$osr" && echo "${VERSION_ID:-}")"
+  case "$id" in ubuntu|pop|neon|tuxedo) ;; *) return 0 ;; esac
+  [ "${ver%%.*}" -ge 26 ] 2>/dev/null || return 0
+  case "${HH_UNAME_M:-$(uname -m)}" in x86_64|amd64) arch=x64 ;; aarch64|arm64) arch=arm64 ;; *) return 0 ;; esac
+  echo "ubuntu24.04-$arch"
+}
+
+_dev_browser_install() {  # user home platform log
+  if [ -n "$3" ]; then
+    sudo -u "$1" env HOME="$2" PLAYWRIGHT_HOST_PLATFORM_OVERRIDE="$3" dev-browser install </dev/null >"$4" 2>&1
+  else
+    sudo -u "$1" env HOME="$2" dev-browser install </dev/null >"$4" 2>&1
+  fi
+}
+
 ensure_dev_browser() {
   local user="${HH_USER:-hydrahive}" home log_fn=log out
   declare -F log >/dev/null 2>&1 || log_fn=echo
@@ -64,12 +85,25 @@ ensure_dev_browser() {
   fi
 
   $log_fn "Browser-Werkzeug: Laufzeit und Chromium nach $home einrichten"
-  local tmp_log
+  local tmp_log platform
   tmp_log="$(mktemp "${TMPDIR:-/tmp}/dev-browser-install.XXXXXX")"
   runtime="$home/.dev-browser/node_modules"
-  if sudo -u "$user" env HOME="$home" dev-browser install </dev/null >"$tmp_log" 2>&1 \
-     && [ -d "$runtime" ] && [ -d "$chromium" ]; then
+  platform=""
+  if _dev_browser_install "$user" "$home" "" "$tmp_log" && [ -d "$runtime" ] && [ -d "$chromium" ]; then
     $log_fn "Browser-Werkzeug bereit (dev-browser $(_dev_browser_version))"
+  elif grep -q "does not support chromium on ubuntu" "$tmp_log" \
+       && platform="$(_dev_browser_fallback_platform)" && [ -n "$platform" ]; then
+    # Neueres Ubuntu, als das in dev-browser gebündelte Playwright kennt (Befund 23.11.2026: Playwright 1.58
+    # kennt höchstens ubuntu24.04, Ubuntu 26.04 bricht ab). Chromium für Linux ist für alle Ubuntu-Versionen
+    # dasselbe Paket (Chrome for Testing linux64). Nur der Download braucht die bekannte Kennung; beim Start
+    # findet dev-browser Chromium im selben Ordner wieder (geprüft auf 26.04: Start ohne Kennung lädt Seiten).
+    $log_fn "Browser-Werkzeug: Ubuntu-Version dem gebündelten Playwright unbekannt – nehme Chromium für $platform"
+    if _dev_browser_install "$user" "$home" "$platform" "$tmp_log" && [ -d "$runtime" ] && [ -d "$chromium" ]; then
+      $log_fn "Browser-Werkzeug bereit (dev-browser $(_dev_browser_version), Chromium für $platform)"
+    else
+      $log_fn "WARNUNG: Browser-Werkzeug nicht vollständig eingerichtet (Laufzeit oder Chromium fehlt)"
+      tail -3 "$tmp_log" | sed 's/^/    /'
+    fi
   else
     $log_fn "WARNUNG: Browser-Werkzeug nicht vollständig eingerichtet (Laufzeit oder Chromium fehlt)"
     tail -3 "$tmp_log" | sed 's/^/    /'

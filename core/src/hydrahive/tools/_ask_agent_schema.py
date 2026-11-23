@@ -18,7 +18,7 @@ SCHEMA = {
             "type": "string",
             "description": (
                 "ID oder Name des Ziel-Agenten. "
-                "Für Federation-Workstations: 'persona@workstation-name', z.B. 'geralt@projektx-till'."
+                "Für Federation-Workstations: 'persona@workstation-name', z.B. 'geralt@werkstatt'."
             ),
         },
         "task": {"type": "string", "description": "Aufgabenbeschreibung für den Ziel-Agenten."},

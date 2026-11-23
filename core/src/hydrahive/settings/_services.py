@@ -176,5 +176,6 @@ class _CommunicationMixin:
     def health_ingest_user(self) -> str:
         """User-ID unter der eingehende Health-Daten abgelegt werden.
         Der Health-Key bindet an genau diesen einen User (Single-Device-Ingest).
-        Default 'till'."""
-        return os.environ.get("HH_HEALTH_INGEST_USER", "till").strip() or "till"
+        Kein Standard-Nutzer (früher fest 'till'): leer ⇒ Ingest lehnt ab, bis ein Admin den Nutzer setzt
+        (Befund 23.11.2026 – auf fremden Installationen gibt es keinen Nutzer 'till')."""
+        return env_or_override("health_ingest_user", "HH_HEALTH_INGEST_USER", "").strip()

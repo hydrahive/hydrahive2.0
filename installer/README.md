@@ -1,6 +1,6 @@
 # HydraHive Linux installer
 
-The installer provisions HydraHive on an apt-based Ubuntu/Debian host. The repository contains explicit upgrade handling for Ubuntu 24.04 and 26.04. Other releases must provide Python 3.12 and the required host capabilities; verify them before production use.
+The installer provisions HydraHive on an apt-based Ubuntu/Debian host. Fresh installations are tested on Ubuntu 26.04 LTS; Ubuntu 24.04 is supported and has an upgrade path to 26.04. Other releases must provide Python 3.12 and the required host capabilities; verify them before production use.
 
 > A new installation installs the **core only** and asks no questions: backend, web cockpit, PostgreSQL, nginx and HydraLink. Optional components (Tailscale, voice, Incus containers, VMs, Samba, WhatsApp, local media) are **off** and can be added later in the admin cockpit (System → add-on modules) or with `--with=…` / `--all` (see `docs/specs/installer-core-first.md`).
 
