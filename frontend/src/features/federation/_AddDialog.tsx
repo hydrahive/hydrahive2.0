@@ -62,7 +62,7 @@ export function AddWorkstationDialog({ onClose, onCreated }: Props) {
             <label className="text-xs text-zinc-400 mb-1 block">{t("add_dialog.name_label")}</label>
             <input
               className={input}
-              placeholder="projektx-till"
+              placeholder="werkstatt"
               value={name}
               onChange={e => setName(e.target.value)}
               required

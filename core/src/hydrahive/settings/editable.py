@@ -49,6 +49,9 @@ EDITABLE_SETTINGS: list[EditableSetting] = [
     EditableSetting("agentlink_url", "HH_AGENTLINK_URL", "string", "AgentLink", "AgentLink-URL"),
     EditableSetting("agentlink_token", "HH_AGENTLINK_TOKEN", "secret", "AgentLink", "AgentLink-Token"),
     EditableSetting("health_api_key", "HH_HEALTH_API_KEY", "secret", "Health", "Health-Ingest-API-Key"),
+    EditableSetting("health_ingest_user", "HH_HEALTH_INGEST_USER", "string", "Health", "Health-Daten gehören Nutzer",
+                    help="Benutzername, unter dem eingehende Gesundheitsdaten (Health Auto Export) abgelegt werden. "
+                    "Ohne Eintrag nimmt der Server keine Daten an."),
     EditableSetting("coingecko_api_key", "HH_COINGECKO_API_KEY", "secret", "Krypto", "CoinGecko API-Key",
                     help="Optionaler Demo-API-Key von CoinGecko (kostenlos, 10k Anfragen/Monat). Ohne Key läuft das Cryptoboard ebenfalls, aber mit niedrigerem Rate-Limit."),
     EditableSetting("cryptocompare_api_key", "HH_CRYPTOCOMPARE_API_KEY", "secret", "Krypto", "CryptoCompare API-Key",
@@ -61,6 +64,11 @@ EDITABLE_SETTINGS: list[EditableSetting] = [
                     "true", help="Der Hilfe-Assistent kann Fehler mit den echten Fehlerdaten an issue@hydrahive.org "
                     "melden – immer erst nach Vorschau und Klick des Nutzers, über das Mailkonto oben."),
     EditableSetting("update_check_enabled", "HH_UPDATE_CHECK_ENABLED", "bool", "System", "Update-Check aktiv", "true"),
+    EditableSetting("agent_goal_required", "HH_AGENT_GOAL_REQUIRED", "bool", "Agenten",
+                    "Projektarbeit nur mit Zieldokument", "0",
+                    help="Wenn an: Ein Agent darf einen Projekt-Agenten nur dann mit Bauen, Reparieren oder Umbauen "
+                    "beauftragen, wenn er ein Zieldokument (Zielbild + Abnahme-Punkte) mitgibt. Fragen und Prüfungen "
+                    "gehen immer. Aus (Standard): Ein Zieldokument ist möglich, aber keine Pflicht."),
     EditableSetting("module_hub_extra_git_urls", "HH_MODULE_HUB_GIT_URLS", "string", "Module", "Zusätzliche Modul-Hubs",
                     help="Komma-separierte Git-URLs interner Hubs (z.B. Gitea), zusätzlich zum öffentlichen GitHub-Hub. Deren Module erscheinen mit unter den verfügbaren. Greift nach Backend-Neustart."),
 ]
