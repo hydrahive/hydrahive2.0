@@ -1,0 +1,69 @@
+name: Wiki
+
+# Wiki + PDF-Handbuch automatisch aus den Repos (Ziel hydrahive2-modules/ziele/wiki-automatik.md, WK5).
+# Kern-Hilfe kommt aus diesem Repo, Modul-Hilfe aus hydrahive2-modules (öffentlich, nur lesend).
+on:
+  push:
+    branches: [main]
+    paths: ['frontend/src/i18n/help/de/**', 'scripts/wiki/**', '.github/workflows/wiki.yml']
+  schedule:
+    - cron: '17 4 * * *'          # täglich: fängt Änderungen an der Modul-Hilfe ab
+  workflow_dispatch:
+
+permissions:
+  contents: write                 # Wiki-Repo schreiben + Release-Anhang ersetzen
+
+concurrency:
+  group: wiki
+  cancel-in-progress: false
+
+jobs:
+  wiki:
+    name: Wiki und PDF-Handbuch
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/checkout@v4
+        with:
+          repository: hydrahive/hydrahive2-modules
+          path: _modules
+      - name: Wiki holen
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: git clone -q "https://x-access-token:${GH_TOKEN}@github.com/${{ github.repository }}.wiki.git" _wiki
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Wiki bauen (bricht bei Datenschutz-Treffern ab)
+        run: python3 scripts/wiki/build.py . _modules _wiki
+      - name: PDF-Handbuch bauen
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: |
+          sudo apt-get update -q && sudo apt-get install -y -q --no-install-recommends fonts-dejavu fonts-noto-color-emoji poppler-utils
+          pip install -q "playwright>=1.44,<2"
+          python -m playwright install --with-deps chromium
+          python3 scripts/wiki/pdf_html.py _wiki handbuch.html
+          python3 scripts/wiki/pdf_print.py handbuch.html HydraHive-Handbuch.pdf
+          pdfinfo HydraHive-Handbuch.pdf | grep -E "Pages|Page size"
+          pages=$(pdfinfo HydraHive-Handbuch.pdf | awk '/^Pages:/{print $2}')
+          [ "$pages" -ge 20 ] || { echo "PDF zu kurz ($pages Seiten)"; exit 1; }
+          ! pdftotext HydraHive-Handbuch.pdf - | grep -q '\[\[' || { echo "Unaufgelöste Wiki-Links im PDF"; exit 1; }
+      - name: Wiki veröffentlichen
+        working-directory: _wiki
+        run: |
+          git add -A
+          if git diff --cached --quiet; then echo "Wiki: keine Änderungen"; exit 0; fi
+          git diff --cached --stat | tail -1
+          git -c user.name="HydraHive Wiki-Bot" -c user.email="wiki-bot@users.noreply.github.com" \
+              commit -q -m "Wiki aus Hilfe-Artikeln neu gebaut (core ${GITHUB_SHA::8})"
+          git push -q origin HEAD
+      - name: PDF an Release „handbuch“ hängen
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          if ! gh release view handbuch >/dev/null 2>&1; then
+            gh release create handbuch --title "HydraHive-Handbuch (PDF)" --latest=false \
+              --notes "Automatisch aus dem Wiki gebaut. Feste Adresse: https://github.com/${{ github.repository }}/releases/download/handbuch/HydraHive-Handbuch.pdf"
+          fi
+          gh release upload handbuch HydraHive-Handbuch.pdf --clobber
