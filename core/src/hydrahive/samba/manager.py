@@ -83,6 +83,15 @@ def _reload_smbd() -> bool:
         return False
 
 
+def _includes_dir_reachable() -> bool:
+    """Freigabe-Ordner für den Dienst erreichbar? Python 3.12 wirft bei fehlendem Zugriff auf einen Elternordner
+    PermissionError statt False zu liefern (3.14 liefert False) – beides heißt hier: nicht erreichbar."""
+    try:
+        return settings.samba_includes_dir.is_dir()
+    except OSError:
+        return False
+
+
 def _missing_includes_reason() -> str:
     """Warum der Freigabe-Ordner fehlt: Samba gar nicht da, oder da, aber für den Dienst nicht erreichbar.
 
@@ -104,7 +113,7 @@ def enable_share(project_id: str, project_name: str) -> tuple[bool, str]:
             return False, "samba_not_installed"
         _mac.request(project_id, True, _safe_share_name(project_name, project_id), workspace_path(project_id))
         return True, ""
-    if not settings.samba_includes_dir.exists():
+    if not _includes_dir_reachable():
         return False, _missing_includes_reason()
     cfg = _config_path(project_id)
     cfg.parent.mkdir(parents=True, exist_ok=True)
@@ -162,7 +171,7 @@ def samba_status() -> dict:
     smbd_bin = _find_smbd()
     # „installiert“ erst, wenn auch der Freigabe-Ordner für den Dienst erreichbar ist – sonst zeigte das Cockpit
     # „installiert“, während jede Freigabe scheiterte (Befund WSL 23.11.2026, /etc/samba 700).
-    installed = bool(smbd_bin) and settings.samba_includes_dir.is_dir()
+    installed = bool(smbd_bin) and _includes_dir_reachable()
     running = False
     if installed:
         try:
@@ -177,5 +186,5 @@ def samba_status() -> dict:
         "user": settings.samba_user,
         "password_set": settings.samba_password_file.exists(),
         "includes_dir": str(settings.samba_includes_dir),
-        "includes_dir_exists": settings.samba_includes_dir.exists(),
+        "includes_dir_exists": _includes_dir_reachable(),
     }

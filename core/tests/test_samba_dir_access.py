@@ -85,6 +85,24 @@ def test_status_nicht_installiert_solange_ordner_unerreichbar(unreachable, monke
     assert manager.samba_status()["installed"] is False
 
 
+def test_permissionerror_wie_python_312_wird_als_unerreichbar_gewertet(monkeypatch) -> None:
+    """Python 3.12 wirft bei zugesperrtem Elternordner PermissionError (CI-Befund #770), 3.14 liefert False."""
+    class _Zu(type(Path())):
+        def is_dir(self, *a, **k) -> bool:
+            raise PermissionError(13, "Permission denied")
+
+        def exists(self, *a, **k) -> bool:
+            raise PermissionError(13, "Permission denied")
+
+    zu = _Zu("/etc-samba-zu/hh-projects.d")
+    monkeypatch.setattr(type(settings), "samba_includes_dir", property(lambda self: zu), raising=False)
+    monkeypatch.setattr(manager, "is_mac", lambda: False)
+    monkeypatch.setattr(manager, "_find_smbd", lambda: "/usr/sbin/smbd")
+    assert manager.enable_share(PID, "P") == (False, "samba_no_access")
+    st = manager.samba_status()
+    assert st["installed"] is False and st["includes_dir_exists"] is False
+
+
 def test_ohne_smbd_bleibt_es_nicht_installiert(monkeypatch, tmp_path) -> None:
     monkeypatch.setattr(type(settings), "samba_includes_dir",
                         property(lambda self: tmp_path / "fehlt"), raising=False)
