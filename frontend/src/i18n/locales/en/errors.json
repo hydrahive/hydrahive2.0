@@ -178,6 +178,5 @@
   "samba_failed": "The share could not be set up.",
   "samba_bad_project": "Invalid project ID for the share.",
   "project_preview_login_required": "Not signed in to the test page – open it with “Open test page” in the project.",
-  "project_preview_wrong_project": "This sign-in belongs to another project – open the test page from the right project.",
   "preview_port_exhausted": "All test page ports are taken – an admin can widen the range (HH_PREVIEW_PORT_MIN/MAX)."
 }

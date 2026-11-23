@@ -2,14 +2,14 @@
 
 - ``router`` (HydraHive-Login, Projekt-Leserecht): ``GET /api/projects/{id}/preview`` und ``POST …/preview/open``.
 - ``gate_router`` (ohne Login, Bremse je Client-Adresse): ``/api/project-preview/login`` löst das Ticket ein und setzt
-  das Cookie; ``/api/project-preview/auth`` ist das Prüf-Ziel für nginx auth_request (200 + ``X-Preview-Port`` nur für
-  das passende Projekt). Die Durchreiche selbst (nginx) kommt mit Etappe E1b.
+  das Cookie; ``/api/project-preview/auth`` ist das Prüf-Ziel für nginx auth_request (200 + ``X-Preview-Port`` des
+  Projekts aus dem Cookie). Die Durchreiche (nginx, Port 8445) steht in installer/modules/60-nginx.sh.
 """
 from __future__ import annotations
 
 from typing import Annotated
 
-from fastapi import APIRouter, Cookie, Depends, Header, Query, Request, Response, status
+from fastapi import APIRouter, Cookie, Depends, Query, Request, Response, status
 from fastapi.responses import RedirectResponse
 
 from hydrahive.api.middleware.auth import AuthPrincipal, require_principal
@@ -76,17 +76,18 @@ def preview_login(t: Annotated[str, Query(min_length=1, max_length=128)]) -> Res
 
 
 @gate_router.get("/auth")
-def preview_check(
-    hh_project_preview: Annotated[str | None, Cookie()] = None,
-    x_preview_project: Annotated[str | None, Header(max_length=64)] = None,
-) -> Response:
-    """nginx fragt hier vor jeder Anfrage an die Testseite. ``X-Preview-Project`` setzt nginx aus der Adresse."""
+def preview_check(hh_project_preview: Annotated[str | None, Cookie()] = None) -> Response:
+    """nginx fragt hier vor jeder Anfrage an die Testseite (Port 8445, installer/modules/60-nginx.sh).
+
+    Das Projekt kommt aus dem signierten Cookie, nicht aus der Adresse (wie Vibe): Ein Pfad-Präfix bricht Seiten mit
+    absoluten Pfaden, Subdomains brauchen DNS, ein Port je Projekt bräuchte bei jedem Projekt ein nginx-Reload.
+    Signatur, Ablauf und Mitgliedschaft werden bei jeder Anfrage geprüft. Grenze: pro Browser gilt das zuletzt
+    geöffnete Projekt (ein Cookie für alle Projekte auf diesem Port).
+    """
     pid = preview_auth.project_from(hh_project_preview)
     if pid is None:
         raise coded(status.HTTP_401_UNAUTHORIZED, "project_preview_login_required")
-    if not x_preview_project or x_preview_project != pid:
-        raise coded(status.HTTP_403_FORBIDDEN, "project_preview_wrong_project")
     port = preview_port.stored(project_config.get(pid))
-    if port is None:
-        raise coded(status.HTTP_403_FORBIDDEN, "project_preview_wrong_project")
+    if port is None:                      # z. B. Bereich geändert: „Testseite öffnen“ vergibt den Port neu
+        raise coded(status.HTTP_401_UNAUTHORIZED, "project_preview_login_required")
     return Response(status_code=status.HTTP_200_OK, headers={"X-Preview-Port": str(port)})
