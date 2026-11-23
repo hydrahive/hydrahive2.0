@@ -51,7 +51,14 @@ case "$*" in
 #!/bin/bash
 echo "dev-browser $*" >> "$CALLS"
 if [ "$1" = install ]; then
+  echo "dev-browser install OVERRIDE=${{PLAYWRIGHT_HOST_PLATFORM_OVERRIDE:-}}" >> "$CALLS"
   [ -n "${{DB_INSTALL_FAIL:-}}" ] && {{ echo "chromium download failed" >&2; exit 1; }}
+  # Wie Playwright 1.58 auf Ubuntu 26.04 (Befund 23.11.2026): unbekannte Plattform ohne Kennung → Abbruch.
+  if [ -n "${{DB_UNKNOWN_UBUNTU:-}}" ] && [ -z "${{PLAYWRIGHT_HOST_PLATFORM_OVERRIDE:-}}" ]; then
+    echo "Failed to install browsers" >&2
+    echo "Error: ERROR: Playwright does not support chromium on $DB_UNKNOWN_UBUNTU" >&2
+    exit 1
+  fi
   [ -n "${{DB_INSTALL_NOOP:-}}" ] && exit 0
   mkdir -p "$HOME/.dev-browser/node_modules" "$HOME/.cache/ms-playwright"
 fi
@@ -80,7 +87,8 @@ def _sys_bin(env) -> Path:
     if not d.exists():
         d.mkdir()
         import shutil
-        for tool in ("bash", "mkdir", "mktemp", "rm", "tail", "sed", "head", "cat", "chmod", "env", "printf", "dirname"):
+        for tool in ("bash", "mkdir", "mktemp", "rm", "tail", "sed", "head", "cat", "chmod", "env", "printf", "dirname",
+                     "grep", "uname"):
             found = shutil.which(tool, path="/usr/bin:/bin")
             if found:
                 (d / tool).symlink_to(found)
@@ -240,3 +248,50 @@ def test_version_unbekannt_wird_nicht_angehoben(env) -> None:
     r = run(env)
     assert "npm install" not in calls(env)
     assert r.returncode == 0
+
+
+# --- Ubuntu neuer als das gebündelte Playwright (Befund 23.11.2026, Ubuntu 26.04) ---------------------------------
+
+def _os_release(env, distro_id: str, version: str) -> str:
+    p = env["tmp"] / f"os-release-{distro_id}-{version}"
+    p.write_text(f'NAME="X"\nID={distro_id}\nVERSION_ID="{version}"\n')
+    return str(p)
+
+
+def test_ubuntu_2604_rueckfall_auf_2404_chromium(env) -> None:
+    r = run(env, DB_UNKNOWN_UBUNTU="ubuntu26.04-x64", HH_OS_RELEASE=_os_release(env, "ubuntu", "26.04"),
+            HH_UNAME_M="x86_64")
+    assert "RC=0" in r.stdout
+    installs = [l for l in calls(env).splitlines() if l.startswith("dev-browser install OVERRIDE=")]
+    assert installs == ["dev-browser install OVERRIDE=", "dev-browser install OVERRIDE=ubuntu24.04-x64"]
+    assert "Browser-Werkzeug bereit" in r.stdout and "ubuntu24.04-x64" in r.stdout
+    assert "WARNUNG" not in r.stdout
+    assert (env["home"] / ".cache" / "ms-playwright").is_dir()
+
+
+def test_ubuntu_arm_rueckfall_mit_arm_kennung(env) -> None:
+    r = run(env, DB_UNKNOWN_UBUNTU="ubuntu26.04-arm64", HH_OS_RELEASE=_os_release(env, "ubuntu", "26.04"),
+            HH_UNAME_M="aarch64")
+    assert "dev-browser install OVERRIDE=ubuntu24.04-arm64" in calls(env)
+    assert "Browser-Werkzeug bereit" in r.stdout
+
+
+def test_bekanntes_ubuntu_kein_rueckfall(env) -> None:
+    r = run(env, HH_OS_RELEASE=_os_release(env, "ubuntu", "24.04"), HH_UNAME_M="x86_64")
+    installs = [l for l in calls(env).splitlines() if l.startswith("dev-browser install OVERRIDE=")]
+    assert installs == ["dev-browser install OVERRIDE="]
+    assert "Browser-Werkzeug bereit (dev-browser 0.2.9)" in r.stdout
+
+
+def test_anderer_fehler_kein_rueckfall(env) -> None:
+    """Rückfall nur bei genau der Playwright-Meldung – ein Netzfehler bleibt eine Warnung mit Grund."""
+    r = run(env, DB_INSTALL_FAIL="1", HH_OS_RELEASE=_os_release(env, "ubuntu", "26.04"), HH_UNAME_M="x86_64")
+    assert "OVERRIDE=ubuntu24.04" not in calls(env)
+    assert "WARNUNG" in r.stdout and "chromium download failed" in r.stdout
+
+
+def test_nicht_ubuntu_kein_rueckfall(env) -> None:
+    r = run(env, DB_UNKNOWN_UBUNTU="ubuntu26.04-x64", HH_OS_RELEASE=_os_release(env, "fedora", "43"),
+            HH_UNAME_M="x86_64")
+    assert "OVERRIDE=ubuntu24.04" not in calls(env)
+    assert "WARNUNG" in r.stdout and "does not support chromium" in r.stdout

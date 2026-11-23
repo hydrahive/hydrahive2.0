@@ -64,9 +64,17 @@ def test_bericht_unvollstaendig(report, feld):
 
 # ---------------------------------------------------------------- Etappe 2: Ziel-Pflicht + Auswahl
 
-def test_projektarbeit_ohne_ziel_wird_abgelehnt(session_id, tmp_path):
+def test_projektarbeit_ohne_ziel_wird_abgelehnt_wenn_pflicht_an(session_id, tmp_path, monkeypatch):
+    monkeypatch.setattr(anchor, "goal_required", lambda: True)
     with pytest.raises(anchor.AnchorError, match="braucht ein Zieldokument"):
         anchor.anchor_task("Baue X", {"task_type": "feature"}, _ctx(session_id, tmp_path), PROJECT)
+
+
+def test_projektarbeit_ohne_ziel_erlaubt_wenn_pflicht_aus(session_id, tmp_path, monkeypatch):
+    """Standard auf fremden Installationen: Zieldokument möglich, keine Pflicht (Befund 23.11.2026)."""
+    monkeypatch.setattr(anchor, "goal_required", lambda: False)
+    out = anchor.anchor_task("Baue X", {"task_type": "feature"}, _ctx(session_id, tmp_path), PROJECT)
+    assert "original" in ca.extract(out)
 
 
 def test_frage_an_projekt_agent_ohne_ziel_erlaubt(session_id, tmp_path):
