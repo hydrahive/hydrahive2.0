@@ -44,6 +44,7 @@ def public_view(cfg: dict[str, Any]) -> dict[str, Any]:
     except execution.ExecutionError:
         out["execution_mode"] = "unavailable"
     out["has_webhook_secret"] = bool(cfg.get("webhook_secret"))
+    out["webhook_secret_auto"] = bool(cfg.get("webhook_secret_auto"))
     # Pro Repo nur, ob ein Token hinterlegt ist. Remote-URLs stehen in git selbst
     # (GET .../git/repos) und können Zugangsdaten enthalten — hier nicht.
     out["git_repos"] = {
