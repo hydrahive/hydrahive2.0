@@ -59,6 +59,12 @@ def missing_briefing(args: dict) -> list[str]:
     return [k for k in BRIEFING_REQUIRED if not str(args.get(k) or "").strip()]
 
 
+#: Fester Satz in jedem Auftrag (Ziel agenten-sofortschutz §3, Vorfall 22.11.2026: PowerShell-Download).
+#: Die Shell-Sperre setzt es durch; der Satz sorgt dafür, dass der Agent es vorher weiß und nicht herumprobiert.
+NO_INSTALL_RULE = ("## Regel\nNichts herunterladen oder installieren (keine Programme, keine Pakete systemweit). "
+                   "Was fehlt, als Blocker melden.")
+
+
 def build_briefing(task: str, args: dict) -> str:
     """Auftrag + fester Briefing-Block für den Spezialisten (Plan E6 T2)."""
     parts = [task, f"## Ziel\n{str(args['goal']).strip()}"]
@@ -66,6 +72,7 @@ def build_briefing(task: str, args: dict) -> str:
     if known:
         parts.append(f"## Bekannt\n{known}")
     parts.append(f"## Liefern\n{str(args['deliverable']).strip()}")
+    parts.append(NO_INSTALL_RULE)
     return "\n\n".join(parts)
 
 

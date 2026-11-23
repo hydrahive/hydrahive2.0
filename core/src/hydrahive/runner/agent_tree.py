@@ -28,8 +28,12 @@ _SECRET = re.compile(
 
 
 def redact(text: str) -> str:
-    return _SECRET.sub(lambda m: (m.group(1) or m.group(2) or m.group(3) or "") + "***" + ("@" if m.group(1) else ""),
-                       text or "")
+    """Zugangsdaten in Befehlen schwärzen: Muster hier (DSN, VAR=…, sshpass) plus die zentrale Token-Liste
+    (credentials/redaction.py: ghp_, github_pat_, sk-…, Bearer-Header …), damit es EINE Quelle für Tokens gibt."""
+    from hydrahive.credentials.redaction import redact_detected
+    out = _SECRET.sub(lambda m: (m.group(1) or m.group(2) or m.group(3) or "") + "***" + ("@" if m.group(1) else ""),
+                      text or "")
+    return redact_detected(out)
 
 
 _FAR = "9999"   # offenes Ende für laufende Aufträge
