@@ -37,13 +37,15 @@ PUBLIC_FIELDS = (
 def public_view(cfg: dict[str, Any]) -> dict[str, Any]:
     """Kopie ohne Secrets; statt der Werte nur has_*-Flags."""
     from hydrahive.projects import execution
+    from hydrahive.projects._webhook_migration import has_secret
 
     out = {k: cfg[k] for k in PUBLIC_FIELDS if k in cfg}
     try:
         out["execution_mode"] = execution.of(cfg)["mode"]
     except execution.ExecutionError:
         out["execution_mode"] = "unavailable"
-    out["has_webhook_secret"] = bool(cfg.get("webhook_secret"))
+    out["has_webhook_secret"] = has_secret(cfg)
+    out["webhook_secret_auto"] = bool(cfg.get("webhook_secret_auto"))
     # Pro Repo nur, ob ein Token hinterlegt ist. Remote-URLs stehen in git selbst
     # (GET .../git/repos) und können Zugangsdaten enthalten — hier nicht.
     out["git_repos"] = {

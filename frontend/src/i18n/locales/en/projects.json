@@ -18,7 +18,11 @@
     "rotate_confirm": "Generate a new secret? Calls with the old secret will be rejected immediately.",
     "rotate_failed": "The secret could not be regenerated.",
     "copy_failed": "Could not copy to the clipboard.",
-    "header_hint": "Send it as the X-Webhook-Secret header with each call."
+    "header_hint": "Send it as the X-Webhook-Secret header with each call.",
+    "auto_title": "Secret generated automatically",
+    "auto_body": "This project had no webhook secret, so one was generated automatically. External senders must send it as the X-Webhook-Secret header, otherwise calls are rejected. Show the secret below and copy it.",
+    "auto_ack": "Got it, hide notice",
+    "ack_failed": "The notice could not be dismissed."
   },
   "tags": {
     "label": "Tags",

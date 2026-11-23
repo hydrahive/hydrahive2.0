@@ -36,9 +36,8 @@ OPEN_ROUTES: tuple[OpenRoute, ...] = (
     OpenRoute("POST", "/api/butler/webhooks/project/{project_id}",
               "Eingehender Projekt-Webhook von außen: prüft X-Webhook-Secret gegen das "
               "Projekt-Secret (compare_digest); unbekanntes Projekt 404, Antwort enthält "
-              "nur die Anzahl ausgelöster Flows. LÜCKE: Projekte ohne gespeichertes Secret "
-              "(Altbestand) werden derzeit ohne Prüfung angenommen (Task 1809eae3, "
-              "xfail-Test test_butler_webhook_projekt_ohne_secret)."),
+              "nur die Anzahl ausgelöster Flows. Fehlt dem Projekt das Secret, wird abgelehnt "
+              "(401); der Start erzeugt für Altprojekte automatisch eines (Task 44fffa23)."),
     OpenRoute("POST", "/api/communication/whatsapp/incoming",
               "Eingang von der lokalen WhatsApp-Bridge: prüft X-HH-Bridge-Secret "
               "(verify_secret), sonst 401; Rate-Limit je IP."),
