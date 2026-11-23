@@ -15,7 +15,7 @@ export type CoreHelpTopic =
   // Infrastruktur
   | "vms" | "containers" | "nodes" | "jobs" | "federation" | "streaming" | "datamining" | "memory" | "websearch"
   // Konfiguration
-  | "llm" | "credentials" | "system" | "extensions" | "modules" | "users" | "settings" | "access"
+  | "admin" | "llm" | "credentials" | "system" | "extensions" | "modules" | "users" | "settings" | "access"
   // Wartung
   | "archive"
   // Einstieg
