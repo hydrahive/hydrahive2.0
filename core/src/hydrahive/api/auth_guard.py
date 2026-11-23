@@ -79,6 +79,12 @@ def has_auth(dependant: Any, auth_calls: Iterable[Callable[..., Any]], _depth: i
     return False
 
 
+def _under(path: str, prefix: str) -> bool:
+    """Pfad liegt unter ``prefix`` (``/api`` trifft ``/api/x``, nicht ``/apix``)."""
+    prefix = prefix.rstrip("/")
+    return not prefix or path == prefix or path.startswith(prefix + "/")
+
+
 def _methods(route: APIRoute | APIWebSocketRoute) -> list[str]:
     if isinstance(route, APIWebSocketRoute):
         return [WS]
@@ -91,7 +97,7 @@ def unguarded(app: FastAPI, *, prefix: str = "/api",
     auth_calls = set(CORE_AUTH_CALLS) | set(extra_auth) | device_auth_calls()
     out: list[tuple[str, str]] = []
     for route in app.routes:
-        if not isinstance(route, (APIRoute, APIWebSocketRoute)) or not route.path.startswith(prefix):
+        if not isinstance(route, (APIRoute, APIWebSocketRoute)) or not _under(route.path, prefix):
             continue
         if not has_auth(route.dependant, auth_calls):
             out += [(method, route.path) for method in _methods(route)]
@@ -101,7 +107,7 @@ def unguarded(app: FastAPI, *, prefix: str = "/api",
 def all_routes(app: FastAPI, *, prefix: str = "/api") -> set[tuple[str, str]]:
     """(Methode, Pfad) aller Routen unter ``prefix``, für die Prüfung auf veraltete Einträge."""
     return {(method, route.path) for route in app.routes
-            if isinstance(route, (APIRoute, APIWebSocketRoute)) and route.path.startswith(prefix)
+            if isinstance(route, (APIRoute, APIWebSocketRoute)) and _under(route.path, prefix)
             for method in _methods(route)}
 
 

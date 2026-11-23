@@ -155,3 +155,17 @@ def test_nachgebaute_capability_closure_zaehlt_nicht():
         return {}
 
     assert unguarded(app) == [("GET", "/api/nachbau")]
+
+
+def test_praefix_trifft_nur_ganze_pfadteile():
+    app = FastAPI()
+
+    @app.get("/apix/offen")
+    def apix():
+        return {}
+
+    @app.get("/api")
+    def api_root():
+        return {}
+
+    assert unguarded(app) == [("GET", "/api")]

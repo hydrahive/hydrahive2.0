@@ -64,6 +64,16 @@ WS_CASES: dict[tuple[str, str], list[tuple[str, dict, set[int]]]] = {
 }
 
 
+@pytest.fixture(autouse=True)
+def _rate_limit_frei():
+    """WhatsApp und Enroll zählen ein globales Rate-Limit je IP; andere Tests setzen es nicht
+    immer zurück. Ein 429 wäre hier ein falscher Alarm (Review #751)."""
+    from hydrahive.api.middleware import inbound_ratelimit
+    inbound_ratelimit.reset()
+    yield
+    inbound_ratelimit.reset()
+
+
 def _only_error(body) -> bool:
     """Antwort enthält nur einen Fehlercode, keine Nutzdaten."""
     if body in ({}, None, ""):
