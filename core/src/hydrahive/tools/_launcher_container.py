@@ -15,6 +15,7 @@ import shutil
 import uuid
 from pathlib import Path
 
+from hydrahive.tools import _sandbox_select
 from hydrahive.tools._launcher import Launcher, LaunchResult, get_launcher
 
 _INCUS = shutil.which("incus") or "incus"
@@ -37,9 +38,10 @@ class ContainerDown(ExecutionUnavailable):
 
 
 def launcher_for(ctx) -> Launcher:
-    """Launcher für diesen Lauf. Ohne Projekt oder bei Host-Projekt: der Standard (wie bisher)."""
+    """Launcher für diesen Lauf. Ohne Projekt oder bei Host-Projekt: der Standard (wie bisher), außer die
+    Agenten-Sandbox ist an und der Agent ist Projekt-Agent/Spezialist (_sandbox_select, Ziel B2a)."""
     if not ctx.project_id:
-        return get_launcher()
+        return _sandbox_select.host_launcher(ctx, None)
     from hydrahive.projects import config as project_config
     from hydrahive.projects import execution
     try:
@@ -52,7 +54,7 @@ def launcher_for(ctx) -> Launcher:
     except Exception:  # noqa: BLE001 – jede Störung heißt: nicht ausführen, nie auf dem Server
         raise ExecutionUnavailable("project_execution_unavailable") from None
     if ex["mode"] == "host":
-        return get_launcher()
+        return _sandbox_select.host_launcher(ctx, project)
     return ContainerLauncher(ex["container"], ex["workdir"], ex["user"])
 
 
