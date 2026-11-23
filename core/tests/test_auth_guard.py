@@ -141,3 +141,17 @@ def test_gegenprobe_echte_routen_plus_offene_testroute(client):
 
     assert audit(copy, OPEN_ROUTES) == ["ohne Auth: DELETE /api/neu/ohne-auth/{item_id}"]
     assert audit(_real_app(), OPEN_ROUTES) == []              # echte App unverändert
+
+
+def test_nachgebaute_capability_closure_zaehlt_nicht():
+    """Nur die echte require_capability-Closure aus access/deps zählt, kein gleichnamiger Nachbau."""
+    def _dep():
+        return None
+    _dep.__qualname__ = "require_capability.<locals>._dep"
+    app = FastAPI()
+
+    @app.get("/api/nachbau", dependencies=[Depends(_dep)])
+    def nachbau():
+        return {}
+
+    assert unguarded(app) == [("GET", "/api/nachbau")]

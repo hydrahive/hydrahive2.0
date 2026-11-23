@@ -50,8 +50,10 @@ class OpenRoute:
 
 def _is_capability(call: Callable[..., Any]) -> bool:
     # require_capability(...) liefert eine Closure; sie hängt selbst an require_principal(_or_query),
-    # die Rekursion fände das auch. Der Name macht die Meldungen lesbarer.
-    return getattr(call, "__qualname__", "").startswith("require_capability.")
+    # die Rekursion fände das auch. Nur die echte Closure aus access/deps zählt (Name UND Modul),
+    # ein gleichnamiger Nachbau anderswo nicht (Security-Review #751).
+    return (getattr(call, "__module__", "") == "hydrahive.access.deps"
+            and getattr(call, "__qualname__", "").startswith("require_capability."))
 
 
 def device_auth_calls() -> set[Callable[..., Any]]:

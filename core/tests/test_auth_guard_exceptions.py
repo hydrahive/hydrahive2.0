@@ -109,3 +109,15 @@ def test_butler_webhook_mit_falschem_secret(client):
     assert r.status_code == 401 and _only_error(r.json())
     r = client.post(url, json={}, headers={"X-Webhook-Secret": "falsch"})
     assert r.status_code == 403 and _only_error(r.json())
+
+
+@pytest.mark.xfail(strict=True, reason="Butler-Webhook nimmt Projekte ohne Secret ungeprüft an (Task 1809eae3)")
+def test_butler_webhook_projekt_ohne_secret(client):
+    """Bewacht die bekannte Lücke: schließt Task 1809eae3 sie, wird dieser Test grün → xfail
+    strict meldet das, dann das xfail entfernen."""
+    from hydrahive.projects import config as project_config
+    from tests._delete_fixtures import make_project
+    p = make_project(f"Webhook-ohne-Secret {uuid.uuid4().hex[:6]}")
+    project_config.update(p["id"], webhook_secret="")
+    r = client.post(f"/api/butler/webhooks/project/{p['id']}", json={})
+    assert r.status_code == 401
