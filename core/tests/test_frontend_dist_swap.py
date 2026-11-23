@@ -201,3 +201,21 @@ def test_vite_liest_outdir_aus_umgebung():
 def test_nginx_liefert_weiter_dist_aus():
     for f in (INSTALLER / "modules" / "60-nginx.sh", INSTALLER / "modules-mac" / "60-nginx.sh"):
         assert "/frontend/dist;" in f.read_text()
+
+
+def test_swap_bricht_ab_wenn_dist_alt_nicht_weg_geht(tmp_path):
+    """Reviewfund: bleibt dist.alt liegen, darf dist nicht IN dist.alt verschoben werden."""
+    fe = _frontend(tmp_path)
+    (fe / "dist.neu").mkdir()
+    (fe / "dist.neu" / "index.html").write_text("NEU")
+    (fe / "dist.alt").mkdir()
+    (fe / "dist.alt" / "sperre").write_text("x")
+    # rm als Attrappe, die nichts löscht (wie bei fehlenden Rechten)
+    bin_ = tmp_path / "bin"
+    bin_.mkdir()
+    (bin_ / "rm").write_text("#!/bin/bash\nexit 0\n")
+    (bin_ / "rm").chmod(0o755)
+    r = _sh(f'PATH="{bin_}:$PATH"; source "{SWAP}"; hh_frontend_swap "{fe}"')
+    assert r.returncode == 1 and "dist.alt" in r.stderr
+    assert (fe / "dist" / "index.html").read_text() == "ALT"
+    assert not (fe / "dist.alt" / "dist").exists()

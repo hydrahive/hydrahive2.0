@@ -25,6 +25,11 @@ hh_frontend_swap() {
     return 1
   fi
   rm -rf "$fe/dist.alt"
+  if [ -e "$fe/dist.alt" ]; then
+    # sonst legt `mv dist dist.alt` dist IN den Rest-Ordner (dist.alt/dist) und meldet Erfolg
+    echo "dist.alt konnte nicht entfernt werden – dist bleibt unverändert" >&2
+    return 1
+  fi
   if [ -e "$fe/dist" ]; then
     mv "$fe/dist" "$fe/dist.alt" || { echo "dist konnte nicht beiseite gelegt werden" >&2; return 1; }
   fi
