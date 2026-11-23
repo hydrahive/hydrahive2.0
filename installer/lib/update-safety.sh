@@ -44,7 +44,11 @@ hh_dir_bytes() { local n=0; [ -e "$1" ] && n=$(du -sb "$1" 2>/dev/null | awk '{p
 
 hh_gb() { awk -v n="${1:-0}" 'BEGIN { printf "%.1f", n / 1073741824 }'; }
 
-hh_safety_python() { printf '%s\n' "${HH_SYSTEM_PYTHON:-/usr/bin/python3}"; }
+# Fest: root führt das aus, und install.conf (vom Dienstnutzer beschreibbar) darf den Interpreter nicht bestimmen.
+# Tests setzen HH_TEST_SYSTEM_PYTHON ausdrücklich (nur bei gesetztem HH_TEST_MODE).
+hh_safety_python() {
+  if [ "${HH_TEST_MODE:-}" = "1" ] && [ -n "${HH_TEST_SYSTEM_PYTHON:-}" ]; then printf '%s\n' "$HH_TEST_SYSTEM_PYTHON"; else printf '%s\n' /usr/bin/python3; fi
+}
 
 # Niedrige Priorität für die Sicherung (Dienst läuft weiter). Fehlt ionice/nice, läuft sie ohne.
 hh_lowprio() {
@@ -253,7 +257,7 @@ hh_safety_backup() {
   root=$(hh_backup_root)
   db="$HH_DATA_DIR/sessions.db"
   branch="${HH_GIT_BRANCH:-}"
-  old="$($HH_GIT rev-parse HEAD 2>/dev/null || true)"
+  old="$($HH_GIT rev-parse -q --verify HEAD 2>/dev/null || true)"
   [ -n "$old" ] || err "Aktueller Commit nicht ermittelbar – nichts verändert."
   if [ -n "${HH_UPDATE_REEXECED:-}" ]; then
     # Ein älteres update.sh hat schon gepullt und uns neu gestartet: HEAD ist der NEUE Stand.
@@ -285,7 +289,10 @@ hh_safety_backup() {
   chmod 600 "$HH_BACKUP_DIR/meta.env"
 
   # §4 Grundsatz: Sicherungs- und (später) Rückweg-Code liegt als Kopie im Ordner, nicht im Repo.
-  cp -a "$HH_SAFETY_LIB_DIR/update-safety.sh" "$HH_SAFETY_LIB_DIR/db_snapshot.py" "$HH_BACKUP_DIR/" 2>/dev/null || true
+  local f
+  for f in update-safety.sh db_snapshot.py; do
+    cp --no-preserve=ownership,mode "$HH_SAFETY_LIB_DIR/$f" "$HH_BACKUP_DIR/$f" 2>/dev/null && chmod 600 "$HH_BACKUP_DIR/$f" || true
+  done
 
   if [ -f "$db" ]; then
     log "Datenbank sichern (VACUUM INTO, geprüft)"

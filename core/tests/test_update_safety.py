@@ -538,3 +538,21 @@ def test_ohne_zstd_faellt_die_sicherung_auf_gzip_zurueck(env):
     assert "gzip -dc" in (d / "ROLLBACK.txt").read_text()
     ok = subprocess.run(["python3", str(SNAP), "verify", str(d / "sessions.db.gz")], capture_output=True, text=True)
     assert ok.stdout.strip() == "ok"
+
+
+def test_system_python_ist_fest_und_nicht_per_umgebung_setzbar(env):
+    """Security-Review #760: install.conf (vom Dienstnutzer beschreibbar) darf den root-Interpreter nicht bestimmen."""
+    src = LIB / "update-safety.sh"
+    script = f'log() {{ :; }}\nerr() {{ exit 1; }}\nsource "{src}"\nhh_safety_python\n'
+    r = subprocess.run(["bash", "-c", script], env=_env(env, HH_SYSTEM_PYTHON="/tmp/boese"), capture_output=True, text=True)
+    assert r.stdout.strip() == "/usr/bin/python3"
+    r = subprocess.run(["bash", "-c", script], env=_env(env, HH_TEST_SYSTEM_PYTHON="/tmp/x"), capture_output=True, text=True)
+    assert r.stdout.strip() == "/usr/bin/python3", "ohne HH_TEST_MODE gilt die Testvariable nicht"
+
+
+def test_skriptkopien_im_sicherungsordner_sind_0600(env):
+    _push_new_commit(env)
+    assert _run_head(env).returncode == 0
+    (d,) = _backups(env)
+    for name in ("update-safety.sh", "db_snapshot.py", "meta.env", "ROLLBACK.txt", "etc-hydrahive2.tar"):
+        assert oct((d / name).stat().st_mode & 0o777) == "0o600", name
