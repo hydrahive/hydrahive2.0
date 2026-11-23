@@ -88,6 +88,11 @@ hh_meta_set() {
     && chmod 600 "$tmp" && mv "$tmp" "$file"
 }
 
+hh_meta_set_in() {   # <ordner> KEY WERT
+  local saved="${HH_BACKUP_DIR:-}"
+  HH_BACKUP_DIR="$1"; hh_meta_set "$2" "$3"; HH_BACKUP_DIR="$saved"
+}
+
 hh_meta_get() { [ -f "$2/meta.env" ] && sed -n "s/^$1=//p" "$2/meta.env" | tail -1; }
 
 # ---------------------------------------------------------------------------------------------------------------
@@ -290,7 +295,9 @@ hh_safety_backup() {
 
   # §4 Grundsatz: Sicherungs- und (später) Rückweg-Code liegt als Kopie im Ordner, nicht im Repo.
   local f
-  for f in update-safety.sh db_snapshot.py; do
+  # §4 Grundsatz: Prüfung und Rückweg laufen aus DIESER Kopie, nicht aus dem (evtl. kaputten) neuen Stand.
+  for f in update-safety.sh update-check.sh update-rollback.sh db_snapshot.py; do
+    [ -f "$HH_SAFETY_LIB_DIR/$f" ] || continue
     cp --no-preserve=ownership,mode "$HH_SAFETY_LIB_DIR/$f" "$HH_BACKUP_DIR/$f" 2>/dev/null && chmod 600 "$HH_BACKUP_DIR/$f" || true
   done
 
@@ -358,6 +365,11 @@ hh_safety_finish() {
     [ "$rc" -ne 0 ] && rm -rf --one-file-system -- "$HH_BACKUP_DIR"
     return 0
   fi
+  if [ "$status" = "ok" ]; then
+    # Phase C hat bestanden und die Sicherung schon als ok markiert; hier bleibt nur das Aufräumen (§6).
+    [ "$rc" -eq 0 ] && hh_backup_prune || true
+    return 0
+  fi
   [ "$status" = "gesichert" ] || return 0
   if [ "$rc" -eq 0 ]; then
     new="$($HH_GIT rev-parse HEAD 2>/dev/null || true)"
@@ -374,8 +386,76 @@ hh_safety_finish() {
     rm -rf --one-file-system -- "$HH_BACKUP_DIR"
     log "Nichts verändert."
   else
-    log "Update fehlgeschlagen. Sicherung vom Stand vor dem Update: $HH_BACKUP_DIR"
-    log "Rückweg von Hand: cat $HH_BACKUP_DIR/ROLLBACK.txt (automatischer Rückweg folgt mit U4)"
+    hh_safety_rollback "$rc"
   fi
+  return 0
+}
+
+# Phase D aus dem trap: nach einem Fehler ab Phase B automatisch zurück (HH_UPDATE_ROLLBACK=0 schaltet es ab).
+# Setzt HH_FAIL_REASON auf die Schlusszeile („… – auf <alt> zurückgesetzt“) und STATUS in meta.env.
+hh_safety_rollback() {
+  local rc=$1 dir=$HH_BACKUP_DIR reason f
+  reason="${HH_FAIL_REASON:-Abbruch (Code $rc) – siehe Log}"
+  if [ "${HH_UPDATE_ROLLBACK:-1}" = "0" ]; then
+    log "Update fehlgeschlagen. Automatischer Rückweg abgeschaltet (HH_UPDATE_ROLLBACK=0). Sicherung: $dir"
+    log "Rückweg von Hand: cat $dir/ROLLBACK.txt"
+    return 0
+  fi
+  # Prüfung und Rückweg aus der Kopie im Sicherungsordner (§4 Grundsatz); fehlt sie, aus dem Repo.
+  for f in update-check.sh update-rollback.sh; do
+    if [ -f "$dir/$f" ]; then source "$dir/$f"; elif [ -f "$HH_SAFETY_LIB_DIR/$f" ]; then source "$HH_SAFETY_LIB_DIR/$f"; fi
+  done
+  if ! declare -F hh_rollback_run >/dev/null 2>&1; then
+    log "Rückweg-Code nicht gefunden. Rückweg von Hand: cat $dir/ROLLBACK.txt"
+    return 0
+  fi
+  hh_rollback_run "$dir" "$reason" || true
+  case "$HH_ROLLBACK_STATE" in
+    ok)             hh_meta_set STATUS zurueckgesetzt ;;
+    unvollstaendig) hh_meta_set STATUS rueckweg_unvollstaendig
+                    log "Rückweg unvollständig. Rest von Hand: cat $dir/ROLLBACK.txt (kaputter Stand: $dir/kaputt/)" ;;
+    unmoeglich)     hh_meta_set STATUS rueckweg_unvollstaendig
+                    log "Rückweg nicht möglich. Sicherung: $dir (ROLLBACK.txt)" ;;
+    *)              log "Rückweg ohne Ergebnis. Sicherung: $dir (ROLLBACK.txt)"; return 0 ;;
+  esac
+  HH_FAIL_REASON="$HH_ROLLBACK_MESSAGE"
+  return 0
+}
+
+# E13: Ein früheres Update wurde hart beendet (Stromausfall, kill -9): Sicherung mit STATUS=gesichert ohne Abschluss.
+# Wir halten die Sperre, es läuft also kein anderes. Nur MELDEN (F6); automatisch zurück nur, wenn der Dienst mit dem
+# neuen Stand nicht startet.
+hh_safety_check_interrupted() {
+  local root d name st old new head
+  root=$(hh_backup_root)
+  [ -d "$root" ] || return 0
+  while IFS= read -r name; do
+    d="$root/$name"
+    [ -d "$d" ] && [ ! -L "$d" ] || continue
+    [ "${d}" = "${HH_BACKUP_DIR:-}" ] && continue
+    st="$(hh_meta_get STATUS "$d")"
+    [ "$st" = "gesichert" ] || continue
+    old="$(hh_meta_get OLD_COMMIT "$d")"; new="$(hh_meta_get NEW_COMMIT "$d")"
+    hh_meta_set_in "$d" STATUS unterbrochen
+    log "WARNUNG: Vorheriges Update unterbrochen – Sicherung $d (alter Commit ${old:0:8}). Rückweg von Hand: cat $d/ROLLBACK.txt"
+    if declare -F hh_warn >/dev/null 2>&1; then hh_warn "Vorheriges Update unterbrochen – Sicherung $d"; fi
+    head="$($HH_GIT rev-parse HEAD 2>/dev/null || true)"
+    # Automatisch nur, wenn der Dienst mit dem neuen Stand nicht läuft (F6).
+    if [ -n "$new" ] && [ "$head" = "$new" ] && [ "$(hh_meta_get RESTARTED "$d")" = "1" ] \
+       && declare -F hh_safety_verify >/dev/null 2>&1; then
+      HH_UPDATE_HEALTH_TIMEOUT="${HH_INTERRUPTED_HEALTH_TIMEOUT:-20}" hh_safety_verify "$new" 1 || {
+        log "Der Dienst läuft mit dem Stand des unterbrochenen Updates nicht ($HH_VERIFY_REASON) – automatischer Rückweg"
+        hh_safety_rollback_dir "$d"
+      }
+    fi
+  done < <(ls -1 "$root" 2>/dev/null | grep -E '^[0-9]{8}T[0-9]{6}Z_[0-9a-f]+$|^[0-9]{8}T[0-9]{6}Z_unbekannt$' | sort)
+  return 0
+}
+
+hh_safety_rollback_dir() {
+  local d=$1 saved_dir="${HH_BACKUP_DIR:-}" saved_reason="${HH_FAIL_REASON:-}"
+  HH_BACKUP_DIR="$d"; HH_FAIL_REASON="Vorheriges Update unterbrochen"
+  hh_safety_rollback 1
+  HH_BACKUP_DIR="$saved_dir"; HH_FAIL_REASON="$saved_reason"
   return 0
 }

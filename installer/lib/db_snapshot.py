@@ -8,6 +8,12 @@ Läuft mit dem System-python3 (nicht mit dem venv: das ist Gegenstand des Rückw
     db_snapshot.py pack <roh> <ziel>      zstd (sonst gzip) -> fsync -> rename, <roh> wird entfernt (als root)
     db_snapshot.py snapshot <db> <ziel>   copy + pack in einem Schritt
     db_snapshot.py verify <ziel>          entpacken in eine Temp-Datei und quick_check (nur lesen)
+    db_snapshot.py schema-version <db>    höchste Version in schema_version (nur lesen, 0 wenn leer)
+    db_snapshot.py restore <ziel> <db> [besitzer]
+                                          Rückweg: entpacken, quick_check, als <db>.neu mit O_EXCL|O_NOFOLLOW schreiben
+                                          (nie in einen vorhandenen Link), Besitzer setzen, fsync, rename auf <db>.
+                                          Weigert sich, wenn <db> noch existiert (der kaputte Stand wird vorher zur Seite
+                                          gelegt, nie überschrieben).
 
 ``copy`` läuft als Besitzer der DB, nicht als root: Öffnet root eine WAL-DB bei gestopptem Dienst, legt er ``-wal`` und
 ``-shm`` root-eigen an, und der Dienst startet danach nicht mehr.
@@ -150,10 +156,70 @@ def verify(snap: Path) -> None:
         out.unlink(missing_ok=True)
 
 
+def schema_version(db: Path) -> int:
+    con = _open_ro(db)
+    try:
+        try:
+            row = con.execute("SELECT MAX(version) FROM schema_version").fetchone()
+        except sqlite3.OperationalError:
+            return 0
+    finally:
+        con.close()
+    return int(row[0] or 0) if row else 0
+
+
+def restore(snap: Path, dest: Path, owner: str | None = None) -> None:
+    """Spielt eine Sicherung als ``dest`` ein. Läuft als root: ``dest`` liegt in einem Ordner des Dienstnutzers."""
+    if os.path.lexists(dest):
+        raise SnapshotError(f"{dest} existiert noch – der kaputte Stand muss zuerst zur Seite gelegt werden")
+    if not snap.is_file():
+        raise SnapshotError(f"{snap} existiert nicht")
+    work = snap.parent / ".restore.db.tmp"          # im root-eigenen Sicherungsordner, nicht beim Dienstnutzer
+    work.unlink(missing_ok=True)
+    neu = dest.parent / (dest.name + ".neu")
+    try:
+        _decompress(snap, work)
+        _quick_check(work)
+        uid = gid = None
+        if owner and os.geteuid() == 0:
+            import pwd
+            try:
+                pw = pwd.getpwnam(owner)
+            except KeyError as exc:
+                raise SnapshotError(f"Benutzer {owner} unbekannt") from exc
+            uid, gid = pw.pw_uid, pw.pw_gid
+        flags = os.O_WRONLY | os.O_CREAT | os.O_EXCL | getattr(os, "O_NOFOLLOW", 0)
+        fd = os.open(neu, flags, 0o600)
+        try:
+            with open(work, "rb") as src, os.fdopen(os.dup(fd), "wb") as out:
+                shutil.copyfileobj(src, out, 1 << 20)
+                out.flush()
+                os.fsync(out.fileno())
+            if uid is not None:
+                os.fchown(fd, uid, gid)
+        finally:
+            os.close(fd)
+        os.rename(neu, dest)
+        _fsync(dest.parent)
+    except SnapshotError:
+        raise
+    except (sqlite3.Error, OSError, EOFError) as exc:
+        raise SnapshotError(f"{type(exc).__name__}: {exc}") from exc
+    finally:
+        work.unlink(missing_ok=True)
+        if os.path.lexists(neu) and not os.path.lexists(dest):
+            neu.unlink(missing_ok=True)
+
+
 def main(argv: list[str]) -> int:
     try:
         if len(argv) == 3 and argv[1] == "estimate":
             print(estimate(Path(argv[2])))
+        elif len(argv) == 3 and argv[1] == "schema-version":
+            print(schema_version(Path(argv[2])))
+        elif len(argv) in (4, 5) and argv[1] == "restore":
+            restore(Path(argv[2]), Path(argv[3]), argv[4] if len(argv) == 5 else None)
+            print("ok")
         elif len(argv) == 4 and argv[1] == "copy":
             copy(Path(argv[2]), Path(argv[3]))
             print("ok")
@@ -165,7 +231,7 @@ def main(argv: list[str]) -> int:
             verify(Path(argv[2]))
             print("ok")
         else:
-            print("Aufruf: db_snapshot.py estimate <db> | copy <db> <roh> | pack <roh> <ziel.zst|.gz> | snapshot <db> <ziel> | verify <ziel>", file=sys.stderr)
+            print("Aufruf: db_snapshot.py estimate <db> | schema-version <db> | restore <ziel> <db> [besitzer] | copy <db> <roh> | pack <roh> <ziel.zst|.gz> | snapshot <db> <ziel> | verify <ziel>", file=sys.stderr)
             return 2
     except SnapshotError as exc:
         print(str(exc).replace("\n", " "), file=sys.stderr)

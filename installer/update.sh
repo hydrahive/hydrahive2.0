@@ -30,6 +30,9 @@ trap _hh_end EXIT
 # Sicherung vor dem Update + Sperre (docs/specs/update-rollback.md §3.1, Etappe U3). Genau ein Update gleichzeitig.
 # shellcheck source=lib/update-safety.sh
 source "$HH_REPO_DIR/installer/lib/update-safety.sh"
+# Phase C (Prüfung) und Warnungs-Sammlung; Phase D (Rückweg) wird im Fehlerfall aus der Sicherung geladen (§4 Grundsatz).
+# shellcheck source=lib/update-check.sh
+source "$HH_REPO_DIR/installer/lib/update-check.sh"
 hh_safety_lock
 
 # install.conf laden (Komponenten-Auswahl aus install.sh) — ENV gewinnt darüber.
@@ -98,6 +101,8 @@ fi
 rm -f "$HH_GIT_LIB"
 # Phase A: alten Commit merken und sichern – NACH dem fetch (venv-Entscheidung), VOR dem Pull. Zu wenig Platz oder
 # eine ungültige Sicherung beenden das Update hier, bevor etwas verändert wurde. Nach einem Re-exec: keine zweite.
+# E13: ein hart beendetes früheres Update melden (und nur zurückdrehen, wenn der Dienst mit dem neuen Stand nicht läuft).
+[ -n "${HH_UPDATE_REEXECED:-}" ] || hh_safety_check_interrupted
 hh_safety_backup
 hh_git_update "$HH_REPO_DIR"
 hh_safety_after_git
@@ -144,7 +149,8 @@ hh_verify_dns
 # shellcheck source=lib/system-upgrade.sh
 source "$HH_REPO_DIR/installer/lib/system-upgrade.sh"
 hh_ensure_auto_updates
-hh_system_upgrade
+# hh_system_upgrade (apt-Vollupgrade, nicht umkehrbar) läuft erst am Ende, nach bestandener Prüfung (update-rollback.md F9):
+# ein Rückweg endet so nie mit neuen Systempaketen und altem Code.
 
 log "PDF-Text und lokale OCR prüfen"
 bash "$HH_REPO_DIR/installer/lib/debian-document-tools.sh"
@@ -454,7 +460,7 @@ if [ -f /etc/samba/smb.conf ] && \
    grep -qE "^(config file|include) = /etc/samba/hh-projects\.d(\$|/%u\.conf)" /etc/samba/smb.conf 2>/dev/null; then
   log "smb.conf hat falschen hh-projects.d-Patch — 47-samba.sh re-runnen"
   HH_USER="$HH_USER" HH_DATA_DIR="$HH_DATA_DIR" HH_CONFIG_DIR="$HH_CONFIG_DIR" \
-    bash "$HH_REPO_DIR/installer/modules/47-samba.sh" || log "samba-rerun failed — weiter"
+    bash "$HH_REPO_DIR/installer/modules/47-samba.sh" || hh_warn "Samba-Update fehlgeschlagen"
 fi
 
 if [ ! -f /etc/systemd/system/hydrahive2-bridge.timer ] || [ ! -f /etc/systemd/system/hydrahive2-bridge.service ]; then
@@ -631,7 +637,7 @@ if hh_addon_wanted "$INSTALL_CONF" HH_INSTALL_VMS "$vms_installed" \
   log "VM-Manager-Setup fehlt oder unvollständig — starte 65-vms.sh"
   HH_USER="$HH_USER" HH_DATA_DIR="$HH_DATA_DIR" \
     INSTALLER_DIR="$HH_REPO_DIR/installer" \
-    bash "$HH_REPO_DIR/installer/modules/65-vms.sh" || log "vms-setup failed — weiter"
+    bash "$HH_REPO_DIR/installer/modules/65-vms.sh" || hh_warn "VM-Setup fehlgeschlagen"
 fi
 
 # qemu-bridge-helper setuid IMMER sicherstellen — auch wenn 65-vms.sh oben
@@ -660,15 +666,15 @@ if hh_addon_wanted "$INSTALL_CONF" HH_INSTALL_CONTAINERS "$(hh_has incus)" \
         || [ ! -d "/home/$HH_USER/.config/incus" ]; }; then
   log "Container-Manager-Setup fehlt — starte 70-containers.sh"
   HH_USER="$HH_USER" \
-    bash "$HH_REPO_DIR/installer/modules/70-containers.sh" || log "containers-setup failed — weiter"
+    bash "$HH_REPO_DIR/installer/modules/70-containers.sh" || hh_warn "Container-Setup fehlgeschlagen"
 fi
 
 # NAT-Netz + Portfreigabe-Helfer nachziehen (docs/specs/container-nat-ports.md).
 if command -v incus >/dev/null 2>&1; then
   # shellcheck source=lib/container-nat.sh
   source "$HH_REPO_DIR/installer/lib/container-nat.sh"
-  ensure_container_nat || log "NAT-Netz-Setup fehlgeschlagen — weiter"
-  install_portforward_helper || log "hh-portforward-Setup fehlgeschlagen — weiter"
+  ensure_container_nat || hh_warn "NAT-Netz-Setup fehlgeschlagen"
+  install_portforward_helper || hh_warn "hh-portforward-Setup fehlgeschlagen"
 fi
 
 # Bestandsmigration: vorhandene verwaltete Voice-Container müssen nach einem
@@ -714,7 +720,7 @@ if [ "$voice_ok" = "0" ] && hh_addon_wanted "$INSTALL_CONF" HH_INSTALL_VOICE "$v
     log "ffmpeg fehlt am Host — installieren"
     DEBIAN_FRONTEND=noninteractive apt-get install -y ffmpeg || true
   fi
-  bash "$HH_REPO_DIR/installer/modules/55-voice.sh" || log "voice-setup failed — weiter"
+  bash "$HH_REPO_DIR/installer/modules/55-voice.sh" || hh_warn "Voice-Setup fehlgeschlagen"
 fi
 
 # Bestandsmigration: STT-Inferenz auf int8 + beam-size 1 umstellen.
@@ -722,13 +728,13 @@ fi
 # bestehende Installationen liefen sonst dauerhaft in float32 weiter
 # (RTF ~0,95: Warten ≈ Sprechdauer). Idempotent, erhält Modell + Sprache.
 bash "$HH_REPO_DIR/installer/migrations/voice-stt-perf.sh" \
-  || log "stt-perf-migration failed — weiter"
+  || hh_warn "Voice-STT-Migration fehlgeschlagen"
 
 # Bestandsmigration: venvs, deren python3 dem System-Link folgt, festnageln.
 # Nach dem Wechsel des System-python3 auf 3.14 lief SearXNG mit dem falschen
 # Interpreter und war vier Wochen ausgefallen. Idempotent.
 bash "$HH_REPO_DIR/installer/migrations/pin-venv-python.sh" \
-  || log "pin-venv-python failed — weiter"
+  || hh_warn "pin-venv-python fehlgeschlagen"
 
 # SearXNG-venv dem System-Python nachführen (Spec python-314-umstieg): auf
 # Ubuntu 26.04 von 3.12 auf 3.14. Ohne Neubau fiele die Websuche aus, sobald
@@ -738,12 +744,12 @@ if [ -f /etc/systemd/system/searxng.service ] && [ -d /opt/searxng/venv ]; then
   source "$HH_REPO_DIR/installer/lib/searxng-venv.sh"
   HH_VENV_REBUILT=0
   hh_searxng_sync_venv /opt/searxng searxng searxng.service \
-    || log "WARNUNG: SearXNG-venv nicht erneuert — Websuche prüfen"
+    || hh_warn "SearXNG-venv nicht erneuert – Websuche prüfen"
   # Der Neubau hat den Dienst gestoppt — auch bei Fehler wieder starten,
   # damit der Ausfall in Dashboard/Log sichtbar wird statt still zu stehen.
   if [ "$HH_VENV_REBUILT" = "1" ]; then
     systemctl reset-failed searxng.service 2>/dev/null || true
-    systemctl restart searxng.service || log "WARNUNG: SearXNG-Neustart fehlgeschlagen"
+    systemctl restart searxng.service || hh_warn "SearXNG-Neustart fehlgeschlagen"
   fi
 fi
 
@@ -751,7 +757,7 @@ fi
 # Am 02.10.2026 waren alle aktiven Suchanbieter gesperrt (CAPTCHA, zu viele
 # Anfragen) — 0 Treffer. Sicherung + Rücksprung bei 0 Treffern. Idempotent.
 bash "$HH_REPO_DIR/installer/migrations/searxng-engines.sh" \
-  || log "searxng-engines failed — weiter"
+  || hh_warn "searxng-engines fehlgeschlagen"
 
 # mmx-Cache-Verzeichnis muss als hydrahive existieren BEVOR die Service-Unit
 # es als ReadWritePaths einträgt — sonst wirft systemd "missing path".
@@ -821,7 +827,7 @@ if [ -f "$SERVICE_FILE" ]; then
     HH_USER="$HH_USER" HH_DATA_DIR="$HH_DATA_DIR" HH_CONFIG_DIR="$HH_CONFIG_DIR" \
       HH_HOST="${HH_HOST:-127.0.0.1}" HH_PORT="${HH_PORT:-8001}" \
       HH_REPO_DIR="$HH_REPO_DIR" INSTALLER_DIR="$HH_REPO_DIR/installer" \
-      bash "$HH_REPO_DIR/installer/modules/50-systemd.sh" || log "systemd-rewrite failed — weiter"
+      bash "$HH_REPO_DIR/installer/modules/50-systemd.sh" || hh_warn "systemd-Unit konnte nicht neu geschrieben werden"
   fi
 fi
 
@@ -832,7 +838,7 @@ if ! command -v nginx >/dev/null 2>&1 || [ ! -f "$NGINX_CONF" ]; then
   HH_USER="$HH_USER" HH_DATA_DIR="$HH_DATA_DIR" HH_CONFIG_DIR="$HH_CONFIG_DIR" \
     HH_HOST="${HH_HOST:-127.0.0.1}" HH_PORT="${HH_PORT:-8001}" \
     HH_REPO_DIR="$HH_REPO_DIR" \
-    bash "$HH_REPO_DIR/installer/modules/60-nginx.sh" || log "nginx-setup failed — weiter"
+    bash "$HH_REPO_DIR/installer/modules/60-nginx.sh" || hh_warn "nginx-Setup fehlgeschlagen"
 else
   NEEDS_REWRITE=0
   grep -q "ssl_certificate"         "$NGINX_CONF" || NEEDS_REWRITE=1
@@ -859,7 +865,7 @@ else
     HH_PORT="${HH_PORT:-8001}"
     HH_USER="$HH_USER" HH_DATA_DIR="$HH_DATA_DIR" HH_CONFIG_DIR="$HH_CONFIG_DIR" \
       HH_REPO_DIR="$HH_REPO_DIR" HH_HOST="$HH_HOST" HH_PORT="$HH_PORT" \
-      bash "$HH_REPO_DIR/installer/modules/60-nginx.sh" || log "nginx-rewrite failed — weiter"
+      bash "$HH_REPO_DIR/installer/modules/60-nginx.sh" || hh_warn "nginx-Konfiguration konnte nicht neu geschrieben werden"
   fi
 fi
 
@@ -873,6 +879,7 @@ if [ -x "$HH_REPO_DIR/installer/modules/75-agentlink.sh" ]; then
   # "failed — weiter", wodurch ein kaputtes AgentLink unbemerkt blieb und
   # ask_agent still verschwand.
   if ! bash "$HH_REPO_DIR/installer/modules/75-agentlink.sh"; then
+    hh_warn "HydraLink-Update fehlgeschlagen (ask_agent evtl. nicht verfügbar)"
     printf "\033[1;31m[hh2-update]\033[0m %s\n" \
       "HydraLink-Update FEHLGESCHLAGEN — Agenten können sich nicht gegenseitig
      beauftragen (ask_agent fehlt). Nachholen mit:
@@ -885,13 +892,13 @@ fi
 if [ -x /usr/local/go/bin/go ] && [ -f "$HH_REPO_DIR/extensions/install/golang.sh" ]; then
   log "Go-Extension: cgo-Pakete prüfen"
   bash "$HH_REPO_DIR/extensions/install/golang.sh" --deps-only \
-    || log "cgo-Pakete für Go nicht installiert — weiter"
+    || hh_warn "cgo-Pakete für Go nicht installiert"
 fi
 
 if hh_addon_wanted "$INSTALL_CONF" HH_INSTALL_TAILSCALE "$(hh_has tailscale)" \
    && [ -x "$HH_REPO_DIR/installer/modules/80-tailscale.sh" ]; then
   log "Tailscale-Setup (installieren falls nicht da, Operator setzen)"
-  bash "$HH_REPO_DIR/installer/modules/80-tailscale.sh" || log "tailscale-update failed — weiter"
+  bash "$HH_REPO_DIR/installer/modules/80-tailscale.sh" || hh_warn "Tailscale-Update fehlgeschlagen"
 fi
 
 if [ "${HH_INSTALL_POSTGRES:-yes}" != "no" ]; then
@@ -901,7 +908,7 @@ if [ "${HH_INSTALL_POSTGRES:-yes}" != "no" ]; then
     log "PostgreSQL-Mirror fehlt oder unvollständig — starte 48-postgres.sh"
     HH_USER="$HH_USER" HH_DATA_DIR="$HH_DATA_DIR" HH_CONFIG_DIR="$HH_CONFIG_DIR" \
       INSTALLER_DIR="$HH_REPO_DIR/installer" \
-      bash "$HH_REPO_DIR/installer/modules/48-postgres.sh" || log "postgres-setup failed — weiter"
+      bash "$HH_REPO_DIR/installer/modules/48-postgres.sh" || hh_warn "PostgreSQL-Setup fehlgeschlagen"
   fi
 fi
 
@@ -916,9 +923,10 @@ chmod 775 "$CRED_DIR"
 # Unit-Rewrite. Scheitert das (secret_key fehlt), bleibt die alte Datei.
 # shellcheck source=lib/service-secrets.sh
 source "$HH_REPO_DIR/installer/lib/service-secrets.sh"
-write_service_secrets || log "WARNUNG: service-secrets.env nicht erneuert — alte Datei bleibt"
+write_service_secrets || hh_warn "service-secrets.env nicht erneuert – alte Datei bleibt"
 
 log "Service neu starten"
+hh_safety_mark_restart
 systemctl restart hydrahive2.service
 
 sleep 2
@@ -927,15 +935,22 @@ sleep 2
 # nur eine laufende Bridge neu; die vor dem venv-Neubau angehaltene gezielt.
 if systemctl cat hydra-voice-bridge.service >/dev/null 2>&1; then
   if [ "$HH_BRIDGE_STOPPED" = "1" ]; then
-    systemctl start hydra-voice-bridge.service || log "WARNUNG: Voice-Bridge-Start fehlgeschlagen"
+    systemctl start hydra-voice-bridge.service || hh_warn "Voice-Bridge-Start fehlgeschlagen"
   else
-    systemctl try-restart hydra-voice-bridge.service || log "WARNUNG: Voice-Bridge-Neustart fehlgeschlagen"
+    systemctl try-restart hydra-voice-bridge.service || hh_warn "Voice-Bridge-Neustart fehlgeschlagen"
   fi
 fi
-if systemctl is-active --quiet hydrahive2.service; then
-  log "Update erfolgreich, Service läuft."
-else
-  HH_FAIL_REASON="Service-Neustart fehlgeschlagen"
-  log "Service-Neustart fehlgeschlagen — siehe: journalctl -u hydrahive2 -n 50"
-  exit 1
+
+# Phase C (update-rollback.md §3.3): Dienst aktiv, /api/health ok mit dem erwarteten Commit, Migrationen durchgelaufen.
+# Scheitert sie, geht err → trap → automatischer Rückweg (Phase D).
+log "Prüfung nach dem Neustart (Dienst, /api/health, Migrationen; bis ${HH_UPDATE_HEALTH_TIMEOUT:-120} s)"
+if ! hh_safety_verify "$($HH_GIT rev-parse HEAD)" 1; then
+  log "Service-Prüfung fehlgeschlagen — siehe: journalctl -u hydrahive2 -n 50"
+  err "$HH_VERIFY_REASON"
 fi
+hh_safety_mark_ok
+log "Update erfolgreich, Service läuft."
+
+# Nicht umkehrbare Systempakete erst jetzt (F9); Fehler sind hier nie fatal.
+hh_system_upgrade || hh_warn "Systemupdates (apt) fehlgeschlagen"
+hh_print_warnings
