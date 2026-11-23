@@ -36,6 +36,14 @@ ABNAHME_SCHEMA = {
 _ZIEL_PFLICHT_TYPES = {"feature", "bug_fix", "refactor"}
 
 
+def goal_required() -> bool:
+    """Ziel-Pflicht für Projektarbeit – Einstellung „agent_goal_required“ (System → Agenten), Standard aus.
+    Arbeitsweise einer Installation, keine Grundregel: ohne Zieldokumente wären Projekt-Agenten sonst nicht
+    beauftragbar (Befund 23.11.2026 vor einer fremden Neuinstallation)."""
+    from hydrahive.settings.overrides import resolve
+    return resolve("agent_goal_required").strip().lower() in ("1", "true", "yes", "on")
+
+
 class AnchorError(ValueError):
     """Zieldokument nicht lesbar – Auftrag wird NICHT ohne Ziel abgeschickt."""
 
@@ -102,9 +110,10 @@ def anchor_task(task_text: str, args: dict, ctx: ToolContext, target_agent: dict
         ziel = _read_ziel(str(args["ziel_doc"]), ctx.workspace)
     effective = inh.get("ziel") or ziel
     task_type = args.get("task_type") or "feature"
-    if effective is None and (target_agent or {}).get("type") == "project" and task_type in _ZIEL_PFLICHT_TYPES:
+    if (effective is None and (target_agent or {}).get("type") == "project" and task_type in _ZIEL_PFLICHT_TYPES
+            and goal_required()):
         raise AnchorError(
             f"Projektarbeit ({task_type}) braucht ein Zieldokument: ziel_doc angeben (Zielbild + Abnahme-Punkte, "
-            "von Till freigegeben). Reine Fragen/Prüfungen als task_type research oder review schicken."
+            "vom Nutzer freigegeben). Reine Fragen/Prüfungen als task_type research oder review schicken."
         )
     return chain_anchor.compose(task_text, inh, ziel=ziel, abnahme=_abnahme(args, effective, inh))

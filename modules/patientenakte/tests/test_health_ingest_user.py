@@ -112,3 +112,18 @@ def test_ingest_bearer_key_funktioniert_weiter(client, monkeypatch):
         headers={"Authorization": "Bearer k"},
     )
     assert r.status_code == 200
+
+
+def test_ohne_ingest_nutzer_wird_nichts_abgelegt(client, monkeypatch):
+    """Befund 23.11.2026: früher Standard-Nutzer 'till' – auf fremden Installationen landeten Daten unter
+    einem Namen, den es dort nicht gibt. Jetzt: ohne Eintrag 409, kein Schreiben."""
+    from hydrahive.settings import settings
+    monkeypatch.setattr(settings, "health_api_key", "k")
+    monkeypatch.setattr(settings, "health_ingest_user", "")
+    import backend.health_routes as mod
+    called = []
+    monkeypatch.setattr(mod.health_db, "insert", lambda **kw: called.append(kw) or "x")
+    r = client.post("/api/modules/patientenakte/health-data/ingest",
+                    json={"data": {"metrics": [], "workouts": []}}, headers={"X-HH-Health-Key": "k"})
+    assert r.status_code == 409 and r.json()["detail"] == "health_ingest_user_missing"
+    assert called == []

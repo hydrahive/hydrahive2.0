@@ -174,7 +174,11 @@ def test_installer_calls_dev_browser_install_without_unknown_flag():
     text = _code(DEVB)
 
     assert "dev-browser install --yes" not in text
-    assert 'sudo -u "$user" env HOME="$home" dev-browser install' in text
+    # Aufruf über _dev_browser_install (Rückfall-Kennung für neuere Ubuntu-Versionen, Befund 23.11.2026):
+    # immer als Dienst-Nutzer mit eigenem HOME, ohne unbekannte Schalter.
+    assert 'sudo -u "$1" env HOME="$2" dev-browser install </dev/null' in text
+    assert 'sudo -u "$1" env HOME="$2" PLAYWRIGHT_HOST_PLATFORM_OVERRIDE="$3" dev-browser install </dev/null' in text
+    assert '_dev_browser_install "$user" "$home"' in text
 
 
 def test_installer_checks_the_real_runtime_files_and_does_not_hide_errors():
