@@ -280,21 +280,81 @@ zwischen Sicherung und Rückweg bleiben dort liegen und sind harmlos) sowie die 
 | E15 | Ein Commit enthält eine Migration, die der alte Code nicht verträgt, und die DB-Sicherung fehlt (z. B. manuell gelöscht) | Phase D | **kein** Code-Rückweg ohne DB: Der Dienst bleibt auf dem neuen Code und es gibt eine klare Meldung. Lieber ein halber Dienst als ein alter Code auf einer neuen DB. | `fehler … – Rückweg nicht möglich: DB-Sicherung fehlt` |
 
 **Grundsatz:** Rückweg-Code und Sicherungs-Code stammen aus dem Stand **vor** dem `git pull`. Die Bibliothek wird
-zu Beginn in eine Temp-Datei kopiert und von dort gesourct. So kann ein kaputter neuer Stand seinen eigenen Rückweg
-nicht beschädigen. Die Ausnahme ist der Re-exec: Er nutzt die neue Fassung, die vorher per `bash -n` geprüft wird.
+**vor** dem `git pull` nach `<sicherungsordner>/update-safety.sh` kopiert und von dort gesourct. So kann ein kaputter
+neuer Stand seinen eigenen Rückweg nicht beschädigen. Auch nach einem Re-exec sourct die neue update.sh den Rückweg
+aus dieser Kopie (Pfad per `HH_BACKUP_DIR`). Nur Sicherung und Prüfung, die vor dem Neustart liegen, dürfen aus dem
+neuen Stand kommen.
 
 ## 5. Mac-Unterschiede
 
-_(folgt)_
+| Punkt | Linux (`update.sh`) | macOS (`update-mac.sh`) | Folge für diese Spec |
+|---|---|---|---|
+| Pfade | Daten `/var/lib/hydrahive2`, Config `/etc/hydrahive2` | Daten `/usr/local/var/hydrahive2`, Config `/usr/local/etc/hydrahive2` (Z. 8–11) | Pfade aus denselben Variablen (`HH_DATA_DIR`, `HH_CONFIG_DIR`), Sicherung unter `$HH_DATA_DIR/backups/update/` |
+| Git | `hh_git_update` (lib/git-update.sh, verwirft nichts) | **`git pull --ff-only`** direkt (Z. 67), ohne Prüfung auf lokale Änderungen | Zuerst auf `hh_git_update` umstellen (Etappe U5), sonst ist `OLD_COMMIT` + `reset --hard` riskant |
+| Dienst | systemd, `systemctl restart` (Z. 900), `Restart=on-failure` | launchd: `launchctl unload` + `load` der Backend-plist (Z. 274–277); bei plist-Umbau `exit 0` **ohne eigenen Neustart-Check** (Z. 270–271) | Prüfung (3.3) gilt auch für den plist-Umbau-Pfad; „aktiv“ = `launchctl print system/io.hydrahive.backend` mit `state = running` |
+| Frontend | baut immer | baut nur, wenn `dist/.hh-frontend-rev` ≠ letzter Commit unter `frontend/` (Z. 105–127) | Bau in `dist.neu` + Tausch; der Merker wird erst nach dem Tausch geschrieben |
+| Python | `hh_ensure_python_venv` (Neubau bei neuem Interpreter) | `pip install -e` + `hh_mac_heal_python` (Z. 93–103) | venv-Sicherung nach derselben Regel (3.1, Schritt 5) |
+| Sicherungswerkzeuge | `python3`, `zstd` vorhanden | System-`python3` (`/usr/bin/python3`, CLT) hat `sqlite3` mit `VACUUM INTO`; **`zstd` ist nicht garantiert** | Mac: `gzip` statt `zstd`, oder unkomprimiert (die Mac-DBs sind klein) |
+| Root/Homebrew | Update läuft als root | root darf nichts aus dem Homebrew-Prefix ausführen (Z. 49–62) | Sicherungs-Skript nur mit `/usr/bin/python3`, `/usr/bin/tar`, `/usr/bin/gzip` |
+| Fehler heute | `set -e` + `err` | jeder Schritt mit `|| fail` oder `|| log` | gleiche Rückweg-Regeln (Fehler ab Phase B → Rückweg) |
+| Vorbild | — | `lib/mac-migrate-rollback.sh`: Rückweg beim Umzug auf das Dienst-Konto (Dienste stoppen, Dateien aus der Sicherung, Dienste starten, DB zuerst) | Muster für `hh_rollback` auf dem Mac; der Dienst-Konto-Umzug selbst bleibt mit seinem eigenen Rückweg (er endet mit `exit 0`, Z. 148–149) |
+| Weitere Dienste | Voice-Bridge teilt das venv | PostgreSQL, Colima, AgentLink und Voice als eigene LaunchDaemons | nur das Backend wird zurückgedreht; die anderen wie Linux E10/E11 |
+
+Der Mac kommt als **eigene Etappe** nach Linux (U5). Getestet wird auf dem Test-Mac .186, und nur mit Rücksprache.
 
 ## 6. Aufbewahrung
 
-_(folgt)_
+- Vorschlag: **die letzten 2 erfolgreichen Sicherungen** (`STATUS=ok`) bleiben, ältere löscht ein erfolgreiches
+  Update am Ende. Auf .4 sind das rund 2 × 1,2 GB (DB komprimiert + dist + Config; das venv nur, wenn gesichert).
+- **Nie automatisch gelöscht** werden Ordner mit `STATUS=zurueckgesetzt`, `rueckweg_unvollstaendig` oder
+  `gesichert` (unterbrochen), ebenso jeder `kaputt/`-Ordner. Sie werden im System-Fenster angezeigt
+  („Sicherung von <Datum>, <Grund>“) und nur von Hand gelöscht, mit Bestätigung.
+- Obergrenze: Belegen die Sicherungen mehr als 10 % des freien Platzes, gibt es eine Warnung im Dashboard, aber
+  keine automatische Löschung von Rückweg-Ordnern.
+- Modul-`.previous/<id>`: genau eine Vorversion je Modul. Sie wird beim nächsten erfolgreichen Update des Moduls
+  ersetzt und bei der Deinstallation entfernt.
+- Die NAS-Sicherung (`b907dd0f`, Rest-Backup) ist davon getrennt. Diese Sicherungen sind nur für den Rückweg da und
+  ersetzen kein Backup.
 
 ## 7. Etappen
 
-_(folgt)_
+Jede Etappe ist ein eigener PR mit Tests (Attrappen wie `tests/test_update_end_marker_linux.py`). Die Probe läuft
+zuerst auf hydratest, dann auf .4, und auf dem Hauptserver nur mit Tills OK.
+
+| Etappe | Inhalt | Nutzen allein | Abnahme |
+|---|---|---|---|
+| **U1** | Diese Spec | — | Freigabe durch Till |
+| **U2** | Frontend-Bau in `dist.neu` + atomarer Tausch (Linux, Mac, `_frontend_build` der Module) | Ein Bau-Fehler lässt das laufende Frontend heil (Fall TS2307) | Test: Bau scheitert → `dist` unverändert |
+| **U3** | Phase A: Sperre, `OLD_COMMIT`, Platzprüfung, `db_snapshot.py` (`VACUUM INTO` + `quick_check` + zstd), Config-, Unit- und dist-Sicherung, Aufbewahrung §6; **noch kein Rückweg** | Es gibt eine Sicherung, ein Rückweg ist von Hand möglich (Anleitung im Log) | Tests: wenig Platz → Abbruch vor `git pull`; Sicherung ist lesbar und `quick_check ok` |
+| **U4** | Phase C (Health + Commit + Migrationsstand) und Phase D (automatischer Rückweg, `kaputt/`, Schlusszeile mit „zurückgesetzt“), E13 (unterbrochenes Update), Warnungs-Sammlung E10 | Ziel §1 für Linux erreicht | Tests mit Attrappen je Fehlerfall E4–E8, E12, E15; echte Probe auf hydratest mit absichtlich kaputtem Commit (Build-Fehler, kaputte Migration, Import-Fehler) |
+| **U5** | Mac: `update-mac.sh` auf `hh_git_update`, Phase A/C/D mit Bordmitteln, plist-Umbau-Pfad mit Prüfung | Ziel §1 auf dem Mac | Attrappen-Tests `test_mac_update*.py`, Probe auf .186 |
+| **U6** | Module: `.previous/<id>`, Bau-Rückweg, DB-Sicherung vor Modul-Updates, Cockpit-Knopf „alte Version zurückholen“ | Ziel §1.5 | Test: Modul-Bau scheitert → alter Modulstand + altes `dist`, kein Neustart |
+
+Unabhängig davon als eigener Task: der Nebenbefund `47-samba.sh` `chown -R` auf die Workspaces (§2.1).
 
 ## 8. Offene Fragen an Till
 
-_(folgt)_
+- **F1 – Sicherungsformat:** `VACUUM INTO` + zstd (rund 25 s, 452 MB auf .4) statt `backup()` (63 s, 9,1 GB)?
+  Vorschlag: ja. Nebeneffekt: Beim Rückweg ist die DB kompakt (1,8 statt 9,1 GB), weil die rund 80 % freien
+  Seiten fehlen. Das ist harmlos, aber eine sichtbare Änderung.
+- **F2 – Daten zwischen Sicherung und Rückweg:** Nachrichten, die während des Updates (typisch 1–5 min) im alten
+  Dienst entstehen, landen beim Rückweg nur in `kaputt/sessions.db`. Reicht das? Alternative: Den Dienst ab der
+  Sicherung in einen Nur-Lese-Modus schalten (aufwendig) oder die Sicherung erst direkt vor dem Neustart machen.
+  Das wäre kürzer, aber dann gäbe es keinen Schutz vor Phase-B-Fehlern auf Konfigurationsdateien.
+  Vorschlag: so lassen und im Log nennen.
+- **F3 – venv:** immer sichern (rund 14 s und 670 MB je Lauf, unkomprimiert) oder nur, wenn sich Python bzw.
+  `pyproject.toml` ändert (sonst `pip install -e` mit dem alten Commit)? Vorschlag: nur bei Änderung.
+- **F4 – Modul-Migration scheitert beim Kern-Update:** Soll das den ganzen Kern zurückdrehen oder nur warnen
+  (Modul nicht geladen, Rest läuft)? Vorschlag: nur warnen (E9).
+- **F5 – Modul-Update nach dem Neustart kaputt:** automatisch auf `.previous` zurück (zweiter Neustart) oder nur
+  per Knopf? Vorschlag: per Knopf, automatisch nur beim Bau-Fehler.
+- **F6 – Unterbrochenes Update (E13):** Beim nächsten Dienststart automatisch zurückdrehen oder nur melden und per
+  Knopf anbieten? Vorschlag: nur melden; automatisch nur, wenn der Dienst mit dem neuen Commit nicht startet.
+- **F7 – Wartezeit Health:** 120 s genug? Der Start auf .4 mit Modulen und Mirror-Catch-up liegt nach Log typisch
+  unter 30 s. Vorschlag: 120 s, einstellbar.
+- **F8 – Aufbewahrung:** die letzten 2 erfolgreichen Sicherungen, und Rückweg-Ordner nie automatisch löschen. Passt das?
+- **F9 – apt-Vollupgrade (`hh_system_upgrade`):** Er läuft heute **vor** dem Frontend-Bau und lässt sich nicht
+  zurückdrehen. Soll er ans Ende wandern (nach erfolgreicher Prüfung), damit ein Rückweg nie mit neuen Systempaketen
+  und altem Code endet? Vorschlag: ja, als Teil von U4.
+- **F10 – Hauptserver:** Die erste echte Probe auf dem Hauptserver erst nach U4 und mit einem absichtlich kaputten
+  Test-Branch auf hydratest. Einverstanden?
