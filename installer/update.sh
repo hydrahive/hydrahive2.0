@@ -66,7 +66,9 @@ touch "$SSH_DIR/known_hosts"
 chown "$HH_USER:$HH_USER" "$SSH_DIR/known_hosts"
 chmod 600 "$SSH_DIR/known_hosts"
 if ! grep -q "github.com" "$SSH_DIR/known_hosts" 2>/dev/null; then
-  ssh-keyscan -t ed25519,rsa github.com 2>/dev/null >> "$SSH_DIR/known_hosts" || true
+  # Über eine Pipe: Ubuntu 26.04 bringt ein AppArmor-Profil für ssh-keyscan mit, das direktes Schreiben in
+  # Dateien verbietet – „>> known_hosts“ blieb dort still leer (Befund 23.11.2026). tee schreibt stattdessen.
+  ssh-keyscan -t ed25519,rsa github.com 2>/dev/null | tee -a "$SSH_DIR/known_hosts" >/dev/null || true
   chown "$HH_USER:$HH_USER" "$SSH_DIR/known_hosts"
 fi
 # ssh_key-Credentials aus der Web-UI für `ssh <host>` sichtbar machen.
