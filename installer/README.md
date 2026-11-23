@@ -271,6 +271,17 @@ It intentionally does **not** enable `NoNewPrivileges` or `ProtectSystem=strict`
 - installed manifests/scripts must be reviewed;
 - the admin interface should not be publicly exposed without additional controls.
 
+### Agent sandbox (preview)
+
+Shell commands of project agents and specialists can run in a bubblewrap sandbox: they see only their own project
+workspace (writable) and linked projects (read-only); `/etc/hydrahive2`, `/var/lib/hydrahive2`, `/home`, `/root` and
+`/srv` are empty, other processes are invisible, `/tmp` is private. Buddy/master agents are not affected.
+bubblewrap and its AppArmor profile are already set up by the installer and every update.
+
+It is **off** until it has been verified live. Enable it with `HH_AGENT_SANDBOX=on` in `/etc/hydrahive2/env` and
+restart the service. If bubblewrap is missing, sandboxed commands are refused (never run unprotected).
+Network access is not filtered yet.
+
 See [../SECURITY.md](../SECURITY.md) and [../docs/SECURITY_THREAT_MODEL.md](../docs/SECURITY_THREAT_MODEL.md).
 
 ## Troubleshooting
