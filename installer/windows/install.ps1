@@ -85,12 +85,13 @@ $wslOk = $null -ne (Get-Command wsl.exe -ErrorAction SilentlyContinue)
 $list = if ($wslOk) { Wsl @('--list', '--quiet') } else { @() }
 if (Test-HHDistroInstalled $list) { Say 'Skip' }
 else {
-    Wsl @('--install', '--no-distribution') | ForEach-Object { Write-HHLog $_ }
-    Wsl @('--update') | ForEach-Object { Write-HHLog $_ }
-    $out = Wsl @('--install', '-d', $Distro, '--no-launch')
-    $out | ForEach-Object { Write-HHLog $_ }
+    # Ausgabe ALLER drei Aufrufe sammeln: schon der erste kann den Neustart verlangen.
+    $out = @()
+    foreach ($a in @(@('--install', '--no-distribution'), @('--update'), @('--install', '-d', $Distro, '--no-launch'))) {
+        $o = Wsl $a; $o | ForEach-Object { Write-HHLog $_ }; $out += $o
+    }
     if (-not (Test-HHDistroInstalled (Wsl @('--list', '--quiet')))) {
-        if (($out -join ' ') -match '(?i)restart|reboot|neustart|neu ?gestartet|neu starten') {
+        if (Test-HHRebootRequired $out) {
             # Einmaliger Weiterlauf nach der nächsten Anmeldung (RunOnce, löscht sich selbst).
             # RunOnce startet ohne Adminrechte → Weiterlauf fordert sie selbst an (UAC-Abfrage nach der Anmeldung).
             $inner = "Start-Process powershell.exe -Verb RunAs -ArgumentList '-NoProfile -ExecutionPolicy Bypass " +

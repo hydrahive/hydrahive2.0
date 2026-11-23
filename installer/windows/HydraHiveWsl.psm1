@@ -98,6 +98,12 @@ function Get-HHUserCommand {
     "id -u '$Name' >/dev/null 2>&1 || useradd -m -s /bin/bash -G sudo '$Name'; chpasswd"
 }
 
+function Test-HHRebootRequired {
+    # Meldungen von wsl.exe auf Deutsch/Englisch, die einen Windows-Neustart verlangen.
+    param([string[]]$Output)
+    (($Output | ForEach-Object { "$_" -replace "`0", '' }) -join ' ') -match '(?i)restart|reboot|neustart|neu ?gestartet|neu starten'
+}
+
 function Get-HHAutostartArgument {
     # Startet Ubuntu ohne Fenster; instanceIdleTimeout=-1 hält es danach am Laufen.
     param([string]$Distro = $script:Distro)

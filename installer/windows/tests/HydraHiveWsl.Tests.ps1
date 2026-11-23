@@ -49,6 +49,14 @@ Describe 'Prüfungen' {
     }
 }
 
+Describe 'Neustart-Erkennung' {
+    It 'erkennt <t>' -ForEach @(
+        @{ t = 'The requested operation is successful. Changes will not be effective until the system is rebooted.' },
+        @{ t = 'Die angeforderte Operation ist erfolgreich. Änderungen werden erst nach einem Neustart des Systems wirksam.' }
+    ) { Test-HHRebootRequired @('x', $t) | Should -BeTrue }
+    It 'sonst nicht' { Test-HHRebootRequired @('Ubuntu-26.04 wurde installiert.') | Should -BeFalse }
+}
+
 Describe 'Befehle für Ubuntu' {
     It 'ruft den Linux-Installer auf statt ihn nachzubauen (W2)' {
         $c = Get-HHInstallCommand
