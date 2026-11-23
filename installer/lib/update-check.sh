@@ -105,6 +105,13 @@ hh_safety_verify() {
       elif [ -n "$want" ] && [ "${got:0:7}" != "${want:0:7}" ]; then
         state="/api/health meldet Commit ${got:0:8} statt ${want:0:8}"
       else
+        # Eine Neustart-Schleife kann kurz „gesund“ aussehen: nach einer Atempause noch einmal NRestarts lesen.
+        sleep "${HH_UPDATE_SETTLE:-1}"
+        n="$(hh_service_nrestarts)"
+        if [ "$n" -gt "$base" ] || ! systemctl is-active --quiet hydrahive2.service 2>/dev/null; then
+          HH_VERIFY_REASON="Dienst startet in einer Schleife neu (NRestarts $n)"
+          return 1
+        fi
         state=""
         break
       fi

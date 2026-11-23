@@ -202,9 +202,9 @@ hh_backup_files() {   # <venv:0|1>
     exit 0
   ) || err "Sicherung der Konfiguration fehlgeschlagen – nichts verändert"
   if [ -d "$HH_REPO_DIR/frontend/dist" ]; then
-    # Hardlinks (gleiches Dateisystem) sind ok: Bau und Tausch schreiben nie in vorhandene Dateien (U2).
-    cp -al "$HH_REPO_DIR/frontend/dist" "$dir/dist" 2>/dev/null || { rm -rf "$dir/dist"; cp -a "$HH_REPO_DIR/frontend/dist" "$dir/dist"; } \
-      || err "Sicherung von frontend/dist fehlgeschlagen – nichts verändert"
+    # Echte Kopie, keine Hardlinks: Die Sicherung teilt sonst Inodes mit dem Live-Baum, und jedes Schreiben in eine
+    # vorhandene Datei (oder ein kompromittierter Dienstnutzer) würde auch die Sicherung ändern. Kosten auf .4: rund 1 s, 100 MB.
+    cp -a "$HH_REPO_DIR/frontend/dist" "$dir/dist" || err "Sicherung von frontend/dist fehlgeschlagen – nichts verändert"
   fi
   if [ -d "$HH_REPO_DIR/frontend/src/modules" ]; then
     cp -a "$HH_REPO_DIR/frontend/src/modules" "$dir/modules-frontend" \

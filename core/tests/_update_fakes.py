@@ -1,7 +1,7 @@
 """Attrappen für die Update-Tests (U4): systemctl, curl, journalctl. Kein Test darf je den echten Dienst anfassen.
 
-Zustand liegt in ``sysd`` (Ordner):  active (Datei = Dienst läuft), calls.log, nrestarts + nrestarts_step (Zähler, wächst bei
-jeder Abfrage um step), nostart_commits (Commits, mit denen der Dienst nicht hochkommt), bad_health_commits (Dienst läuft, Health
+Zustand liegt in ``sysd`` (Ordner):  active (Datei = Dienst läuft), calls.log, nrestarts + loop_commits (Zähler, wächst bei
+jeder Abfrage, solange HEAD in loop_commits steht), nostart_commits (Commits, mit denen der Dienst nicht hochkommt), bad_health_commits (Dienst läuft, Health
 antwortet nicht), health_commit_override (Health meldet diesen Commit), active_since.
 Health-Antwort = HEAD des Attrappen-Repos (so verhält sich der echte Dienst: er liefert den ausgecheckten Code).
 """
@@ -26,7 +26,7 @@ case "$1" in
   show)
     case "$*" in
       *NRestarts*) n=$(cat "$S/nrestarts" 2>/dev/null || echo 0); echo "$n"
-                   echo $((n + $(cat "$S/nrestarts_step" 2>/dev/null || echo 0))) > "$S/nrestarts" ;;
+                   if listed loop_commits; then echo $((n + 1)) > "$S/nrestarts"; fi ;;
       *ActiveEnterTimestamp*) cat "$S/active_since" 2>/dev/null || echo "2020-01-01 00:00:00" ;;
     esac; exit 0 ;;
   cat) exit 1 ;;
@@ -54,4 +54,4 @@ def install_fakes(bin_: Path, sysd: Path, repo: Path) -> dict[str, str]:
         (bin_ / name).write_text(body)
         (bin_ / name).chmod(0o755)
     return {"HH_FAKE_SYSD": str(sysd), "HH_FAKE_REPO": str(repo),
-            "HH_UPDATE_HEALTH_TIMEOUT": "1", "HH_UPDATE_HEALTH_INTERVAL": "0.2"}
+            "HH_UPDATE_HEALTH_TIMEOUT": "1", "HH_UPDATE_HEALTH_INTERVAL": "0.2", "HH_UPDATE_SETTLE": "0.1"}

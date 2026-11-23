@@ -177,6 +177,7 @@ def restore(snap: Path, dest: Path, owner: str | None = None) -> None:
     work = snap.parent / ".restore.db.tmp"          # im root-eigenen Sicherungsordner, nicht beim Dienstnutzer
     work.unlink(missing_ok=True)
     neu = dest.parent / (dest.name + ".neu")
+    created = False                                  # nur eine selbst angelegte Zwischendatei darf wieder entfernt werden
     try:
         _decompress(snap, work)
         _quick_check(work)
@@ -190,6 +191,7 @@ def restore(snap: Path, dest: Path, owner: str | None = None) -> None:
             uid, gid = pw.pw_uid, pw.pw_gid
         flags = os.O_WRONLY | os.O_CREAT | os.O_EXCL | getattr(os, "O_NOFOLLOW", 0)
         fd = os.open(neu, flags, 0o600)
+        created = True
         try:
             with open(work, "rb") as src, os.fdopen(os.dup(fd), "wb") as out:
                 shutil.copyfileobj(src, out, 1 << 20)
@@ -207,7 +209,7 @@ def restore(snap: Path, dest: Path, owner: str | None = None) -> None:
         raise SnapshotError(f"{type(exc).__name__}: {exc}") from exc
     finally:
         work.unlink(missing_ok=True)
-        if os.path.lexists(neu) and not os.path.lexists(dest):
+        if created and os.path.lexists(neu) and not os.path.lexists(dest):
             neu.unlink(missing_ok=True)
 
 
