@@ -141,11 +141,147 @@ ist beides deutlich kleiner.
 
 ## 3. Ablauf
 
-_(folgt)_
+Neue Bibliothek `installer/lib/update-safety.sh`, die `update.sh` sourct. Python-Hilfen liegen als kleines Skript
+`installer/lib/db_snapshot.py`, das mit dem System-`python3` läuft und nicht mit dem venv, denn das venv ist ja
+Gegenstand des Rückwegs. Jeder Lauf bekommt einen Sicherungsordner:
+
+```
+/var/lib/hydrahive2/backups/update/<UTC-Zeit>_<alter-commit-kurz>/
+  meta.env            # OLD_COMMIT, OLD_BRANCH, NEW_COMMIT (nach dem pull), Start, Status
+  sessions.db.zst     # VACUUM INTO + quick_check + zstd
+  etc-hydrahive2.tar  # /etc/hydrahive2, root:root 0600
+  units/              # hydrahive2.service (+ .d/), nginx sites-available/hydrahive2, sudoers.d/hydrahive2-extensions
+  venv.tar.zst        # nur wenn Python oder Abhängigkeiten sich ändern (siehe 3.1, Schritt 5)
+  dist/               # frontend/dist (Hardlink-Kopie bzw. cp)
+  modules-frontend/   # frontend/src/modules (generiert, gitignored)
+```
+
+Der Ordner gehört `root:root` und hat die Rechte `0700`, denn er enthält Geheimnisse aus `/etc/hydrahive2`.
+
+### 3.1 Phase A – Vorbereitung (vor jeder Änderung)
+
+1. **Sperre:** `flock` auf `/run/hydrahive2-update.lock`. Läuft schon ein Update, endet der zweite Lauf mit
+   `fehler Update läuft bereits`.
+2. **Alten Stand merken:** `OLD_COMMIT=$(git rev-parse HEAD)` und den Branch. Diese Werte stehen in `meta.env`,
+   **bevor** `hh_git_update` läuft. Der Re-exec (Z. 99) übernimmt `HH_BACKUP_DIR` per Umgebung, damit nach dem Re-exec
+   keine zweite Sicherung entsteht.
+3. **Platzprüfung:** Bedarf schätzen = `page_count − freelist_count` × `page_size` (Nutzdaten der DB) × 1,2
+   + Größe von `dist` + (venv, falls es gesichert wird) + 1 GB Puffer.
+   Ist auf dem Dateisystem des Sicherungsordners **und** auf dem von `sessions.db` (wegen der WAL) zu wenig frei,
+   endet der Lauf mit `err "Zu wenig Platz für die Sicherung: frei X GB, nötig Y GB – nichts verändert"`.
+   Auf .4: nötig rund 3 GB, frei 412 GB.
+4. **DB sichern:** `VACUUM INTO` in eine Temp-Datei im Sicherungsordner, dann `PRAGMA quick_check` = `ok`, dann
+   `zstd`, dann `fsync` und `rename`. Scheitert das, endet der Lauf mit `err`, es ist noch nichts verändert.
+5. **Rest sichern:** `/etc/hydrahive2` (tar), Unit-, nginx- und sudoers-Dateien, `frontend/dist`,
+   `frontend/src/modules`. Das venv wird gesichert, wenn `hh_venv_needs_rebuild` zutrifft oder wenn sich
+   `core/pyproject.toml` zwischen `OLD_COMMIT` und `origin/<branch>` ändert. Das lässt sich nach dem `fetch` prüfen.
+   Sonst genügt `pip install -e` mit dem alten Commit. Siehe offene Frage F3.
+6. `meta.env`: `STATUS=gesichert`.
+
+Zeit auf .4: rund 25 s (DB) + 2 s (Rest), mit venv rund 40 s.
+
+### 3.2 Phase B – Update
+
+Unverändert wie heute (Z. 70–897), mit drei Änderungen:
+
+- `NEW_COMMIT` nach `hh_git_update` in `meta.env` schreiben.
+- Ab hier ist **jeder** Fehler ein Rückweg-Fall: Der `trap` ruft vor der Schlusszeile `hh_rollback`, wenn
+  `STATUS` mindestens `gesichert` ist und der Commit sich geändert hat. Fehler **vor** der Sicherung, etwa
+  „Lokale Änderungen …“ oder fehlendes Netz, brauchen keinen Rückweg und enden wie heute mit „nichts verändert“.
+- **Frontend-Bau getrennt:** `vite build --outDir dist.neu` und erst bei Erfolg `dist` gegen `dist.neu` tauschen.
+  Dann bleibt ein Bau-Fehler ohne Wirkung auf das laufende Frontend. Das ist schon für sich ein Gewinn (Etappe U2).
+
+### 3.3 Phase C – Prüfung nach dem Neustart
+
+Nach `systemctl restart hydrahive2.service` (Z. 900) wird bis zu **120 s** (einstellbar `HH_UPDATE_HEALTH_TIMEOUT`)
+alle 2 s geprüft:
+
+1. `systemctl is-active hydrahive2.service`, dazu `NRestarts` unverändert (so fällt eine Neustart-Schleife durch
+   `Restart=on-failure` auf).
+2. `curl -fsS http://$HH_HOST:$HH_PORT/api/health` liefert `status == "ok"` **und** `commit == NEW_COMMIT`
+   (kurz). Der Endpunkt gibt den Commit heute schon aus (`api/main.py:285`).
+3. **Migrationen durchgelaufen:** `MAX(version)` in `schema_version` ist mindestens die höchste Nummer unter
+   `core/src/hydrahive/db/migrations/` des neuen Commits. Das ist ein read-only-Zugriff mit `python3`.
+   Kern-Migrationen, die scheitern, verhindern den Start ohnehin. Gescheiterte **Modul**-Migrationen siehe F4.
+
+Erst wenn alle drei Prüfungen bestehen, steht `STATUS=ok`, dann folgt `HH-UPDATE-ENDE: ok` und die Aufräumregel aus §6.
+
+### 3.4 Phase D – Rückweg (`hh_rollback`)
+
+Jeder Schritt wird protokolliert. Ein Fehler in einem Rückweg-Schritt bricht den Rückweg **nicht** ab, er wird
+gesammelt und in der Schlusszeile gemeldet.
+
+1. `systemctl stop hydrahive2.service` (dazu die Voice-Bridge, die dasselbe venv nutzt).
+2. **Kaputten Stand zur Seite legen, nicht löschen:** `sessions.db`, `-wal` und `-shm` per `mv` (gleiches
+   Dateisystem, 0,03 s) nach `<sicherungsordner>/kaputt/`. Die geänderten Dateien aus `/etc/hydrahive2` werden
+   ebenfalls dorthin kopiert, dazu `git diff OLD_COMMIT..NEW_COMMIT --stat`. Erst danach wird irgendetwas
+   eingespielt.
+3. **Code:** `git reset --hard OLD_COMMIT` als Dienstnutzer. Der Arbeitsbaum war vor dem Update sauber
+   (lib/git-update.sh lehnt sonst ab), und eine umgeschriebene `package-lock.json` gehört zu den erlaubten Dateien.
+   Der Branch bleibt, nur die Spitze wird zurückgesetzt.
+4. **Build:** `frontend/dist` und `frontend/src/modules` aus der Sicherung zurückholen, kein Neubau. Danach
+   `npm ci` im Hintergrund oder beim nächsten Update, denn `node_modules` braucht der laufende Dienst nicht.
+5. **venv:** Gab es eine Sicherung, wird sie zurückgeholt, sonst läuft `pip install -e core` mit dem alten Stand.
+   Scheitert das, wird es gemeldet, aber die Schritte 6–8 laufen trotzdem.
+6. **DB:** `sessions.db.zst` entpacken (1,6 s) nach `sessions.db.neu`, `quick_check`, Besitzer `hydrahive`,
+   dann `rename` auf `sessions.db`.
+7. **Konfiguration:** Unit-, nginx- und sudoers-Dateien sowie `/etc/hydrahive2` zurückspielen,
+   `systemctl daemon-reload`, `nginx -t && systemctl reload nginx`.
+8. `systemctl start hydrahive2.service`, dann dieselbe Prüfung wie in 3.3, diesmal mit `commit == OLD_COMMIT`.
+9. Schlusszeile:
+   - gelungen: `HH-UPDATE-ENDE: fehler <Grund> – auf <OLD_COMMIT kurz> zurückgesetzt`
+   - Rückweg selbst gescheitert: `HH-UPDATE-ENDE: fehler <Grund> – Rückweg unvollständig (<Schritt>), Sicherung in <Pfad>`
+
+   Das Update-Fenster (`frontend/src/shared/_updateLogStatus.ts`, Muster `^HH-UPDATE-ENDE: (ok|fehler)(?: (.*))?$`)
+   zeigt den Zusatz ohne Änderung an, denn er gehört zum Grund.
+10. `meta.env`: `STATUS=zurueckgesetzt` bzw. `STATUS=rueckweg_unvollstaendig`. Solche Ordner räumt §6 **nie** auf.
+
+**Was der Rückweg bewusst nicht anfasst:** apt-Pakete (Schritt 5 und 8 der Tabelle), Container und incus,
+AgentLink, den PostgreSQL-Mirror (er holt sich fehlende Events selbst aus `sessions.db`, Zeilen aus der Zeit
+zwischen Sicherung und Rückweg bleiben dort liegen und sind harmlos) sowie die Workspaces.
+
+**Daten zwischen Sicherung und Rückweg:** Was Nutzer in der Zeit zwischen Phase A und dem Stopp geschrieben haben
+(Chat-Nachrichten im laufenden alten Dienst, typisch 1–5 min), steckt nur in der zur Seite gelegten
+`kaputt/sessions.db`. Es geht nicht verloren, kommt aber nicht automatisch zurück. Siehe F2.
+
+### 3.5 Modul-Updates (`modules/installer.py`)
+
+- `replace_module_in` behält `previous` **nicht** im Temp-Ordner, sondern verschiebt den alten Stand nach
+  `/var/lib/hydrahive2/modules/.previous/<id>/` (Backend) und `…/.previous/<id>/frontend/` (Frontend-Quelle).
+  Vorher: `frontend/dist` sichern.
+- Danach `_frontend_build()` in `dist.neu`. Bei einem Fehler: Modul aus `.previous` zurück, das alte `dist` bleibt
+  bestehen, und es gibt **keinen** Neustart. Meldung: `[modules] <id>: Bau fehlgeschlagen – alte Version bleibt`.
+- Nach dem Neustart prüft der Lader beim Start, ob das Modul `loaded` ist. Wenn nicht, wird es als „fehlerhaft nach
+  Update“ gekennzeichnet, und das Cockpit bietet „alte Version zurückholen“ an (Modul aus `.previous` zurück, Bau,
+  Neustart). Automatisch zurück geht es nur beim Bau-Fehler. Ein automatischer Rückweg nach dem Neustart würde eine
+  zweite Neustart-Runde brauchen, siehe F5.
+- Modul-Migrationen laufen in `sessions.db`. Vor einem Modul-Update wird daher dieselbe DB-Sicherung angelegt
+  (`VACUUM INTO`, rund 25 s auf .4). `.previous/<id>` wird beim nächsten erfolgreichen Update desselben Moduls
+  ersetzt.
 
 ## 4. Fehlerfälle
 
-_(folgt)_
+| # | Fehler | Wann | Verhalten neu | Schlusszeile |
+|---|---|---|---|---|
+| E1 | Zu wenig Platz | Phase A | Abbruch vor jeder Änderung | `fehler Zu wenig Platz für die Sicherung: frei X GB, nötig Y GB – nichts verändert` |
+| E2 | `VACUUM INTO` oder `quick_check` scheitert (DB gesperrt, defekt) | Phase A | Abbruch vor jeder Änderung; Temp-Datei weg | `fehler DB-Sicherung fehlgeschlagen (<Grund>) – nichts verändert` |
+| E3 | Lokale Änderungen, abweichende Commits, fetch scheitert | Git-Schritt | wie heute, kein Rückweg nötig | wie heute (`… nichts verworfen`) |
+| E4 | apt, Node oder npm-Reparatur scheitert (`set -e`) | Phase B | Rückweg (der Code ist schon neu) | `fehler <Grund> – auf <alt> zurückgesetzt` |
+| E5 | `pip install -e core` scheitert | Phase B | Rückweg inklusive venv | dito |
+| E6 | `npm ci` oder `npm run build` scheitert (Beleg TS2307) | Phase B | `dist` unberührt (Bau in `dist.neu`), Rückweg für Code und venv, **kein** DB-Rückweg nötig, weil kein Neustart war → DB-Schritt wird übersprungen | dito |
+| E7 | Kern-Migration wirft → Dienst startet nicht oder hängt in der Neustart-Schleife | Phase C | Rückweg inklusive DB | dito |
+| E8 | Dienst aktiv, aber `/api/health` antwortet nicht oder meldet den falschen Commit (Import-Fehler im Lifespan, Port belegt) | Phase C | nach Ablauf der Wartezeit Rückweg inklusive DB | `fehler Health-Prüfung nach 120 s nicht ok – auf <alt> zurückgesetzt` |
+| E9 | Modul-Migration scheitert (Modul nicht geladen, Dienst ok) | Phase C | **kein** Rückweg des Kerns, Warnung im Log und im Cockpit (F4) | `ok` + Warnzeile |
+| E10 | `|| log … weiter`-Schritte (Samba, VMs, Voice, nginx-Rewrite, Postgres, Tailscale) scheitern | Phase B | wie heute: kein Rückweg, aber Warnungen gesammelt und zum Schluss als `HH-UPDATE-WARNUNG: …` ausgegeben | `ok` |
+| E11 | AgentLink-Update scheitert | Phase B | wie heute: laut, kein Rückweg des Kerns | `ok` + Warnung |
+| E12 | Rückweg selbst scheitert (z. B. `git reset`, Platz) | Phase D | weiter mit den nächsten Schritten; der Dienst wird in jedem Fall gestartet; `kaputt/` und die Sicherung bleiben erhalten | `fehler <Grund> – Rückweg unvollständig (<Schritt>), Sicherung in <Pfad>` |
+| E13 | Update-Prozess wird hart beendet (Stromausfall, `kill -9`, Reboot durch apt) | jederzeit | Beim nächsten Start von `update.sh` (und per `ExecStartPre` des Dienstes, F6) gilt: Steht in einem Sicherungsordner `STATUS=gesichert` ohne Abschluss, wird das gemeldet und der Rückweg angeboten bzw. durchgeführt | `fehler Vorheriges Update unterbrochen – …` |
+| E14 | Re-exec nach Änderung von update.sh | Git-Schritt | `HH_BACKUP_DIR` und `OLD_COMMIT` werden über die Umgebung weitergereicht, keine zweite Sicherung | — |
+| E15 | Ein Commit enthält eine Migration, die der alte Code nicht verträgt, und die DB-Sicherung fehlt (z. B. manuell gelöscht) | Phase D | **kein** Code-Rückweg ohne DB: Der Dienst bleibt auf dem neuen Code und es gibt eine klare Meldung. Lieber ein halber Dienst als ein alter Code auf einer neuen DB. | `fehler … – Rückweg nicht möglich: DB-Sicherung fehlt` |
+
+**Grundsatz:** Rückweg-Code und Sicherungs-Code stammen aus dem Stand **vor** dem `git pull`. Die Bibliothek wird
+zu Beginn in eine Temp-Datei kopiert und von dort gesourct. So kann ein kaputter neuer Stand seinen eigenen Rückweg
+nicht beschädigen. Die Ausnahme ist der Re-exec: Er nutzt die neue Fassung, die vorher per `bash -n` geprüft wird.
 
 ## 5. Mac-Unterschiede
 
