@@ -9,7 +9,7 @@ const fromModules = import.meta.glob("../../modules/*/help/*/*.md", { query: "?r
 export type CoreHelpTopic =
   // Kern-Nav
   | "dashboard" | "buddy" | "chat" | "werkstatt" | "agents" | "projects"
-  | "communication" | "teamchat"
+  | "communication" | "discord" | "teamchat"
   // Automatisierung
   | "butler" | "zahnfee" | "skills" | "mcp" | "plugins"
   // Infrastruktur
