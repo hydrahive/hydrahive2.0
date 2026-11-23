@@ -104,8 +104,9 @@ async def project_webhook(
 ) -> dict:
     """Webhook-Endpoint pro Projekt mit Secret-Auth.
 
-    Auth via X-Webhook-Secret Header. Ohne Secret-Header wird der alte
-    (insecure) Modus verwendet (Deprecation-Phase, wird entfernt).
+    Auth via X-Webhook-Secret Header. Ohne Header 401, mit falschem 403.
+    Hat das Projekt (trotz Start-Migration) kein Secret, wird ebenfalls
+    abgelehnt (401 webhook_secret_required): nichts geht ungeprüft durch.
     """
     from hydrahive.projects import config as project_config
     project = project_config.get(project_id)
@@ -114,11 +115,10 @@ async def project_webhook(
 
     # Security: Validate webhook secret
     expected_secret = project.get("webhook_secret")
-    if expected_secret:
-        if not x_webhook_secret:
-            raise coded(status.HTTP_401_UNAUTHORIZED, "webhook_secret_required")
-        if not secrets.compare_digest(expected_secret, x_webhook_secret):
-            raise coded(status.HTTP_403_FORBIDDEN, "webhook_secret_invalid")
+    if not isinstance(expected_secret, str) or not expected_secret.strip() or not x_webhook_secret:
+        raise coded(status.HTTP_401_UNAUTHORIZED, "webhook_secret_required")
+    if not secrets.compare_digest(expected_secret.encode(), x_webhook_secret.encode()):
+        raise coded(status.HTTP_403_FORBIDDEN, "webhook_secret_invalid")
 
     event = TriggerEvent(
         event_type="webhook",

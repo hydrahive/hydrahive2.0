@@ -9,6 +9,7 @@ import { CheckCircle2, Copy, Eye, EyeOff, Loader2, RefreshCw } from "lucide-reac
 import { useTranslation } from "react-i18next"
 import { projectsApi } from "@/features/projects/api"
 import type { ProjectWebhook } from "@/features/projects/types"
+import { WebhookAutoNotice } from "./WebhookAutoNotice"
 
 type Copied = "url" | "secret" | null
 
@@ -41,6 +42,16 @@ export function ProjectWebhookSection({ projectId }: { projectId: string }) {
     }
   }
 
+  async function acknowledge() {
+    setBusy(true); setError(null)
+    try {
+      await projectsApi.ackWebhookAuto(projectId)
+      setHook((h) => (h ? { ...h, auto_generated: false } : h))
+    } catch (reason) {
+      setError(reason instanceof Error ? reason.message : t("webhook.ack_failed"))
+    } finally { setBusy(false) }
+  }
+
   async function rotate() {
     if (!window.confirm(t("webhook.rotate_confirm"))) return
     setBusy(true); setError(null)
@@ -57,6 +68,7 @@ export function ProjectWebhookSection({ projectId }: { projectId: string }) {
       <h3 className="text-sm font-medium text-[#e8eef8]">{t("webhook.title")}</h3>
       <p className="text-[11px] text-[#9aa7bc]">{t("webhook.description")}</p>
     </div>
+    {hook.auto_generated && <WebhookAutoNotice busy={busy} onAck={acknowledge} />}
     <Row label={t("webhook.url")} value={url} copied={copied === "url"} onCopy={() => copy(url, "url")} />
     <Row
       label={t("webhook.secret")}

@@ -18,7 +18,11 @@
     "rotate_confirm": "Neues Secret erzeugen? Aufrufe mit dem alten Secret werden sofort abgelehnt.",
     "rotate_failed": "Das Secret konnte nicht erneuert werden.",
     "copy_failed": "Konnte nicht in die Zwischenablage kopieren.",
-    "header_hint": "Beim Aufruf als Header X-Webhook-Secret mitsenden."
+    "header_hint": "Beim Aufruf als Header X-Webhook-Secret mitsenden.",
+    "auto_title": "Secret automatisch erzeugt",
+    "auto_body": "Dieses Projekt hatte kein Webhook-Secret. Es wurde automatisch eines erzeugt. Externe Absender müssen es als Header X-Webhook-Secret mitsenden, sonst werden Aufrufe abgelehnt. Zeige das Secret unten an und kopiere es.",
+    "auto_ack": "Verstanden, Hinweis ausblenden",
+    "ack_failed": "Der Hinweis konnte nicht ausgeblendet werden."
   },
   "tags": {
     "label": "Tags",

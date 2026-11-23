@@ -31,10 +31,11 @@ def _project_for_admin(project_id: str, auth: tuple[str, str]) -> dict:
     return p
 
 
-def _view(project_id: str, secret: str) -> dict:
+def _view(project_id: str, secret: str, auto: bool = False) -> dict:
     return {
         "url_path": WEBHOOK_PATH.format(project_id=project_id),
         "secret": secret,
+        "auto_generated": auto,
     }
 
 
@@ -45,7 +46,7 @@ def get_webhook(
 ) -> dict:
     """URL-Pfad und aktuelles Secret — nur für Projekt-Admins."""
     p = _project_for_admin(project_id, auth)
-    return _view(project_id, p.get("webhook_secret") or "")
+    return _view(project_id, p.get("webhook_secret") or "", bool(p.get("webhook_secret_auto")))
 
 
 @router.post("/{project_id}/webhook/rotate")
@@ -56,6 +57,17 @@ def rotate_webhook_secret(
     """Erzeugt ein neues Secret. Das alte gilt sofort nicht mehr."""
     _project_for_admin(project_id, auth)
     secret = secrets.token_urlsafe(32)
-    project_config.update(project_id, webhook_secret=secret)
+    project_config.update(project_id, webhook_secret=secret, webhook_secret_auto=False)
     project_audit.log(project_id, auth[0], "webhook_secret_rotated")
     return _view(project_id, secret)
+
+
+@router.post("/{project_id}/webhook/ack", status_code=204)
+def acknowledge_auto_secret(
+    project_id: str,
+    auth: Annotated[tuple[str, str], Depends(require_auth)],
+) -> None:
+    """Blendet den Hinweis „Secret automatisch erzeugt“ aus (Secret bleibt unverändert)."""
+    p = _project_for_admin(project_id, auth)
+    if p.get("webhook_secret_auto"):
+        project_config.update(project_id, webhook_secret_auto=False)
