@@ -365,6 +365,7 @@ def test_rueckweg_loescht_nichts_vorher_vorhandene_dateien_bleiben(env):
     (env["cfg"] / "extra.conf").write_text("neu")
     (_sysd(env) / "nostart_commits").write_text(new + "\n")
     r = _run(env, "migration")
+    assert "zurückgesetzt" in _last(r), r.stdout + r.stderr
     assert (env["data"] / "wichtig.txt").read_text() == "daten"
     k = _kaputt_dir(env)
     tar = subprocess.run(["tar", "-tf", str(k / "etc-hydrahive2-neu.tar")], capture_output=True, text=True).stdout
