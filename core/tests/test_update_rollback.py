@@ -489,3 +489,30 @@ def test_bibliotheken_syntax_und_kopie_im_sicherungsordner(env):
     (d,) = _backups(env)
     for name in ("update-safety.sh", "update-check.sh", "update-rollback.sh", "db_snapshot.py"):
         assert oct((d / name).stat().st_mode & 0o777) == "0o600", name
+
+
+# --- Probe U4P auf hydratest (23.11.2026): DB-Werkzeug im root-only-Sicherungsordner ---------------------------------
+
+def test_migrationsstand_lesbar_auch_wenn_dbowner_den_sicherungsordner_nicht_lesen_darf(tmp_path):
+    """Nach dem Rückweg kommt das DB-Werkzeug aus dem Sicherungsordner (root, 0700). Der Dienstnutzer darf es nicht
+    lesen; die Prüfung muss den Migrationsstand trotzdem lesen (Fund der echten Probe, in Attrappen vorher unsichtbar)."""
+    bk = tmp_path / "backup"
+    bk.mkdir()
+    (bk / "db_snapshot.py").write_text(SNAP.read_text())
+    db = tmp_path / "sessions.db"
+    con = sqlite3.connect(db)
+    con.execute("CREATE TABLE schema_version(version INTEGER, applied_at TEXT)")
+    con.execute("INSERT INTO schema_version VALUES (66, 'x')")
+    con.commit()
+    con.close()
+    script = f"""
+set -euo pipefail
+source "{LIB}/update-safety.sh"
+source "{LIB}/update-check.sh"
+# Dienstnutzer simulieren: jeder Pfad im Sicherungsordner ist für ihn nicht lesbar.
+hh_as_dbowner() {{ local a; for a in "$@"; do case "$a" in "{bk}"/*) echo "Permission denied: $a" >&2; return 2 ;; esac; done; "$@"; }}
+hh_db_schema_version "{bk}/db_snapshot.py" "{db}"
+"""
+    r = subprocess.run(["bash", "-c", script], capture_output=True, text=True, timeout=60)
+    assert r.returncode == 0, r.stderr
+    assert r.stdout.strip() == "66"

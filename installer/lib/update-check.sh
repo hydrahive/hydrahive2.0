@@ -79,6 +79,13 @@ hh_health_probe() {
 # ---------------------------------------------------------------------------------------------------------------
 
 # hh_safety_verify <erwarteter-commit> [migrationen:1|0]  → 0 = ok. Grund in HH_VERIFY_REASON.
+# Migrationsstand als DB-Besitzer lesen. Das Werkzeug kann im Sicherungsordner liegen (root, 0700), den der
+# Dienstnutzer nicht lesen darf: root öffnet die Datei und reicht sie per stdin weiter (python3 -).
+hh_db_schema_version() {
+  local tool=$1 db=$2
+  hh_as_dbowner "$(hh_safety_python)" - schema-version "$db" < "$tool"
+}
+
 hh_safety_verify() {
   local want=$1 check_mig=${2:-1} timeout interval max i state="" n probe status got base="${HH_NRESTARTS_BASE:-}"
   local tool="${HH_DB_TOOL:-$HH_SAFETY_LIB_DIR/db_snapshot.py}"
@@ -125,7 +132,7 @@ hh_safety_verify() {
   if [ "$check_mig" = "1" ] && [ -f "$HH_DATA_DIR/sessions.db" ]; then
     local have need
     need="$(hh_expected_migration)"
-    have="$(hh_as_dbowner "$(hh_safety_python)" "$tool" schema-version "$HH_DATA_DIR/sessions.db" 2>/dev/null)" || have=""
+    have="$(hh_db_schema_version "$tool" "$HH_DATA_DIR/sessions.db" 2>/dev/null)" || have=""
     case "$have" in ''|*[!0-9]*) HH_VERIFY_REASON="Migrationsstand nicht lesbar"; return 1 ;; esac
     if [ "$have" -lt "$need" ]; then
       HH_VERIFY_REASON="Migrationen nicht durchgelaufen (DB-Version $have, erwartet $need)"
