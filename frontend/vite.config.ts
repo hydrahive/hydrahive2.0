@@ -10,6 +10,8 @@ export default defineConfig({
     },
   },
   build: {
+    // Update-Skripte und Modul-Installer bauen nach dist.neu und tauschen erst nach Erfolg (update-rollback.md, U2).
+    outDir: process.env.HH_FRONTEND_OUTDIR || "dist",
     sourcemap: true,
     rollupOptions: {
       output: {

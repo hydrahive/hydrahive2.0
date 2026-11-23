@@ -60,6 +60,9 @@ def test_frontend_build_clears_cache_before_npm(tmp_path: Path, monkeypatch):
     def _fake_run(cmd, **kwargs):
         # Zum Zeitpunkt des Builds darf der Cache nicht mehr existieren.
         calls.append("cache-weg" if not stale.exists() else "cache-noch-da")
+        out = tmp_path / "frontend" / kwargs["env"]["HH_FRONTEND_OUTDIR"]     # wie vite: fertiger Bau in dist.neu
+        out.mkdir(parents=True, exist_ok=True)
+        (out / "index.html").write_text("neu")
         return None
 
     monkeypatch.setattr(installer, "settings", _FakeSettings)

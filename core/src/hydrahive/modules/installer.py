@@ -13,6 +13,7 @@ uninstall(module_id) — Generator: Dienst → entfernen → Build → Restart
 from __future__ import annotations
 
 import logging
+import os
 import re
 import shutil
 import subprocess
@@ -239,9 +240,39 @@ def remove_module_files(module_id: str) -> None:
 # ---------------------------------------------------------------------------
 
 def _frontend_build() -> None:
+    """Frontend nach ``dist.neu`` bauen und erst nach Erfolg gegen ``dist`` tauschen (update-rollback.md, U2).
+
+    Scheitert der Bau (TS-Fehler, rollup), bleibt das ausgelieferte ``dist`` unverändert; der Halbbau wird entfernt
+    und der ``CalledProcessError`` weitergereicht (Aufrufer melden ihn wie bisher). Der Tausch sind zwei
+    ``rename`` im selben Ordner; der vorherige Stand bleibt als ``dist.alt`` liegen.
+    """
     fe = settings.base_dir / "frontend"
     _clear_ts_buildinfo(fe)
-    subprocess.run(["npm", "run", "build"], cwd=fe, check=True)
+    new, cur, old = fe / "dist.neu", fe / "dist", fe / "dist.alt"
+    shutil.rmtree(new, ignore_errors=True)
+    env = {**os.environ, "HH_FRONTEND_OUTDIR": "dist.neu"}
+    try:
+        subprocess.run(["npm", "run", "build"], cwd=fe, check=True, env=env)
+    except BaseException:
+        shutil.rmtree(new, ignore_errors=True)
+        raise
+    _swap_dist(new, cur, old)
+
+
+def _swap_dist(new: Path, cur: Path, old: Path) -> None:
+    """``new`` wird ``cur``; ``cur`` liegt danach als ``old`` bereit. Ohne fertigen Bau passiert nichts."""
+    if not (new / "index.html").is_file():
+        shutil.rmtree(new, ignore_errors=True)
+        raise InstallError("frontend_build_incomplete: dist.neu enthält keinen fertigen Build")
+    shutil.rmtree(old, ignore_errors=True)
+    if cur.exists():
+        cur.rename(old)
+    try:
+        new.rename(cur)
+    except OSError:
+        if old.exists() and not cur.exists():
+            old.rename(cur)                       # alter Stand zurück
+        raise
 
 
 def _clear_ts_buildinfo(frontend_dir: Path) -> None:

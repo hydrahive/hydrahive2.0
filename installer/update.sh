@@ -263,7 +263,16 @@ chown -R "$HH_USER:$HH_USER" "$HH_REPO_DIR" 2>/dev/null || true
 # npm ci: installiert genau nach package-lock.json und ändert sie nie (npm install schrieb sie um →
 # nächstes Update scheiterte am Git-Schritt; docs/specs/update-git-sicher.md).
 sudo -u hydrahive npm ci --no-fund --no-audit
-sudo -u hydrahive npm run build
+# Bau in dist.neu, Tausch erst nach Erfolg (docs/specs/update-rollback.md, U2): ein Bau-Fehler (z. B. TS2307)
+# lässt das ausgelieferte frontend/dist unberührt.
+source "$HH_REPO_DIR/installer/lib/frontend-swap.sh"
+hh_frontend_prepare "$HH_REPO_DIR/frontend"
+if ! sudo -u hydrahive env HH_FRONTEND_OUTDIR=dist.neu npm run build; then
+  hh_frontend_discard "$HH_REPO_DIR/frontend"
+  err "Frontend-Bau fehlgeschlagen – das laufende Frontend (dist) ist unverändert."
+fi
+hh_frontend_swap "$HH_REPO_DIR/frontend" || err "Frontend-Tausch fehlgeschlagen – dist ist unverändert."
+log "Frontend getauscht (dist.neu → dist, vorheriger Stand in dist.alt)"
 
 WA_BRIDGE_DIR="$HH_REPO_DIR/core/src/hydrahive/communication/whatsapp/bridge"
 wa_installed=false; [ -d "$WA_BRIDGE_DIR/node_modules" ] && wa_installed=true
