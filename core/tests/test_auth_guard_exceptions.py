@@ -26,6 +26,13 @@ HTTP_CASES: dict[tuple[str, str], list[tuple[str, dict, set[int]]]] = {
         (f"/api/files?path=/etc/passwd&token={FAKE_JWT}", {}, {401}),
         ("/api/files?path=/etc/passwd", {"headers": {"Authorization": f"Bearer {FAKE_JWT}"}}, {401}),
     ],
+    ("GET", "/api/project-preview/login"): [
+        ("/api/project-preview/login?t=erfunden", {}, {401}),
+    ],
+    ("GET", "/api/project-preview/auth"): [
+        ("/api/project-preview/auth", {}, {401}),
+        ("/api/project-preview/auth", {"cookies": {"hh_project_preview": "gefaelscht.wert"}}, {401}),
+    ],
     ("GET", "/api/agentlink/dashboard-auth"): [
         ("/api/agentlink/dashboard-auth", {}, {401}),
         ("/api/agentlink/dashboard-auth", {"cookies": {"hh_agentlink": "gefaelscht.wert"}}, {401}),
