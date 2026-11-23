@@ -9,15 +9,19 @@ const fromModules = import.meta.glob("../../modules/*/help/*/*.md", { query: "?r
 export type CoreHelpTopic =
   // Kern-Nav
   | "dashboard" | "buddy" | "chat" | "werkstatt" | "agents" | "projects"
-  | "communication" | "teamchat"
+  | "communication" | "discord" | "teamchat"
   // Automatisierung
   | "butler" | "zahnfee" | "skills" | "mcp" | "plugins"
   // Infrastruktur
-  | "vms" | "containers" | "nodes" | "jobs" | "federation" | "streaming" | "datamining" | "memory"
+  | "vms" | "containers" | "nodes" | "jobs" | "federation" | "streaming" | "datamining" | "memory" | "websearch"
   // Konfiguration
   | "admin" | "llm" | "credentials" | "system" | "extensions" | "modules" | "users" | "settings" | "access"
+  // Wartung
+  | "archive"
   // Einstieg
   | "onboarding" | "helpdesk"
+  // Sicherheit
+  | "vault"
   // Modul-Themen stehen nicht hier: Jedes Modul bringt seine Hilfe selbst mit (<modul>/frontend/help/<lang>/<id>.md).
 
 export type HelpTopic = CoreHelpTopic | (string & {})
