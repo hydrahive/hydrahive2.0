@@ -9,8 +9,14 @@ describe("Vault-Status", () => {
     expect(pin).toContain("15 Minuten")
   })
 
-  it("sagt ehrlich, dass Buddy-Werkzeuge ohne PIN laufen (Spec vault.md §3)", () => {
-    expect(VAULT_ACTIVE.some((t) => /Buddy/.test(t) && /ohne PIN|auch bei gesperrtem/.test(t))).toBe(true)
+  it("verspricht nicht mehr, dass Buddy ohne PIN liest (seit Vault-Agenten 1a falsch, agent_gate.py)", () => {
+    expect(VAULT_ACTIVE.some((t) => /ohne PIN|auch bei gesperrtem/.test(t))).toBe(false)
+    const agents = VAULT_ACTIVE.find((t) => /Agenten/.test(t) && /Buddy/.test(t))
+    expect(agents).toMatch(/nur, solange dein Vault entsperrt ist/)
+  })
+
+  it("sagt, dass Kanäle nie Vault-Daten bekommen (Etappe 1b)", () => {
+    expect(VAULT_ACTIVE.some((t) => /WhatsApp/.test(t) && /nie Vault-Daten/.test(t))).toBe(true)
   })
 
   it("führt Protokoll und Vault-Chat als geplant, nicht als aktiv", () => {
