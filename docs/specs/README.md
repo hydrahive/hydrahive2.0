@@ -3,7 +3,7 @@
 > Automatisch erzeugt aus Dateinamen, Git-Historie und Überschriften.
 > Neu erzeugen: `python3 scripts/gen_spec_index.py`
 
-153 Spezifikationen. Die Spalte **Status** zeigt nur, was die Spec
+154 Spezifikationen. Die Spalte **Status** zeigt nur, was die Spec
 selbst im Kopf angibt — leer heißt: nicht angegeben, nicht automatisch geraten.
 
 ## Mehrteilige Reihen
@@ -165,6 +165,7 @@ frühere Teile beschreiben bereits umgesetzte Etappen.
 | [`ubuntu-2604-support.md`](ubuntu-2604-support.md) | Ubuntu 26.04 LTS Support | Installation auf 26.04 läuft fehlerfrei durch | 2026-08-19 |
 | [`ui-standard.md`](ui-standard.md) | HydraHive-UI-Standard (Barrierefreiheit und Bedienbarkeit) |  | 2026-10-20 |
 | [`update-git-sicher.md`](update-git-sicher.md) | Update: nichts mehr still verwerfen, nie auf einen fremden Branch springen |  | 2026-10-26 |
+| [`update-rollback.md`](update-rollback.md) | Update mit Sicherung und Rückweg | Entwurf, wartet auf Freigabe durch Till · **Task:** 5b8ad460 | 2026-11-23 |
 | [`uuid7-reihenfolge.md`](uuid7-reihenfolge.md) | IDs in derselben Millisekunde in Reihenfolge (uuid7) |  | 2026-10-24 |
 | [`vault.md`](vault.md) | Vault: PIN-Sperre, Protokoll und Vault-Chat |  | 2026-10-12 |
 | [`videocut-export-library.md`](videocut-export-library.md) | Videoschnitt — Export-Historie „Fertige Filme" |  | 2026-07-12 |

@@ -350,8 +350,8 @@ Unabhängig davon als eigener Task: der Nebenbefund `47-samba.sh` `chown -R` auf
   per Knopf? Vorschlag: per Knopf, automatisch nur beim Bau-Fehler.
 - **F6 – Unterbrochenes Update (E13):** Beim nächsten Dienststart automatisch zurückdrehen oder nur melden und per
   Knopf anbieten? Vorschlag: nur melden; automatisch nur, wenn der Dienst mit dem neuen Commit nicht startet.
-- **F7 – Wartezeit Health:** 120 s genug? Der Start auf .4 mit Modulen und Mirror-Catch-up liegt nach Log typisch
-  unter 30 s. Vorschlag: 120 s, einstellbar.
+- **F7 – Wartezeit Health:** 120 s genug? Die Startdauer auf .4 (Module, Mirror-Catch-up) ist nicht gemessen; sie
+  wird in U4 auf hydratest/.4 gemessen und der Wert dann festgelegt. Vorschlag: 120 s, einstellbar.
 - **F8 – Aufbewahrung:** die letzten 2 erfolgreichen Sicherungen, und Rückweg-Ordner nie automatisch löschen. Passt das?
 - **F9 – apt-Vollupgrade (`hh_system_upgrade`):** Er läuft heute **vor** dem Frontend-Bau und lässt sich nicht
   zurückdrehen. Soll er ans Ende wandern (nach erfolgreicher Prüfung), damit ein Rückweg nie mit neuen Systempaketen
