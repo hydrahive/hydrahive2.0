@@ -175,7 +175,7 @@ Der Ordner gehört `root:root` und hat die Rechte `0700`, denn er enthält Gehei
 5. **Rest sichern:** `/etc/hydrahive2` (tar), Unit-, nginx- und sudoers-Dateien, `frontend/dist`,
    `frontend/src/modules`. Das venv wird gesichert, wenn `hh_venv_needs_rebuild` zutrifft oder wenn sich
    `core/pyproject.toml` zwischen `OLD_COMMIT` und `origin/<branch>` ändert. Das lässt sich nach dem `fetch` prüfen.
-   Sonst genügt `pip install -e` mit dem alten Commit. Siehe offene Frage F3.
+   Sonst genügt `pip install -e` mit dem alten Commit. Siehe F3 (entschieden: nur bei Änderung).
 6. `meta.env`: `STATUS=gesichert`.
 
 Zeit auf .4: rund 25 s (DB) + 2 s (Rest), mit venv rund 40 s.
@@ -318,7 +318,7 @@ Der Mac kommt als **eigene Etappe** nach Linux (U5). Getestet wird auf dem Test-
 
 ## 7. Etappen
 
-Jede Etappe ist ein eigener PR mit Tests (Attrappen wie `tests/test_update_end_marker_linux.py`). Die Probe läuft
+Jede Etappe ist ein eigener PR mit Tests (Attrappen wie `core/tests/test_update_end_marker_linux.py`). Die Probe läuft
 zuerst auf hydratest, dann auf .4, und auf dem Hauptserver nur mit Tills OK.
 
 | Etappe | Inhalt | Nutzen allein | Abnahme |
@@ -326,7 +326,7 @@ zuerst auf hydratest, dann auf .4, und auf dem Hauptserver nur mit Tills OK.
 | **U1** | Diese Spec | — | Freigabe durch Till |
 | **U2** | Frontend-Bau in `dist.neu` + atomarer Tausch (Linux, Mac, `_frontend_build` der Module) | Ein Bau-Fehler lässt das laufende Frontend heil (Fall TS2307) | Test: Bau scheitert → `dist` unverändert |
 | **U3** | Phase A: Sperre, `OLD_COMMIT`, Platzprüfung, `db_snapshot.py` (`VACUUM INTO` + `quick_check` + zstd), Config-, Unit- und dist-Sicherung, Aufbewahrung §6; **noch kein Rückweg** | Es gibt eine Sicherung, ein Rückweg ist von Hand möglich (Anleitung im Log) | Tests: wenig Platz → Abbruch vor `git pull`; Sicherung ist lesbar und `quick_check ok` |
-| **U4** | Phase C (Health + Commit + Migrationsstand) und Phase D (automatischer Rückweg, `kaputt/`, Schlusszeile mit „zurückgesetzt“), E13 (unterbrochenes Update), Warnungs-Sammlung E10 | Ziel §1 für Linux erreicht | Tests mit Attrappen je Fehlerfall E4–E8, E12, E15; echte Probe auf hydratest mit absichtlich kaputtem Commit (Build-Fehler, kaputte Migration, Import-Fehler) |
+| **U4** | Phase C (Health + Commit + Migrationsstand) und Phase D (automatischer Rückweg, `kaputt/`, Schlusszeile mit „zurückgesetzt“), E13 (unterbrochenes Update), Warnungs-Sammlung E10, `hh_system_upgrade` ans Ende (F9) | Ziel §1 für Linux erreicht | Tests mit Attrappen je Fehlerfall E4–E8, E12, E15; echte Probe auf hydratest mit absichtlich kaputtem Commit (Build-Fehler, kaputte Migration, Import-Fehler) |
 | **U5** | Mac: `update-mac.sh` auf `hh_git_update`, Phase A/C/D mit Bordmitteln, plist-Umbau-Pfad mit Prüfung | Ziel §1 auf dem Mac | Attrappen-Tests `test_mac_update*.py`, Probe auf .186 |
 | **U6** | Module: `.previous/<id>`, Bau-Rückweg, DB-Sicherung vor Modul-Updates, Cockpit-Knopf „alte Version zurückholen“ | Ziel §1.5 | Test: Modul-Bau scheitert → alter Modulstand + altes `dist`, kein Neustart |
 
