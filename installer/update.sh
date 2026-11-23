@@ -942,7 +942,7 @@ if systemctl cat hydra-voice-bridge.service >/dev/null 2>&1; then
 fi
 
 # Phase C (update-rollback.md §3.3): Dienst aktiv, /api/health ok mit dem erwarteten Commit, Migrationen durchgelaufen.
-# Scheitert sie, geht err → trap → automatischer Rückweg (Phase D).
+# Scheitert sie, endet err über den EXIT-Handler in den automatischen Rückweg (Phase D).
 log "Prüfung nach dem Neustart (Dienst, /api/health, Migrationen; bis ${HH_UPDATE_HEALTH_TIMEOUT:-120} s)"
 if ! hh_safety_verify "$($HH_GIT rev-parse HEAD)" 1; then
   log "Service-Prüfung fehlgeschlagen — siehe: journalctl -u hydrahive2 -n 50"

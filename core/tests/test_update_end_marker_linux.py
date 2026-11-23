@@ -39,4 +39,5 @@ def test_linux_success_path_writes_ok_marker():
     assert text.count("HH-UPDATE-ENDE: ok") == 1
     assert "trap _hh_end EXIT" in text
     # Der Erfolgsweg endet ohne exit ≠ 0 → trap schreibt „ok“. Gegenprobe: kein weiteres trap überschreibt es.
-    assert text.count("trap ") == 1, [l for l in text.splitlines() if "trap " in l]
+    traps = [l for l in text.splitlines() if l.lstrip().startswith("trap ")]
+    assert len(traps) == 1, traps
