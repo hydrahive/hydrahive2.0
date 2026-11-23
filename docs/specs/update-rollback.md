@@ -146,7 +146,7 @@ Neue Bibliothek `installer/lib/update-safety.sh`, die `update.sh` sourct. Python
 Gegenstand des Rückwegs. Jeder Lauf bekommt einen Sicherungsordner:
 
 ```
-/var/lib/hydrahive2/backups/update/<UTC-Zeit>_<alter-commit-kurz>/
+/var/backups/hydrahive2/update/<UTC-Zeit>_<alter-commit-kurz>/   # root-eigen, nicht unter dem Datenordner des Dienstnutzers (Security-Review U3)
   meta.env            # OLD_COMMIT, OLD_BRANCH, NEW_COMMIT (nach dem pull), Start, Status
   sessions.db.zst     # VACUUM INTO + quick_check + zstd
   etc-hydrahive2.tar  # /etc/hydrahive2, root:root 0600
@@ -289,7 +289,7 @@ neuen Stand kommen.
 
 | Punkt | Linux (`update.sh`) | macOS (`update-mac.sh`) | Folge für diese Spec |
 |---|---|---|---|
-| Pfade | Daten `/var/lib/hydrahive2`, Config `/etc/hydrahive2` | Daten `/usr/local/var/hydrahive2`, Config `/usr/local/etc/hydrahive2` (Z. 8–11) | Pfade aus denselben Variablen (`HH_DATA_DIR`, `HH_CONFIG_DIR`), Sicherung unter `$HH_DATA_DIR/backups/update/` |
+| Pfade | Daten `/var/lib/hydrahive2`, Config `/etc/hydrahive2` | Daten `/usr/local/var/hydrahive2`, Config `/usr/local/etc/hydrahive2` (Z. 8–11) | Pfade aus denselben Variablen (`HH_DATA_DIR`, `HH_CONFIG_DIR`), Sicherung unter `/var/backups/hydrahive2/update/` (Mac: entsprechend unter `/usr/local/var/backups/hydrahive2/update/`) |
 | Git | `hh_git_update` (lib/git-update.sh, verwirft nichts) | **`git pull --ff-only`** direkt (Z. 67), ohne Prüfung auf lokale Änderungen | Zuerst auf `hh_git_update` umstellen (Etappe U5), sonst ist `OLD_COMMIT` + `reset --hard` riskant |
 | Dienst | systemd, `systemctl restart` (Z. 900), `Restart=on-failure` | launchd: `launchctl unload` + `load` der Backend-plist (Z. 274–277); bei plist-Umbau `exit 0` **ohne eigenen Neustart-Check** (Z. 270–271) | Prüfung (3.3) gilt auch für den plist-Umbau-Pfad; „aktiv“ = `launchctl print system/io.hydrahive.backend` mit `state = running` |
 | Frontend | baut immer | baut nur, wenn `dist/.hh-frontend-rev` ≠ letzter Commit unter `frontend/` (Z. 105–127) | Bau in `dist.neu` + Tausch; der Merker wird erst nach dem Tausch geschrieben |
