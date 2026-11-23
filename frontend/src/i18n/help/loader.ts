@@ -15,7 +15,7 @@ export type CoreHelpTopic =
   // Infrastruktur
   | "vms" | "containers" | "nodes" | "jobs" | "federation" | "streaming" | "datamining" | "memory"
   // Konfiguration
-  | "llm" | "credentials" | "system" | "extensions" | "modules" | "users" | "settings" | "access"
+  | "admin" | "llm" | "credentials" | "system" | "extensions" | "modules" | "users" | "settings" | "access"
   // Einstieg
   | "onboarding" | "helpdesk"
   // Modul-Themen stehen nicht hier: Jedes Modul bringt seine Hilfe selbst mit (<modul>/frontend/help/<lang>/<id>.md).
