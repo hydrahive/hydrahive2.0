@@ -630,3 +630,33 @@ def test_update_runs_tools_with_service_account_home(mac):
     tools = [c for c in sudo_u if any(w in c for w in (" git ", " npm ", "/pip "))]
     assert tools, _calls(mac)
     assert all(c.startswith("sudo -H -u tester ") for c in tools), tools
+
+
+def test_failed_build_leaves_dist_untouched(mac):
+    """U2 (update-rollback.md): Bau scheitert → dist samt Merker und Dateien unverändert, Halbbau weggeräumt."""
+    _launchd(mac)
+    fe = mac["repo"] / "frontend"
+    (fe / "dist" / "app.js").write_text("alt-js")
+    (mac["tmp"] / "frontend_rev.txt").write_text("fe-rev-2\n")
+    (mac["bin"] / "npm").write_text(
+        f'#!/bin/bash\necho "npm $*" >> "{mac["calls"]}"\n'
+        'if [ "$1" = run ]; then mkdir -p "$HH_FRONTEND_OUTDIR"; echo halb > "$HH_FRONTEND_OUTDIR/teil.js"; exit 1; fi\nexit 0\n')
+    r = _update(mac)
+    assert r.returncode != 0
+    assert (fe / "dist" / "index.html").read_text() == "<html/>"
+    assert (fe / "dist" / "app.js").read_text() == "alt-js"
+    assert (fe / "dist" / ".hh-frontend-rev").read_text().strip() == "fe-rev-1"
+    assert not (fe / "dist.neu").exists() and not (fe / "dist.alt").exists()
+
+
+def test_successful_build_swaps_and_marks_new_dist(mac):
+    """Der Merker liegt im neuen dist (erst nach dem Tausch geschrieben); der alte Stand bleibt in dist.alt."""
+    _launchd(mac)
+    fe = mac["repo"] / "frontend"
+    (mac["tmp"] / "frontend_rev.txt").write_text("fe-rev-2\n")
+    r = _update(mac)
+    assert r.returncode == 0, r.stdout + r.stderr
+    assert (fe / "dist" / "index.html").read_text().strip() == "neu"
+    assert (fe / "dist" / ".hh-frontend-rev").read_text().strip() == "fe-rev-2"
+    assert (fe / "dist.alt" / ".hh-frontend-rev").read_text().strip() == "fe-rev-1"
+    assert not (fe / "dist.neu").exists()
