@@ -8,7 +8,7 @@ import pytest
 from hydrahive.agentlink.protocol import State, TaskBlock
 from hydrahive.agents import config as agent_config
 from hydrahive.tools import ToolContext, ask_agent
-from hydrahive.tools._ask_agent_prepare import build_briefing, missing_briefing
+from hydrahive.tools._ask_agent_prepare import NO_INSTALL_RULE, build_briefing, missing_briefing
 
 
 @pytest.fixture
@@ -77,7 +77,13 @@ def test_cancel_und_fortsetzen_brauchen_kein_briefing():
 
 def test_block_ohne_bekannt():
     out = build_briefing("T", {"goal": "Z", "deliverable": "L"})
-    assert out == "T\n\n## Ziel\nZ\n\n## Liefern\nL"
+    assert out == "T\n\n## Ziel\nZ\n\n## Liefern\nL\n\n" + NO_INSTALL_RULE
+
+
+def test_jeder_auftrag_verbietet_downloads():
+    """Ziel agenten-sofortschutz §3: der Satz steht in jedem Auftrag, auch mit „Bekannt“."""
+    out = build_briefing("T", {"goal": "Z", "deliverable": "L", "known": "K"})
+    assert out.endswith(NO_INSTALL_RULE) and "Nichts herunterladen" in out
 
 
 def test_auftrag_traegt_vorgang_der_sitzung(target, posted, tmp_path):
