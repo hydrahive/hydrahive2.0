@@ -1,11 +1,11 @@
 # Update mit Sicherung und Rückweg
 
-**Stand:** 23.11.2026 · **Status:** Entwurf, wartet auf Freigabe durch Till · **Task:** 5b8ad460
+**Stand:** 23.11.2026 · **Status:** FREIGEGEBEN (Till, 23.11.2026: „alle Vorschläge ok“) · **Task:** 5b8ad460
 **Zieldokument:** `hydrahive2-modules/ziele/bewertung-auth-update.md` §2 (freigegeben 23.11.2026)
 **Verwandt:** `update-git-sicher.md`, `system-updates.md`, `mac-update.md`, `modul-update-alle.md`,
 `server-migration-rsync.md`, Task cd72a1ad (Server klonen)
 
-Nur Spec. Gebaut wird erst nach Tills Freigabe, in den Etappen aus §7.
+Gebaut wird in den Etappen aus §7. Die Fragen aus §8 sind entschieden: Es gelten jeweils die Vorschläge.
 
 ## 1. Ziel
 
@@ -332,7 +332,9 @@ zuerst auf hydratest, dann auf .4, und auf dem Hauptserver nur mit Tills OK.
 
 Unabhängig davon als eigener Task: der Nebenbefund `47-samba.sh` `chown -R` auf die Workspaces (§2.1).
 
-## 8. Offene Fragen an Till
+## 8. Entscheidungen (Till, 23.11.2026)
+
+Alle Vorschläge F1–F10 angenommen. Die Fragen bleiben zur Nachvollziehbarkeit stehen.
 
 - **F1 – Sicherungsformat:** `VACUUM INTO` + zstd (rund 25 s, 452 MB auf .4) statt `backup()` (63 s, 9,1 GB)?
   Vorschlag: ja. Nebeneffekt: Beim Rückweg ist die DB kompakt (1,8 statt 9,1 GB), weil die rund 80 % freien
