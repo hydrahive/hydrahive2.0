@@ -18,6 +18,8 @@ export type CoreHelpTopic =
   | "llm" | "credentials" | "system" | "extensions" | "modules" | "users" | "settings" | "access"
   // Einstieg
   | "onboarding" | "helpdesk"
+  // Sicherheit
+  | "vault"
   // Modul-Themen stehen nicht hier: Jedes Modul bringt seine Hilfe selbst mit (<modul>/frontend/help/<lang>/<id>.md).
 
 export type HelpTopic = CoreHelpTopic | (string & {})
