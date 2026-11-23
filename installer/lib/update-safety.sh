@@ -52,6 +52,15 @@ hh_as_dbowner() {
   fi
 }
 
+# Wie hh_as_dbowner, aber mit niedriger I/O- und CPU-Priorität (ionice kann keine Shell-Funktion starten).
+hh_as_dbowner_lowprio() {
+  if command -v ionice >/dev/null 2>&1 && command -v nice >/dev/null 2>&1; then
+    hh_as_dbowner ionice -c3 nice -n 19 "$@"
+  else
+    hh_as_dbowner "$@"
+  fi
+}
+
 # meta.env atomar fortschreiben: hh_meta_set KEY WERT (Werte ohne Leerzeichen und Zeilenumbruch).
 hh_meta_set() {
   local key=$1 value=$2 file="${HH_BACKUP_DIR:-}/meta.env" tmp
@@ -139,7 +148,7 @@ hh_backup_db() {   # <db> <ziel.zst>
   chmod 700 "$work"
   chmod 711 "$(dirname "$(hh_backup_root)")" 2>/dev/null
   raw="$work/update-$$.db"
-  out=$(hh_lowprio hh_as_dbowner "$py" "$HH_SAFETY_LIB_DIR/db_snapshot.py" copy "$db" "$raw" 2>&1) \
+  out=$(hh_as_dbowner_lowprio "$py" "$HH_SAFETY_LIB_DIR/db_snapshot.py" copy "$db" "$raw" 2>&1) \
     || { rm -f "$raw"; err "DB-Sicherung fehlgeschlagen ($out) – nichts verändert"; }
   out=$(hh_lowprio "$py" "$HH_SAFETY_LIB_DIR/db_snapshot.py" pack "$raw" "$dest" 2>&1) \
     || { rm -f "$raw" "$dest"; err "DB-Sicherung fehlgeschlagen ($out) – nichts verändert"; }
