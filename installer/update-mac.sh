@@ -121,7 +121,16 @@ if [ -n "$BUILD" ]; then
   # npm ci: genau nach package-lock.json, ändert sie nie (npm install schrieb sie um → nächstes git pull scheiterte)
   # PATH mitgeben: sudo setzt secure_path ohne Homebrew → „sudo: npm: command not found“ (Befund 21.10.2026).
   sudo -H -u "$HH_USER" env "PATH=$HH_BREW_PATH" npm ci --no-fund --no-audit >> "$LOG" 2>&1 || fail "npm ci fehlgeschlagen"
-  sudo -H -u "$HH_USER" env "PATH=$HH_BREW_PATH" npm run build >> "$LOG" 2>&1 || fail "Frontend-Build fehlgeschlagen"
+  # Bau in dist.neu, Tausch erst nach Erfolg (docs/specs/update-rollback.md, U2). Der Merker kommt ins neue dist,
+  # und zwar erst NACH dem Tausch: ein gescheiterter Bau lässt dist samt altem Merker unverändert.
+  # shellcheck source=lib/frontend-swap.sh
+  source "$HH_REPO_DIR/installer/lib/frontend-swap.sh"
+  hh_frontend_prepare "$HH_REPO_DIR/frontend"
+  if ! sudo -H -u "$HH_USER" env "PATH=$HH_BREW_PATH" HH_FRONTEND_OUTDIR=dist.neu npm run build >> "$LOG" 2>&1; then
+    hh_frontend_discard "$HH_REPO_DIR/frontend"
+    fail "Frontend-Build fehlgeschlagen (dist unverändert)"
+  fi
+  hh_frontend_swap "$HH_REPO_DIR/frontend" >> "$LOG" 2>&1 || fail "Frontend-Tausch fehlgeschlagen (dist unverändert)"
   [ -n "$FRONTEND_REV" ] && printf '%s\n' "$FRONTEND_REV" | sudo -H -u "$HH_USER" tee "$MARK" > /dev/null
   cd "$HH_REPO_DIR"
 fi

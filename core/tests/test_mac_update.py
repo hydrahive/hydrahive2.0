@@ -43,7 +43,12 @@ case "$*" in
 esac
 exit 0
 ''')
-    (bin_ / "npm").write_text(f'#!/bin/bash\necho "npm $*" >> "{calls}"\necho "npm-ausgabe $1"\n')
+    # `npm run build` legt wie vite den Bau unter $HH_FRONTEND_OUTDIR an (dist.neu, relativ zum frontend-Ordner)
+    (bin_ / "npm").write_text(f'''#!/bin/bash
+echo "npm $*" >> "{calls}"
+echo "npm-ausgabe $1"
+if [ "$1" = run ] && [ -n "${{HH_FRONTEND_OUTDIR:-}}" ]; then mkdir -p "$HH_FRONTEND_OUTDIR"; echo neu > "$HH_FRONTEND_OUTDIR/index.html"; fi
+''')
     (bin_ / "tesseract").write_text('#!/bin/bash\n[ "$1" = "--list-langs" ] && echo deu\n')
     for command_name in ("pdfinfo", "pdftotext", "pdftoppm"):
         (bin_ / command_name).write_text("#!/bin/bash\nexit 0\n")
@@ -60,6 +65,7 @@ exit 0
     (repo / "installer" / "lib" / "mac-python-heal.sh").symlink_to(INSTALLER / "lib" / "mac-python-heal.sh")
     (repo / "installer" / "lib" / "mac-document-tools.sh").symlink_to(INSTALLER / "lib" / "mac-document-tools.sh")
     (repo / "installer" / "lib" / "mac-roles.sh").symlink_to(INSTALLER / "lib" / "mac-roles.sh")
+    (repo / "installer" / "lib" / "frontend-swap.sh").symlink_to(INSTALLER / "lib" / "frontend-swap.sh")
     (repo / "frontend" / "dist").mkdir(parents=True)
     (repo / "frontend" / "dist" / "index.html").write_text("<html/>")
     (repo / "frontend" / "dist" / ".hh-frontend-rev").write_text("fe-rev-1\n")   # Build passt zum Stand

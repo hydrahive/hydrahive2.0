@@ -9,7 +9,7 @@ export default defineConfig([
   // dist = Build-Output; src/modules/* = zur Build-Zeit aus dem separaten
   // hydrahive2-modules-Repo generiert (gitignored) — kein Quellcode dieses
   // Repos, daher nicht linten (hält lokalen Lint deckungsgleich mit CI).
-  globalIgnores(['dist', 'src/modules/*/', 'src/modules/index.generated.ts']),
+  globalIgnores(['dist', 'dist.neu', 'dist.alt', 'src/modules/*/', 'src/modules/index.generated.ts']),
   {
     files: ['**/*.{ts,tsx}'],
     extends: [
