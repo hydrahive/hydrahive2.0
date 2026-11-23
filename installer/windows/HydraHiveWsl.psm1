@@ -42,7 +42,7 @@ function Merge-HHIniSetting {
     $start = -1
     for ($i = 0; $i -lt $lines.Count; $i++) { if ($lines[$i] -match $secRe) { $start = $i; break } }
     if ($start -lt 0) {
-        $lines.Clear()   # GEGENPROBE: überschreibt statt zusammenzuführen
+        if ($lines.Count) { $lines.Add('') }
         $lines.Add("[$Section]"); $lines.Add("$Key=$Value")
     } else {
         $end = $lines.Count
