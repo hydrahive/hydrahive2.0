@@ -83,7 +83,7 @@ def test_unbekanntes_projekt_404(client, auth_headers):
 # --- T3: Durchreiche ---------------------------------------------------------------------------------------
 
 def test_ohne_cookie_401(client, admin_headers):
-    pid = _project(client, admin_headers)
+    _project(client, admin_headers)
     assert _check(client, None).status_code == 401
 
 
