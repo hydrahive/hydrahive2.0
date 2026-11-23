@@ -25,10 +25,11 @@ if ! command -v smbd >/dev/null 2>&1; then
   DEBIAN_FRONTEND=noninteractive apt-get install -y samba
 fi
 
-# includes-dir anlegen, dem hydrahive-User schreibend zugänglich
-mkdir -p "$INCLUDES_DIR"
-chgrp "$HH_USER" "$INCLUDES_DIR" 2>/dev/null || true
-chmod 2775 "$INCLUDES_DIR"
+# includes-dir anlegen, dem hydrahive-User schreibend zugänglich – samt durchgängigem /etc/samba (Befund WSL
+# 23.11.2026: /etc/samba 700 → Dienst sah den Ordner nicht → „samba_not_installed“).
+# shellcheck source=../lib/samba-dirs.sh
+source "$(dirname "${BASH_SOURCE[0]}")/../lib/samba-dirs.sh"
+hh_samba_includes_dir "$INCLUDES_DIR" "$HH_USER"
 
 # smb.conf-Patch: ein Aggregator-File _index.conf includen, das vom Backend
 # bei jedem enable/disable_share neu geschrieben wird (samba kann keine
