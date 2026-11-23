@@ -25,9 +25,11 @@ describe("visibleVaultAreas", () => {
     expect(ids).toContain("cryptoboard")
   })
 
-  it("kennt die vier Vault-Bereiche mit echten Pfaden", () => {
+  it("kennt die fünf Vault-Bereiche mit echten Pfaden (Modul legal hat \"vault\": true, Route /recht)", () => {
     const paths = Object.fromEntries(VAULT_AREAS.map((a) => [a.id, a.path]))
-    expect(paths).toEqual({ akte: "/akte", cryptoboard: "/cryptoboard", haushaltsbuch: "/haushaltsbuch", credentials: "/credentials" })
+    expect(paths).toEqual({ akte: "/akte", cryptoboard: "/cryptoboard", haushaltsbuch: "/haushaltsbuch",
+      recht: "/recht", credentials: "/credentials" })
+    expect(VAULT_AREAS.find((a) => a.id === "recht")?.module).toBe("legal")
   })
 
   it("nennt kein Scratchpad (nicht sensibel, kein Vault-Modul)", () => {
