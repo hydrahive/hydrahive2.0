@@ -14,6 +14,8 @@ HH_FAIL_REASON=""
 err() { HH_FAIL_REASON="$*"; printf "\033[1;31m[hh2-update]\033[0m %s\n" "$*" >&2; exit 1; }
 _hh_end() {
   local rc=$?
+  # Sicherung abschließen/aufräumen (U3), vor der Schlusszeile; ändert den Exit-Code nie.
+  if declare -F hh_safety_finish >/dev/null 2>&1; then hh_safety_finish "$rc" || true; fi
   if [ "$rc" -eq 0 ]; then
     printf 'HH-UPDATE-ENDE: ok\n'
   else
@@ -24,6 +26,11 @@ trap _hh_end EXIT
 
 [ "$(id -u)" -eq 0 ] || err "Bitte mit sudo / als root ausführen."
 [ -d "$HH_REPO_DIR/.git" ] || err "$HH_REPO_DIR ist kein Git-Repo."
+
+# Sicherung vor dem Update + Sperre (docs/specs/update-rollback.md §3.1, Etappe U3). Genau ein Update gleichzeitig.
+# shellcheck source=lib/update-safety.sh
+source "$HH_REPO_DIR/installer/lib/update-safety.sh"
+hh_safety_lock
 
 # install.conf laden (Komponenten-Auswahl aus install.sh) — ENV gewinnt darüber.
 INSTALL_CONF="$HH_CONFIG_DIR/install.conf"
@@ -87,7 +94,11 @@ else
   source "$HH_REPO_DIR/installer/lib/git-update.sh"
 fi
 rm -f "$HH_GIT_LIB"
+# Phase A: alten Commit merken und sichern – NACH dem fetch (venv-Entscheidung), VOR dem Pull. Zu wenig Platz oder
+# eine ungültige Sicherung beenden das Update hier, bevor etwas verändert wurde. Nach einem Re-exec: keine zweite.
+hh_safety_backup
 hh_git_update "$HH_REPO_DIR"
+hh_safety_after_git
 cd "$HH_REPO_DIR"
 
 # Wenn update.sh selbst durch den Pull verändert wurde: einmalig re-exec mit
