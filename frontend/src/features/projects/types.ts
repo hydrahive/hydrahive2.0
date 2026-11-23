@@ -17,6 +17,7 @@ export interface Project {
   /** Verknüpfte Projekte – nur lesen (docs/specs/linked-projects.md). */
   linked_projects?: string[]
   has_webhook_secret?: boolean
+  webhook_secret_auto?: boolean
   git_repos?: Record<string, { has_token: boolean }>
   members: ProjectMember[]
   agent_id: string
@@ -99,6 +100,8 @@ export type MountState = "unmounted" | "mounting" | "mounted" | "error"
 export interface ProjectWebhook {
   url_path: string
   secret: string
+  /** true: das Secret wurde beim Update automatisch erzeugt (Altprojekt) – Hinweis im Cockpit. */
+  auto_generated?: boolean
 }
 
 export interface SmbMount {

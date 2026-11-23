@@ -186,6 +186,7 @@ async def _execute(args: dict, ctx: ToolContext) -> ToolResult:
     guard = _shell_guard.blocked_reason(cmd, ctx.agent_id)
     if guard:
         logger.warning("shell_exec gesperrt (Agent %s, Session %s): %s", ctx.agent_id, ctx.session_id, guard[:160])
+        _record_block(ctx, cmd, guard)
         return ToolResult.fail(guard, blocked="guard")
     cmd = _rewrite_cmd(cmd)
     timeout = int(args.get("timeout", 60))
@@ -218,3 +219,19 @@ async def _execute(args: dict, ctx: ToolContext) -> ToolResult:
 
 
 TOOL = Tool(name="shell_exec", description=_DESCRIPTION, schema=_SCHEMA, execute=_execute, category="shell")
+
+
+def _record_block(ctx: ToolContext, cmd: str, reason: str) -> None:
+    """Jede Ablehnung ins Fehlerprotokoll, damit Till Versuche sieht (Ziel agenten-sofortschutz §3).
+    Befehl geschwärzt (Zugangsdaten/Tokens) und gekürzt; Fehler beim Protokollieren blockieren nie."""
+    try:
+        from hydrahive.db import errors_log
+        from hydrahive.runner.agent_tree import redact
+        errors_log.record(
+            "shell.guard", severity="warning", error_type="shell_blocked",
+            session_id=ctx.session_id, agent_id=ctx.agent_id, user_id=ctx.user_id,
+            message=reason.split(". Abgelehnt", 1)[0][:300],
+            context={"cmd": redact(cmd)[:500]},
+        )
+    except Exception:  # noqa: BLE001
+        logger.debug("shell.guard: Protokoll-Eintrag fehlgeschlagen", exc_info=True)

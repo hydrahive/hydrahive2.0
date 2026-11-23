@@ -112,7 +112,7 @@
   "regexHint": "Checked against the message text, case-sensitive",
   "webhookAnyHint": "Any webhook of the project",
   "webhookNeedsProject": "This trigger needs a project. Open the Butler from the project cockpit and the webhook URL will appear here.",
-  "webhookSecretHint": "The call needs the X-Webhook-Secret header. The secret is in the project cockpit under Integrations.",
+  "webhookSecretHint": "The call needs the X-Webhook-Secret header (otherwise 401/403). The secret is in the project cockpit under Integrations; for older projects it was generated automatically.",
   "groupModules": "Modules",
   "schemaNone": "– none –",
   "schemaListHint": "One entry per line.",

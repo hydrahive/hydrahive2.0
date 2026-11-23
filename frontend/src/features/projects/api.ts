@@ -80,6 +80,8 @@ export const projectsApi = {
     api.get<ProjectWebhook>(`/projects/${id}/webhook`),
   rotateWebhookSecret: (id: string) =>
     api.post<ProjectWebhook>(`/projects/${id}/webhook/rotate`, {}),
+  ackWebhookAuto: (id: string) =>
+    api.post<void>(`/projects/${id}/webhook/ack`, {}),
   // SMB-Mounts: CRUD (user-scoped) + Projekt-Zuweisung
   listMounts: () => api.get<SmbMount[]>("/smb-mounts"),
   createMount: (body: SmbMountCreate) => api.post<SmbMount>("/smb-mounts", body),

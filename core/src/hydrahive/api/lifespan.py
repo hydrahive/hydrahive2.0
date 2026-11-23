@@ -136,6 +136,8 @@ def _setup_background_delegations() -> None:
 async def lifespan(app: FastAPI):
     settings.ensure_dirs()
     init_db()
+    from hydrahive.projects._webhook_migration import ensure_webhook_secrets
+    ensure_webhook_secrets()           # Altprojekte ohne Webhook-Secret (Task 44fffa23)
     # Verwaiste Handoffs (durch früheren Worker-Tod auf 'running' hängen
     # geblieben) terminal markieren — sonst bleiben sie ewige in_progress-Zombies.
     handoff_receiver.reconcile_orphaned_handoffs()
