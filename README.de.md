@@ -155,7 +155,32 @@ Passwort:  <generierter Wert>
 
 Die Zertifikats-Warnung ist erwartet, bis das generierte Zertifikat vertraut oder ersetzt ist. Das Backend selbst bindet per Default auf Loopback.
 
-### Windows über WSL2 (getestet)
+### Windows über WSL2
+
+**Mit einem Befehl (empfohlen, Vorschau).** PowerShell als Administrator öffnen (Startmenü, „PowerShell“ rechts
+anklicken, „Als Administrator ausführen“) und einfügen:
+
+```powershell
+irm https://raw.githubusercontent.com/hydrahive/hydrahive2.0/main/installer/windows/install.ps1 -OutFile $env:TEMP\hh-install.ps1
+powershell -NoProfile -ExecutionPolicy Bypass -File $env:TEMP\hh-install.ps1
+```
+
+Das Skript installiert WSL und Ubuntu 26.04, fragt nur nach Name und Passwort für den Ubuntu-Benutzer, schaltet
+systemd ein, installiert HydraHive mit dem normalen Linux-Installer und richtet den Autostart ein. Muss Windows
+zwischendurch neu starten, läuft die Installation nach der nächsten Anmeldung von selbst weiter. Am Ende stehen
+Adresse (`https://localhost`), Benutzer `admin` und das Passwort im Fenster – sofort notieren. Ein zweiter Aufruf
+schadet nicht, er überspringt Erledigtes. Protokoll: `%LOCALAPPDATA%\HydraHive\install.log` (ohne Passwörter).
+
+**Autostart:** Die Aufgabe „HydraHive (WSL)“ startet Ubuntu bei jeder Windows-Anmeldung im Hintergrund;
+`instanceIdleTimeout=-1` in `%UserProfile%\.wslconfig` hält es danach am Laufen, auch ohne offenes Fenster
+(vorhandene Einträge bleiben, Sicherung `.wslconfig.bak`). Ohne Anmeldung startet HydraHive nicht – WSL lässt sich
+nicht aus einem Windows-Dienst starten ([microsoft/WSL#9231](https://github.com/microsoft/WSL/issues/9231)).
+
+**Deinstallation:** Aufgabe entfernen mit `Unregister-ScheduledTask -TaskName 'HydraHive (WSL)'`. Ubuntu samt allen
+HydraHive-Daten entfernen mit `wsl --unregister Ubuntu-26.04` – **dabei gehen alle Daten verloren**, vorher sichern.
+
+#### Manuell (getestet)
+
 
 Der Linux-Installer kann innerhalb von **WSL2** ausgeführt werden. Das ist der empfohlene Windows-Weg; den Installer innerhalb der Linux-Distribution ausführen, nicht aus PowerShell und nicht aus einem Windows-Git-Checkout.
 
