@@ -17,7 +17,9 @@ Describe 'install.ps1' {
     }
     It 'führt .wslconfig zusammen und sichert sie vorher' {
         $script:src | Should -Match "Merge-HHIniSetting \`$old 'general' 'instanceIdleTimeout' '-1'"
-        $script:src | Should -Match '\.wslconfig\.bak'
+        $script:src | Should -Match 'Copy-Item -Force \$wslconfig "\$wslconfig\.bak"'
+        # Sicherung VOR dem Schreiben
+        $script:src.IndexOf('.bak"') | Should -BeLessThan $script:src.IndexOf('WriteAllText($wslconfig')
     }
     It 'Autostart bei Anmeldung, ohne gespeichertes Passwort' {
         $script:src | Should -Match 'New-ScheduledTaskTrigger -AtLogOn'

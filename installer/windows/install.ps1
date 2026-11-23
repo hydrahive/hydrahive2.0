@@ -34,12 +34,12 @@ Import-Module (Join-Path $here 'HydraHiveWsl.psm1') -Force
 $Distro = Get-HHDistroName
 $script:Secrets = @()
 
-function Write-Log([string]$m) {
+function Write-HHLog([string]$m) {
     Add-Content -Path $Log -Value ("{0:yyyy-MM-dd HH:mm:ss} {1}" -f (Get-Date), (ConvertTo-HHSafeLog $m $script:Secrets))
 }
-function Say([string]$key, [object[]]$a = @()) { $t = Get-HHText $key -Arg $a; Write-Host $t; Write-Log $t }
-function Step([int]$n, [string]$key) { $t = "[$n/7] " + (Get-HHText $key); Write-Host "`n$t" -ForegroundColor Cyan; Write-Log $t }
-function Fail([string]$key, [object[]]$a = @()) { $t = Get-HHText $key -Arg $a; Write-Host $t -ForegroundColor Red; Write-Log "FEHLER: $t"; exit 1 }
+function Say([string]$key, [object[]]$a = @()) { $t = Get-HHText $key -Arg $a; Write-Host $t; Write-HHLog $t }
+function Step([int]$n, [string]$key) { $t = "[$n/7] " + (Get-HHText $key); Write-Host "`n$t" -ForegroundColor Cyan; Write-HHLog $t }
+function Fail([string]$key, [object[]]$a = @()) { $t = Get-HHText $key -Arg $a; Write-Host $t -ForegroundColor Red; Write-HHLog "FEHLER: $t"; exit 1 }
 # Windows PowerShell 5.1: bei 2>&1 und ErrorActionPreference=Stop bricht die erste stderr-Zeile eines Programms
 # alles ab – install.sh schreibt viel nach stderr. Deshalb in diesen Hüllen lokal „Continue“.
 function Wsl([string[]]$a) {
@@ -56,7 +56,7 @@ function InDistro([string]$cmd, $stdin = $null, [switch]$Show) {   # $stdin bewu
         $l = "$_"
         if ($Show) { Write-Host $l }
         # Admin-Startpasswort und andere Passwortzeilen nie ins Protokoll.
-        if ($l -notmatch '(?i)passwor[dt]\s*:') { Write-Log $l } else { Write-Log '(Passwortzeile ausgelassen)' }
+        if ($l -notmatch '(?i)passwor[dt]\s*:') { Write-HHLog $l } else { Write-HHLog '(Passwortzeile ausgelassen)' }
     }
     $LASTEXITCODE
 }
@@ -66,7 +66,7 @@ function Get-DistroFile([string]$path) {
 }
 function Set-DistroFile([string]$path, [string]$text) { [void](InDistro "cat > '$path'" $text) }
 
-Write-Log "=== Start (Branch $Branch, Resume=$Resume) ==="
+Write-HHLog "=== Start (Branch $Branch, Resume=$Resume) ==="
 
 # 1 – Vorprüfung
 Step 1 'StepCheck'
@@ -85,10 +85,10 @@ $wslOk = $null -ne (Get-Command wsl.exe -ErrorAction SilentlyContinue)
 $list = if ($wslOk) { Wsl @('--list', '--quiet') } else { @() }
 if (Test-HHDistroInstalled $list) { Say 'Skip' }
 else {
-    Wsl @('--install', '--no-distribution') | ForEach-Object { Write-Log $_ }
-    Wsl @('--update') | ForEach-Object { Write-Log $_ }
+    Wsl @('--install', '--no-distribution') | ForEach-Object { Write-HHLog $_ }
+    Wsl @('--update') | ForEach-Object { Write-HHLog $_ }
     $out = Wsl @('--install', '-d', $Distro, '--no-launch')
-    $out | ForEach-Object { Write-Log $_ }
+    $out | ForEach-Object { Write-HHLog $_ }
     if (-not (Test-HHDistroInstalled (Wsl @('--list', '--quiet')))) {
         if (($out -join ' ') -match '(?i)restart|reboot|neustart|neu ?gestartet|neu starten') {
             # Einmaliger Weiterlauf nach der nächsten Anmeldung (RunOnce, löscht sich selbst).
@@ -161,7 +161,7 @@ $principal = New-ScheduledTaskPrincipal -UserId $me -LogonType Interactive -RunL
 $settings = New-ScheduledTaskSettingsSet -AllowStartIfOnBatteries -DontStopIfGoingOnBatteries -ExecutionTimeLimit ([TimeSpan]::Zero)
 Register-ScheduledTask -Force -TaskName (Get-HHTaskName) -Action $task -Trigger $trigger -Principal $principal `
     -Settings $settings -Description 'Startet HydraHive (Ubuntu in WSL) bei der Anmeldung.' | Out-Null
-Write-Log "Aufgabe '$(Get-HHTaskName)' für $me eingerichtet"
+Write-HHLog "Aufgabe '$(Get-HHTaskName)' für $me eingerichtet"
 Remove-ItemProperty -Path 'HKCU:\Software\Microsoft\Windows\CurrentVersion\RunOnce' -Name 'HydraHiveInstall' -ErrorAction SilentlyContinue
 
 # 7 – Warten, bis https://localhost antwortet (curl.exe ist seit Windows 10 1803 dabei)
@@ -172,5 +172,5 @@ while ((Get-Date) -lt $deadline) {
     $code = & curl.exe -sk -o NUL -w '%{http_code}' --max-time 5 "$url/api/health" 2>$null
     if ($code -eq '200') { break }; Start-Sleep -Seconds 5
 }
-if ($code -eq '200') { Write-Host ''; Write-Host (Get-HHText 'Ready' -Arg @($url, [Environment]::NewLine)) -ForegroundColor Green; Write-Log 'Fertig' }
+if ($code -eq '200') { Write-Host ''; Write-Host (Get-HHText 'Ready' -Arg @($url, [Environment]::NewLine)) -ForegroundColor Green; Write-HHLog 'Fertig' }
 else { Say 'NotReady' @($url, $Log) }
