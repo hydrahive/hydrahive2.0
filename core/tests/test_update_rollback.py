@@ -516,3 +516,17 @@ hh_db_schema_version "{bk}/db_snapshot.py" "{db}"
     r = subprocess.run(["bash", "-c", script], capture_output=True, text=True, timeout=60)
     assert r.returncode == 0, r.stderr
     assert r.stdout.strip() == "66"
+
+
+# --- Früher Neustart mitten im Update (Probe U4P, 23.11.2026) ----------------------------------------------------------
+
+def test_frueher_neustart_mitten_im_update_db_wird_trotzdem_zurueckgespielt(env):
+    """Installer-Schritte (z. B. 75-agentlink.sh:47, 50-systemd.sh:441) starten den Dienst schon VOR dem regulären
+    Neustart mit neuem Code neu – der migriert dabei die DB. Scheitert das Update danach (noch vor
+    hh_safety_mark_restart, also RESTARTED≠1), muss der Rückweg die DB trotzdem zurückspielen."""
+    old, new = _setup(env)
+    prelude = 'systemctl restart hydrahive2.service; modify_db; err "nginx-Setup fehlgeschlagen"'
+    r = _run(env, "pip", prelude=prelude)
+    (d,) = _backups(env)
+    assert _meta(d).get("RESTARTED") != "1", "Voraussetzung: der reguläre Neustart wurde nicht erreicht"
+    _assert_db_rollback(env, r, old, "nginx-Setup fehlgeschlagen")
