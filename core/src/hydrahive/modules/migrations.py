@@ -5,6 +5,7 @@ import sqlite3
 from pathlib import Path
 from hydrahive.db.connection import db
 from hydrahive.db._utils import now_iso
+from hydrahive.db.migrations import run_migration_script
 
 logger = logging.getLogger(__name__)
 
@@ -44,17 +45,12 @@ def apply_module_migrations(module_id: str, migrations_dir: str | Path) -> None:
                 continue
             if version <= current:
                 continue
-            try:
-                conn.executescript(f.read_text())
-            except sqlite3.OperationalError as exc:
-                if "duplicate column name" not in str(exc) and "already exists" not in str(exc):
-                    raise
-                logger.warning("Modul %s: Migration %s bereits partiell — markiere als erledigt (%s)", module_id, f.name, exc)
-            conn.execute(
-                "INSERT OR IGNORE INTO module_schema_version (module_id, version, applied_at) VALUES (?, ?, ?)",
-                (module_id, version, now_iso()),
+            # Atomar samt Versionszeile (siehe run_migration_script); scheitert die Datei, bleibt nichts halb stehen.
+            run_migration_script(
+                conn, f.read_text(), f"Modul {module_id}: {f.name}",
+                lambda v=version: conn.execute(
+                    "INSERT OR IGNORE INTO module_schema_version (module_id, version, applied_at) VALUES (?, ?, ?)",
+                    (module_id, v, now_iso()),
+                ),
             )
-            # executescript() issues an implicit COMMIT, so we commit explicitly
-            # here to keep each migration's version entry in its own transaction.
-            conn.commit()
             logger.info("Modul %s: Migration %s angewendet (v%d)", module_id, f.name, version)
