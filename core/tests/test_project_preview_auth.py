@@ -43,10 +43,14 @@ def _login(client, headers, pid) -> str:
     return r.cookies[COOKIE]
 
 
-def _check(client, cookie, pid):
+def _check(client, cookie):
+    """So fragt nginx: nur das Cookie, keine Angabe zum Projekt (E1b, Projekt kommt aus dem Cookie)."""
     client.cookies.clear()
-    return client.get("/api/project-preview/auth", headers={"X-Preview-Project": pid},
-                      cookies={COOKIE: cookie} if cookie else None)
+    return client.get("/api/project-preview/auth", cookies={COOKIE: cookie} if cookie else None)
+
+
+def _port(client, headers, pid) -> int:
+    return client.get(f"/api/projects/{pid}/preview", headers=headers).json()["port"]
 
 
 # --- Status und Ticket: nur mit Leserecht ---------------------------------------------------------------
@@ -79,24 +83,55 @@ def test_unbekanntes_projekt_404(client, auth_headers):
 # --- T3: Durchreiche ---------------------------------------------------------------------------------------
 
 def test_ohne_cookie_401(client, admin_headers):
-    pid = _project(client, admin_headers)
-    assert _check(client, None, pid).status_code == 401
+    _project(client, admin_headers)
+    assert _check(client, None).status_code == 401
 
 
 def test_mit_cookie_200_und_port(client, admin_headers, auth_headers):
     pid = _member(client, admin_headers)
     port = client.get(f"/api/projects/{pid}/preview", headers=auth_headers).json()["port"]
     cookie = _login(client, auth_headers, pid)
-    r = _check(client, cookie, pid)
+    r = _check(client, cookie)
     assert r.status_code == 200 and r.headers["X-Preview-Port"] == str(port)
 
 
 def test_cookie_von_x_oeffnet_y_nicht(client, admin_headers, auth_headers):
+    """Mit dem Cookie von X nennt /auth den Port von X – nie den von Y, auch wenn der Browser Y angibt."""
     x, y = _member(client, admin_headers), _member(client, admin_headers)
+    port_x, port_y = _port(client, auth_headers, x), _port(client, auth_headers, y)
+    assert port_x != port_y
     cookie_x = _login(client, auth_headers, x)
-    assert _check(client, cookie_x, y).status_code == 403
-    r = client.get("/api/project-preview/auth", cookies={COOKIE: cookie_x})       # ohne Projekt-Angabe
-    assert r.status_code == 403
+    for extra in ({}, {"X-Preview-Project": y}, {"X-Preview-Port": str(port_y)}):
+        client.cookies.clear()
+        r = client.get("/api/project-preview/auth", cookies={COOKIE: cookie_x}, headers=extra)
+        assert r.status_code == 200 and r.headers["X-Preview-Port"] == str(port_x)
+
+
+def test_umgeschriebenes_projekt_im_cookie_scheitert_an_der_signatur(client, admin_headers, auth_headers):
+    import base64
+    import json
+    x, y = _member(client, admin_headers), _member(client, admin_headers)
+    body, sig = _login(client, auth_headers, x).split(".")
+    data = json.loads(base64.urlsafe_b64decode(body + "=" * (-len(body) % 4)))
+    data["pid"] = y
+    forged = base64.urlsafe_b64encode(json.dumps(data).encode()).rstrip(b"=").decode()
+    assert _check(client, f"{forged}.{sig}").status_code == 401
+
+
+def test_zuletzt_geoeffnetes_projekt_gilt(client, admin_headers, auth_headers):
+    """Bekannte Grenze: ein Cookie pro Browser – das zuletzt geöffnete Projekt gewinnt."""
+    x, y = _member(client, admin_headers), _member(client, admin_headers)
+    _login(client, auth_headers, x)
+    cookie_y = _login(client, auth_headers, y)
+    assert _check(client, cookie_y).headers["X-Preview-Port"] == str(_port(client, auth_headers, y))
+
+
+def test_login_leitet_relativ_auf_die_wurzel(client, admin_headers, auth_headers):
+    """Relative Weiterleitung: der Browser bleibt auf dem Port der Durchreiche (8445), nicht auf HydraHive."""
+    pid = _member(client, admin_headers)
+    ticket = client.post(f"/api/projects/{pid}/preview/open", headers=auth_headers).json()["ticket"]
+    r = client.get("/api/project-preview/login", params={"t": ticket}, follow_redirects=False)
+    assert r.status_code == 303 and r.headers["location"] == "/"
 
 
 def test_cookie_ist_httponly_und_secure(client, admin_headers, auth_headers):
@@ -130,8 +165,8 @@ def test_gefaelschtes_cookie_abgelehnt(client, admin_headers, auth_headers):
     x, y = _member(client, admin_headers), _member(client, admin_headers)
     body, sig = _login(client, auth_headers, x).split(".")
     other_body = preview_auth.issue_cookie("u", y).split(".")[0]
-    assert _check(client, f"{other_body}.{sig}", y).status_code == 401      # fremder Inhalt, alte Signatur
-    assert _check(client, f"{body}.AAAA", x).status_code == 401
+    assert _check(client, f"{other_body}.{sig}").status_code == 401      # fremder Inhalt, alte Signatur
+    assert _check(client, f"{body}.AAAA").status_code == 401
 
 
 def test_abgelaufenes_cookie_abgelehnt(client, admin_headers, auth_headers, monkeypatch):
@@ -139,7 +174,7 @@ def test_abgelaufenes_cookie_abgelehnt(client, admin_headers, auth_headers, monk
     cookie = _login(client, auth_headers, pid)
     real = time.time
     monkeypatch.setattr(preview_auth.time, "time", lambda: real() + preview_auth.MAX_AGE + 1)
-    assert _check(client, cookie, pid).status_code == 401
+    assert _check(client, cookie).status_code == 401
 
 
 def test_entzogene_mitgliedschaft_sperrt_sofort(client, admin_headers, auth_headers):
@@ -147,7 +182,7 @@ def test_entzogene_mitgliedschaft_sperrt_sofort(client, admin_headers, auth_head
     cookie = _login(client, auth_headers, pid)
     r = client.patch(f"/api/projects/{pid}", headers=admin_headers, json={"members": []})
     assert r.status_code == 200, r.text
-    assert _check(client, cookie, pid).status_code == 401
+    assert _check(client, cookie).status_code == 401
 
 
 def test_ticket_eines_nicht_mitglieds_wird_beim_einloesen_abgelehnt(client, admin_headers, auth_headers):

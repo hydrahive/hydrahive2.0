@@ -158,6 +158,7 @@ def _build_env(ctx: ToolContext) -> dict:
     # Vorschau-Port des Projekts (ziele/projekt-testumgebung.md §3 Weg B). Der Container-Launcher übernimmt keine
     # Server-Umgebung und damit auch diesen Wert nicht (kommt mit Weg A).
     from hydrahive.projects import preview_port
+    env.pop("HH_PREVIEW_PORT", None)              # nie einen geerbten Port eines anderen Projekts weitergeben
     port = preview_port.for_shell(ctx.project_id)
     if port is not None:
         env["HH_PREVIEW_PORT"] = str(port)
