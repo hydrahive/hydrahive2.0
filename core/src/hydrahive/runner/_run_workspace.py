@@ -68,6 +68,27 @@ def project_briefing(project: dict) -> str:
     )
 
 
+def preview_hint(project: dict) -> str:
+    """Hinweis auf die Testseite (ziele/projekt-testumgebung.md §3 Weg B). Nur für Projekte auf dem Server: Im
+    Container-Modus gibt es kein HH_PREVIEW_PORT (Container-Launcher übernimmt keine Server-Umgebung). Der Port wird
+    nur gelesen, nie vergeben – ein Systemtext darf nichts in der Projekt-Konfig ändern."""
+    from hydrahive.projects import execution, preview_port
+    try:
+        if execution.of(project)["mode"] != "host":
+            return ""
+    except execution.ExecutionError:
+        return ""
+    port = preview_port.stored(project)
+    target = str(port) if port is not None else "$HH_PREVIEW_PORT"
+    return (
+        f"Testseite: Starte einen Webserver für den Nutzer auf 127.0.0.1 und dem Port in $HH_PREVIEW_PORT "
+        f"(für dieses Projekt {target}), z. B. `npm run dev -- --host 127.0.0.1 --port $HH_PREVIEW_PORT` oder "
+        "`python3 -m http.server $HH_PREVIEW_PORT --bind 127.0.0.1`. Lange laufende Server im Hintergrund starten. "
+        "Der Nutzer öffnet die Seite im Projekt über ‚Testseite öffnen‘. Nichts systemweit installieren; fehlt etwas, "
+        "als Blocker melden."
+    )
+
+
 def project_layout_hint(workspace: Path, project: dict, *, agent: dict | None = None, username: str = "") -> str:
     """Beschreibt die Projekt-Struktur fürs System-Prompt — wo die Repos liegen,
     welche Assets daneben. Der cwd ist der Projekt-Root; Repos sind Unterordner
@@ -98,6 +119,9 @@ def project_layout_hint(workspace: Path, project: dict, *, agent: dict | None = 
     if len(named) == 1:
         lines.append(f"Für Git-Arbeit ins Repo wechseln: cd ./{named[0]}/")
     lines.append("Bleib in diesem Projekt — arbeite nicht in anderen Verzeichnissen.")
+    preview = preview_hint(project)
+    if preview:
+        lines.append(preview)
     from hydrahive.projects._linked import hint as linked_hint
     linked = linked_hint(agent, project, username)
     if linked:

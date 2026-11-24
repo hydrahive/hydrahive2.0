@@ -6,6 +6,7 @@ import { projectsApi } from "./api"
 import { LinkedProjectsSection } from "./_SettingsLinked"
 import { OverridesSection } from "./_SettingsOverrides"
 import { SambaSection } from "./_SettingsSamba"
+import { PreviewSection } from "./_PreviewSection"
 import type { Project } from "./types"
 
 interface Props {
@@ -59,6 +60,8 @@ export function SettingsTab({ project, draft, onDraftChange, onDeleted }: Props)
       {samba && (
         <SambaSection samba={samba} busy={sambaBusy} error={sambaError} onToggle={toggleSamba} />
       )}
+
+      <PreviewSection projectId={project.id} containerMode={project.execution_mode === "container"} />
 
       <LinkedProjectsSection project={project} onSaved={onDraftChange} />
 

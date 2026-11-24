@@ -35,6 +35,7 @@ import { ProjectWorkspacePanel } from "./project/ProjectWorkspacePanel"
 import { ProjectSelector } from "./project/ProjectSelector"
 import { ProjectTasksPanel } from "./project/ProjectTasksPanel"
 import { ProjectActionGroups } from "./project/ProjectActionGroups"
+import { PreviewSection } from "@/features/projects/_PreviewSection"
 import { ProjectMobileTabs } from "./project/ProjectMobileTabs"
 import { paneClass, tabAfterAgentPick, type MobileTab } from "./project/mobileTabs"
 
@@ -192,6 +193,12 @@ export function ProjectCockpitPage() {
               onInsight={setInsightView}
               onGraph={() => setGraphOpen(true)}
             />
+            {activeProject && (
+              <div className="mt-3">
+                <PreviewSection key={activeProject.id} projectId={activeProject.id}
+                  containerMode={activeProject.execution_mode === "container"} />
+              </div>
+            )}
           </CollapsibleCockpitPanel>
 
           <CollapsibleCockpitPanel
