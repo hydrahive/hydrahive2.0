@@ -24,7 +24,24 @@ _NOT_WRAPPABLE = re.compile(
     re.IGNORECASE | re.MULTILINE,
 )
 _EXISTS = ("duplicate column name", "already exists")
-_FK_OFF = re.compile(r"^\s*PRAGMA\s+foreign_keys\s*=\s*(?:OFF|0|FALSE|NO)\s*;", re.IGNORECASE | re.MULTILINE)
+# PRAGMA foreign_keys in jeder Schreibweise (= OFF, (OFF), auf einer Zeile mit anderen Anweisungen, ohne „;“ am Ende).
+_FK_PRAGMA = re.compile(r"\bPRAGMA\s+foreign_keys\s*(?:=\s*|\(\s*)?([A-Za-z0-9_'\"]*)", re.IGNORECASE)
+_FK_OFF_VALUES = {"off", "0", "false", "no"}
+_FK_ON_VALUES = {"on", "1", "true", "yes"}
+
+
+def _fk_mode(sql: str) -> str:
+    """„off“: Datei schaltet Fremdschlüssel ab; „unklar“: Wert nicht erkennbar (dann ohne Hülle wie bisher);
+    sonst „“. Review #774: die frühere Erkennung nur am Zeilenanfang mit „=“ und „;“ hätte andere Schreibweisen
+    übersehen – die Datei liefe dann in der Hülle, das PRAGMA wirkte nicht, DROP TABLE löschte per CASCADE."""
+    mode = ""
+    for raw in _FK_PRAGMA.findall(sql):
+        value = raw.strip("'\"").lower()
+        if value in _FK_OFF_VALUES:
+            mode = "off"
+        elif value not in _FK_ON_VALUES:
+            return "unklar"
+    return mode
 
 
 def _statements(sql: str) -> list[str]:
@@ -66,6 +83,11 @@ def run_migration_script(conn: sqlite3.Connection, sql: str, label: str, record:
     „already exists“/„duplicate column name“ (Objekt außerhalb der Migration angelegt, Alt-DB): Die Datei läuft dann
     Anweisung für Anweisung ohne die vorhandenen Objekte (``_run_tolerant``), ebenfalls in einer Transaktion.
 
+    Ausnahme – Dateien ohne Hülle (eigene Transaktionssteuerung wie Kern 062/064/065, VACUUM/ATTACH/DETACH, andere
+    PRAGMAs, unklarer foreign_keys-Wert): Sie laufen wie vor diesem Umbau. Bei „already exists“ gelten sie als
+    angewendet; was in der Datei nach der fehlerhaften Anweisung stand, wird dann NICHT ausgeführt. Das ist das alte,
+    nicht atomare Verhalten (Restrisiko, Review #774). Neue Migrationen deshalb ohne eigenes BEGIN/COMMIT schreiben.
+
     Fremdschlüssel: Verlangt die Datei ``PRAGMA foreign_keys=OFF`` (Tabelle neu aufbauen: ``DROP TABLE`` würde sonst per
     ON DELETE CASCADE Kindzeilen löschen), wirkt das innerhalb einer Transaktion nicht. Deshalb schaltet diese Funktion
     sie in genau diesem Fall VOR der Transaktion auf der Verbindung ab und danach wieder ein; so rollt ein Fehler
@@ -73,11 +95,12 @@ def run_migration_script(conn: sqlite3.Connection, sql: str, label: str, record:
     Verstöße danach werden gemeldet (kein Abbruch: Alt-DBs können welche haben). Alle anderen Dateien laufen mit der
     Fremdschlüssel-Einstellung der Verbindung wie bisher.
     """
-    wrapped = not _NOT_WRAPPABLE.search(sql)
+    fk = _fk_mode(sql)
+    wrapped = not _NOT_WRAPPABLE.search(sql) and fk != "unklar"
     fk_was_on = False
     if wrapped:
         conn.commit()                       # nichts Offenes mitnehmen (executescript hätte es ohnehin festgeschrieben)
-        if _FK_OFF.search(sql):
+        if fk == "off":
             fk_was_on = bool(conn.execute("PRAGMA foreign_keys").fetchone()[0])
             if fk_was_on:
                 conn.execute("PRAGMA foreign_keys=OFF")
@@ -90,7 +113,8 @@ def run_migration_script(conn: sqlite3.Connection, sql: str, label: str, record:
             if not wrapped:
                 # Eigene Transaktionssteuerung (BEGIN;/COMMIT; in der Datei, z. B. 062): nicht Anweisung für Anweisung
                 # nachfahren (verschachteltes BEGIN) – Verhalten wie bisher: als vorhanden werten.
-                logger.warning("Migration %s bereits partiell angewendet (%s) — überspringe", label, exc)
+                logger.warning("Migration %s (ohne Transaktions-Hülle) bereits partiell angewendet (%s) — gilt als "
+                               "angewendet, Rest der Datei NICHT ausgeführt", label, exc)
             else:
                 if conn.in_transaction:
                     conn.rollback()         # den halben Versuch verwerfen

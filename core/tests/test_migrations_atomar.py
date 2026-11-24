@@ -267,3 +267,33 @@ def test_datei_mit_eigener_transaktion_und_vorhandener_spalte_wie_bisher(mdir: P
     (mdir / "001_eigen.sql").write_text("BEGIN;\nALTER TABLE peers ADD COLUMN is_hub INTEGER;\nCOMMIT;\n")
     core_mig.apply_migrations(conn)
     assert _versions(conn) == [1] and not conn.in_transaction
+
+
+@pytest.mark.parametrize("pragma_off,pragma_on", [
+    ("PRAGMA foreign_keys(OFF);", "PRAGMA foreign_keys(ON);"),
+    ("SELECT 1; PRAGMA foreign_keys=OFF;", "PRAGMA foreign_keys=ON;"),
+    ("pragma FOREIGN_KEYS = 'off';", "pragma foreign_keys = 'on'"),
+    ("PRAGMA foreign_keys = 0;", "PRAGMA foreign_keys = 1"),
+])
+def test_fk_off_in_jeder_schreibweise_keine_kaskade(mdir: Path, tmp_path: Path, pragma_off: str, pragma_on: str):
+    """Review #774 (sollte): FK=OFF wurde nur am Zeilenanfang mit „=“ und „;“ erkannt. Andere Schreibweisen liefen in der
+    Hülle, das PRAGMA wirkte nicht und DROP TABLE löschte per CASCADE die Kindzeilen."""
+    (mdir / "001_p.sql").write_text(
+        "CREATE TABLE p (id INTEGER PRIMARY KEY);\n"
+        "CREATE TABLE k (pid REFERENCES p(id) ON DELETE CASCADE);\n"
+        "INSERT INTO p VALUES (1); INSERT INTO k VALUES (1);\n"
+    )
+    (mdir / "002_umbau.sql").write_text(
+        f"{pragma_off}\nDROP TABLE p;\nCREATE TABLE p (id INTEGER PRIMARY KEY);\nINSERT INTO p VALUES (1);\n{pragma_on}"
+    )
+    conn = sqlite3.connect(tmp_path / "s.db")
+    conn.execute("PRAGMA foreign_keys = ON")
+    core_mig.apply_migrations(conn)
+    assert conn.execute("SELECT COUNT(*) FROM k").fetchone()[0] == 1, "keine Kaskade"
+    assert conn.execute("PRAGMA foreign_keys").fetchone()[0] == 1, "danach wieder an"
+
+
+def test_fk_unklarer_wert_laeuft_ohne_huelle_wie_bisher():
+    assert core_mig._fk_mode("PRAGMA foreign_keys = $wert;") == "unklar"
+    assert core_mig._fk_mode("PRAGMA foreign_keys = ON;") == ""
+    assert core_mig._fk_mode("-- nichts\nCREATE TABLE x (a);") == ""
