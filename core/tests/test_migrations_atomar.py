@@ -256,3 +256,14 @@ def test_aufrufer_mit_offener_transaktion_wird_nicht_mitgerissen(tmp_path: Path)
     conn.execute("INSERT INTO vorher VALUES (1)")                              # offen
     core_mig.run_migration_script(conn, "CREATE TABLE b (x);", "t", _record(conn))
     assert not conn.in_transaction and conn.execute("SELECT count(*) FROM vorher").fetchone()[0] == 1
+
+
+def test_datei_mit_eigener_transaktion_und_vorhandener_spalte_wie_bisher(mdir: Path, tmp_path: Path):
+    """CI-Fund nach Review #774: „duplicate column“ in einer Datei mit eigenem BEGIN;/COMMIT; (wie 062) darf nicht in
+    den Anweisung-für-Anweisung-Weg (verschachteltes BEGIN → „cannot start a transaction within a transaction“)."""
+    conn = sqlite3.connect(tmp_path / "s.db")
+    conn.execute("CREATE TABLE peers (id INTEGER, is_hub INTEGER)")
+    conn.commit()
+    (mdir / "001_eigen.sql").write_text("BEGIN;\nALTER TABLE peers ADD COLUMN is_hub INTEGER;\nCOMMIT;\n")
+    core_mig.apply_migrations(conn)
+    assert _versions(conn) == [1] and not conn.in_transaction

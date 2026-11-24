@@ -87,10 +87,15 @@ def run_migration_script(conn: sqlite3.Connection, sql: str, label: str, record:
         except sqlite3.OperationalError as exc:
             if not any(m in str(exc) for m in _EXISTS):
                 raise
-            if conn.in_transaction:
-                conn.rollback()             # den halben Versuch verwerfen
-            logger.warning("Migration %s: Objekt schon vorhanden (%s) — wende die Datei Anweisung für Anweisung an", label, exc)
-            _run_tolerant(conn, sql, label)
+            if not wrapped:
+                # Eigene Transaktionssteuerung (BEGIN;/COMMIT; in der Datei, z. B. 062): nicht Anweisung für Anweisung
+                # nachfahren (verschachteltes BEGIN) – Verhalten wie bisher: als vorhanden werten.
+                logger.warning("Migration %s bereits partiell angewendet (%s) — überspringe", label, exc)
+            else:
+                if conn.in_transaction:
+                    conn.rollback()         # den halben Versuch verwerfen
+                logger.warning("Migration %s: Objekt schon vorhanden (%s) — wende die Datei Anweisung für Anweisung an", label, exc)
+                _run_tolerant(conn, sql, label)
         if fk_was_on:
             bad = conn.execute("PRAGMA foreign_key_check").fetchall()
             if bad:
