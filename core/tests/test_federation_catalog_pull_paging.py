@@ -129,16 +129,20 @@ def test_voller_abgleich_ab_altem_stand_blaettert_bis_zum_ende(client, env, purg
     # Unter -n 4 liegen Einträge früherer Tests desselben Workers in der DB; der volle Abgleich
     # liefert sie mit. Das Seitenbudget kommt deshalb aus der tatsächlichen Gesamtzahl (Referenz
     # mit großen Seiten, die Seitengröße kann nach Bytes begrenzt sein), statt fest 10 zu sein.
-    expected, after, full = [], 1, False
+    expected, after, full, n_deleted = [], 1, False, 0
     for _ in range(200):
         ref = verified(*pull(client, env["c"], after_rev=after, limit=500, full=full))
         expected += [(i["origin_fp"], i["kind"], i["item_id"]) for i in ref["items"]]
+        n_deleted += len(ref["deleted"])
         after, full = ref["next_rev"], full or ref["full"]
         if not ref["more"]:
             break
     assert full is True and not ref["more"]
     expected.sort()
-    budget = len(expected) + 2
+    # Bei limit=1 belegt jede Löschzeile eine eigene Seite, genau wie ein Eintrag. Löschzeilen früherer Tests
+    # auf demselben Worker liefert der volle Abgleich (ab rev 0) zu Recht mit. Ohne sie im Budget war der Test
+    # wacklig („assert 5 < 5“, CI 24.11.2026, mit main-Code nachgestellt).
+    budget = len(expected) + n_deleted + 2
     after, full, pages, keys = 1, False, 0, []
     while pages < budget:
         body = verified(*pull(client, env["c"], after_rev=after, limit=1, full=full))
