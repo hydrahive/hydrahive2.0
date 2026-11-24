@@ -80,3 +80,42 @@ def test_bogus_project_falls_back_to_agent_workspace(monkeypatch):
 
     assert pid is None
     assert ws == ap.workspace_for(_agent())
+
+
+# --- Testseite (ziele/projekt-testumgebung.md §3 Weg B, E1c) --------------------------------------------------------
+
+def test_testseite_hinweis_mit_projekt_und_port(tmp_path, monkeypatch):
+    monkeypatch.delenv("HH_PREVIEW_PORT_MIN", raising=False)
+    monkeypatch.delenv("HH_PREVIEW_PORT_MAX", raising=False)
+    hint = project_layout_hint(tmp_path, {"name": "P", "git_repos": {}, "preview_port": 18123})
+    assert "Testseite:" in hint and "127.0.0.1" in hint and "$HH_PREVIEW_PORT" in hint
+    assert "18123" in hint and "‚Testseite öffnen‘" in hint and "Blocker" in hint
+
+
+def test_testseite_hinweis_ohne_vergebenen_port_nennt_die_variable(tmp_path):
+    from hydrahive.runner._run_workspace import preview_hint
+    project = {"name": "P", "git_repos": {}}
+    hint = preview_hint(project)
+    assert "für dieses Projekt $HH_PREVIEW_PORT" in hint
+    assert "preview_port" not in project                                   # nichts vergeben, nichts geschrieben
+
+
+def test_testseite_hinweis_nicht_im_container_modus(tmp_path):
+    project = {"name": "P", "git_repos": {}, "preview_port": 18123,
+               "execution": {"mode": "container", "container": "hh-p1", "workdir": "/work", "user": 1000}}
+    assert "Testseite:" not in project_layout_hint(tmp_path, project)
+
+
+def test_testseite_hinweis_nicht_bei_kaputter_ausfuehrung(tmp_path):
+    project = {"name": "P", "git_repos": {}, "execution": {"mode": "irgendwas"}}
+    assert "Testseite:" not in project_layout_hint(tmp_path, project)
+
+
+def test_testseite_hinweis_nur_mit_projekt(monkeypatch):
+    """Ohne Projekt baut der Runner den Projekt-Block gar nicht (runner.py: nur wenn active_project_id + Konfig)."""
+    import inspect
+
+    from hydrahive.runner import runner
+    src = inspect.getsource(runner)
+    block = src[src.index("_proj = None"):src.index("local_tools, mcp_servers")]
+    assert "if active_project_id:" in block and "if _proj:" in block and "project_layout_hint(" in block
