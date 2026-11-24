@@ -227,5 +227,18 @@
     "open_templates": "Open agent templates",
     "primary_how_to": "The project was not created. Set an available main model in the template and try again.",
     "continue": "Continue to project"
+  },
+  "preview": {
+    "title": "Test page",
+    "running": "Test page is running",
+    "not_running": "No test page started yet",
+    "port": "Test page port: {{port}}",
+    "open": "Open test page",
+    "recheck": "Check again",
+    "how_to_start": "Ask the project agent to start a test page – for example: “Build me a test installation I can try out.”",
+    "last_wins": "Per browser, the test page opened last is the active one.",
+    "certificate": "On first opening, the browser asks about the certificate – just like for HydraHive itself.",
+    "popup_blocked": "The browser blocked the new window. Allow pop-ups for HydraHive and click again.",
+    "container_mode": "This project runs in a container. Test pages from the container come in a later version."
   }
 }

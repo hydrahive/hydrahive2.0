@@ -227,5 +227,18 @@
     "open_templates": "Agenten-Templates öffnen",
     "primary_how_to": "Das Projekt wurde nicht angelegt. Trage im Template ein verfügbares Hauptmodell ein und versuche es dann noch einmal.",
     "continue": "Weiter zum Projekt"
+  },
+  "preview": {
+    "title": "Testseite",
+    "running": "Testseite läuft",
+    "not_running": "Noch keine Testseite gestartet",
+    "port": "Port der Testseite: {{port}}",
+    "open": "Testseite öffnen",
+    "recheck": "Neu prüfen",
+    "how_to_start": "Bitte den Projekt-Agenten, eine Testseite zu starten – zum Beispiel: „Bau mir eine Testinstallation, die ich ausprobieren kann.“",
+    "last_wins": "Pro Browser ist immer die zuletzt geöffnete Testseite aktiv.",
+    "certificate": "Beim ersten Öffnen fragt der Browser nach dem Zertifikat – wie bei HydraHive selbst.",
+    "popup_blocked": "Der Browser hat das neue Fenster blockiert. Erlaube Pop-ups für HydraHive und klicke noch einmal.",
+    "container_mode": "Dieses Projekt läuft im Container. Testseiten aus dem Container kommen in einer späteren Version."
   }
 }

@@ -75,6 +75,9 @@ export const projectsApi = {
     api.put<Project>(`/projects/${id}/linked-projects`, { projects }),
   putSamba: (id: string, enabled: boolean) =>
     api.put<{ ok: boolean; enabled: boolean }>(`/projects/${id}/samba`, { enabled }),
+  // Testseite (ziele/projekt-testumgebung.md §4): Port + läuft?, Einmal-Ticket (60 s) für die Durchreiche :8445
+  getPreview: (id: string) => api.get<PreviewStatus>(`/projects/${id}/preview`),
+  openPreview: (id: string) => api.post<PreviewTicket>(`/projects/${id}/preview/open`, {}),
   // Butler-Webhook: Secret nur für Projekt-Admins (sonst 403)
   getWebhook: (id: string) =>
     api.get<ProjectWebhook>(`/projects/${id}/webhook`),
@@ -109,3 +112,6 @@ export const projectsApi = {
 export const usersApi = {
   list: () => api.get<{ username: string; role: string }[]>("/users"),
 }
+
+export interface PreviewStatus { port: number; running: boolean }
+export interface PreviewTicket { ticket: string; expires_in: number; port: number }
