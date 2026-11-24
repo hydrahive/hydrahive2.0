@@ -6,7 +6,7 @@ from __future__ import annotations
 import pytest
 
 from hydrahive.db.connection import db
-from hydrahive.federation import catalog_pull, peer_identity as ident
+from hydrahive.federation import catalog_hub, catalog_pull, peer_identity as ident
 from tests._catalog_pull_env import item, pull, push, verified
 
 pytest_plugins = ["tests._catalog_pull_env"]  # Fixture `env`
@@ -119,9 +119,12 @@ def test_zu_alter_stand_bekommt_vollen_abgleich(client, env, purged):
     assert fresh["full"] is False                                # 0 heißt „von vorn“, ohne Schlüsselliste
 
 
-def test_voller_abgleich_ab_altem_stand_blaettert_bis_zum_ende(client, env, purged):
+def test_voller_abgleich_ab_altem_stand_blaettert_bis_zum_ende(client, env, purged, monkeypatch):
     """Review #742: Folgeseiten eines erzwungenen vollen Abgleichs dürfen nicht wieder bei 0
     anfangen. Der Client fragt nach der ersten Antwort mit full=true weiter (wie pull_client)."""
+    # Mit limit=1 eine Anfrage je Eintrag/Löschzeile – liegen auf dem Worker Daten früherer Tests, wären das
+    # schnell mehr als 30 je Minute (peer_rate_limited, CI 24.11.2026). Die Grenze prüft test_..._checks.
+    monkeypatch.setattr(catalog_hub, "_RATE_MAX", 10_000)
     push(client, env["o"], [item(f"o-{n}") for n in range(3)])
     first = verified(*pull(client, env["c"]))
     with db() as conn:
