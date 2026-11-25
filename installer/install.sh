@@ -113,22 +113,17 @@ is_tty() { [ -t 0 ] && [ -t 1 ] && [ -r /dev/tty ]; }
 
 # shellcheck source=lib/install-choices.sh
 source "$INSTALLER_DIR/lib/install-choices.sh"
+# shellcheck source=lib/install-conf.sh
+source "$INSTALLER_DIR/lib/install-conf.sh"
 hh_choices_parse_args "$@" || err "Ungültige Option (siehe oben)."
 
 load_install_conf() {
   [ "$RECONFIGURE" = "1" ] && return 0
   [ -f "$INSTALL_CONF" ] || return 0
   log "Lade gespeicherte Auswahl aus $INSTALL_CONF"
-  # ENV gewinnt über install.conf — nur leere Variablen aus Datei nachziehen
-  local key value
-  while IFS='=' read -r key value; do
-    case "$key" in ''|\#*) continue ;; esac
-    value="${value#\"}"; value="${value%\"}"
-    value="${value#\'}"; value="${value%\'}"
-    if [ -z "${!key:-}" ]; then
-      export "$key=$value"
-    fi
-  done < "$INSTALL_CONF"
+  # ENV gewinnt über install.conf — nur leere Variablen aus Datei nachziehen, nur bekannte Schlüssel mit gültigem Wert
+  # (lib/install-conf.sh, Task 42a25db7).
+  hh_load_install_conf "$INSTALL_CONF"
 }
 
 save_install_conf() {

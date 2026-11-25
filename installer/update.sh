@@ -35,18 +35,12 @@ source "$HH_REPO_DIR/installer/lib/update-safety.sh"
 source "$HH_REPO_DIR/installer/lib/update-check.sh"
 hh_safety_lock
 
-# install.conf laden (Komponenten-Auswahl aus install.sh) — ENV gewinnt darüber.
+# install.conf laden (Komponenten-Auswahl aus install.sh) — ENV gewinnt darüber. Die Datei ist vom Dienstnutzer
+# beschreibbar, update.sh läuft als root: nur bekannte Schlüssel mit gültigem Wert (lib/install-conf.sh, Task 42a25db7).
 INSTALL_CONF="$HH_CONFIG_DIR/install.conf"
-if [ -f "$INSTALL_CONF" ]; then
-  while IFS='=' read -r key value; do
-    case "$key" in ''|\#*) continue ;; esac
-    value="${value#\"}"; value="${value%\"}"
-    value="${value#\'}"; value="${value%\'}"
-    if [ -z "${!key:-}" ]; then
-      export "$key=$value"
-    fi
-  done < "$INSTALL_CONF"
-fi
+# shellcheck source=lib/install-conf.sh
+source "$HH_REPO_DIR/installer/lib/install-conf.sh"
+hh_load_install_conf "$INSTALL_CONF"
 
 cd "$HH_REPO_DIR"
 

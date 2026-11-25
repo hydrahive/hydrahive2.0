@@ -16,7 +16,7 @@ INSTALLER = Path(__file__).resolve().parents[2] / "installer"
 LIB = INSTALLER / "lib"
 UPDATE = INSTALLER / "update.sh"
 SNAP = LIB / "db_snapshot.py"
-LIBS = ("update-safety.sh", "update-check.sh", "update-rollback.sh", "db_snapshot.py", "git-update.sh", "python-venv.sh")
+LIBS = ("update-safety.sh", "install-conf.sh", "update-check.sh", "update-rollback.sh", "db_snapshot.py", "git-update.sh", "python-venv.sh")
 
 
 def _git(cwd: Path, *args: str) -> str:
