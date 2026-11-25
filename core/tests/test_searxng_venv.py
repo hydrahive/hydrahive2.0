@@ -96,10 +96,11 @@ def test_update_syncs_searxng_venv_before_engine_migration() -> None:
     assert 'source "$HH_REPO_DIR/installer/lib/searxng-venv.sh"' in text
     assert text.index("installer/migrations/pin-venv-python.sh") < sync
     assert sync < text.index("installer/migrations/searxng-engines.sh")
-    # Nur wenn SearXNG installiert ist, und ein Fehler bricht das Update nicht ab.
+    # Nur wenn SearXNG installiert ist, und ein Fehler bricht das Update nicht ab, wird aber gesammelt gemeldet
+    # (E10, update-rollback.md: `|| hh_warn` statt `|| log … weiter`, die Warnung steht am Ende als HH-UPDATE-WARNUNG).
     block = text[text.rindex("\nif ", 0, sync):text.index("\nfi\n", sync)]
     assert "/etc/systemd/system/searxng.service" in block
-    assert "|| log" in block
+    assert "|| hh_warn" in block and "|| log" not in block, "Fehler dürfen nicht still im Log verschwinden"
     assert "systemctl restart searxng.service" in block
 
 
