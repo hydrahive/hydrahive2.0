@@ -39,7 +39,7 @@ def test_containers_only_when_wanted():
 
 def test_voice_only_when_wanted():
     t = _text()
-    call = 'bash "$HH_REPO_DIR/installer/modules/55-voice.sh" || log "voice-setup failed'
+    call = 'bash "$HH_REPO_DIR/installer/modules/55-voice.sh" || hh_warn "Voice-Setup fehlgeschlagen'
     before = t[:t.index(call)]
     assert "hh_addon_wanted" in before[before.rindex("voice_ok=1"):] or \
         re.search(r'hh_addon_wanted "\$INSTALL_CONF" HH_INSTALL_VOICE', before[-3000:])

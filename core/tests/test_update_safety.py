@@ -16,7 +16,7 @@ INSTALLER = Path(__file__).resolve().parents[2] / "installer"
 LIB = INSTALLER / "lib"
 UPDATE = INSTALLER / "update.sh"
 SNAP = LIB / "db_snapshot.py"
-LIBS = ("update-safety.sh", "db_snapshot.py", "git-update.sh", "python-venv.sh")
+LIBS = ("update-safety.sh", "update-check.sh", "update-rollback.sh", "db_snapshot.py", "git-update.sh", "python-venv.sh")
 
 
 def _git(cwd: Path, *args: str) -> str:
@@ -36,6 +36,10 @@ def _make_db(path: Path, rows: int = 500) -> None:
 
 @pytest.fixture
 def env(tmp_path: Path) -> dict:
+    return make_env(tmp_path)
+
+
+def make_env(tmp_path: Path) -> dict:
     """Origin + Arbeitskopie (mit den Installer-Bibliotheken committed), Daten-/Config-Ordner, Attrappen."""
     origin = tmp_path / "origin.git"
     seed = tmp_path / "seed"
@@ -72,7 +76,9 @@ def env(tmp_path: Path) -> dict:
         f.chmod(0o755)
     unit = tmp_path / "unit.service"
     unit.write_text("[Service]\n")
-    return {"tmp": tmp_path, "origin": origin, "seed": seed, "repo": repo, "data": data, "cfg": cfg, "bin": bin_,
+    from tests._update_fakes import install_fakes     # systemctl/curl/journalctl: nie der echte Dienst
+    fake_env = install_fakes(bin_, tmp_path / "sysd", repo)
+    return {"fake_env": fake_env, "tmp": tmp_path, "origin": origin, "seed": seed, "repo": repo, "data": data, "cfg": cfg, "bin": bin_,
             "unit": unit, "lock": tmp_path / "update.lock"}
 
 
@@ -82,6 +88,7 @@ def _env(e: dict, **extra: str) -> dict:
             "HH_BACKUP_ROOT": str(e["tmp"] / "varbackups" / "update"),
             "HH_UNIT_FILE": str(e["unit"]), "HH_NGINX_SITE": str(e["tmp"] / "nginx-site"),
             "HH_SUDOERS_FILE": str(e["tmp"] / "sudoers"), "HOME": str(e["tmp"])}
+    base.update(e.get("fake_env", {}))
     base.update(extra)
     return base
 
@@ -410,7 +417,7 @@ def test_erfolgreiches_update_raeumt_alte_sicherungen_auf(env):
 def test_update_sh_reihenfolge_sperre_sicherung_pull():
     t = UPDATE.read_text()
     assert t.index("hh_safety_lock") < t.index("hh_safety_backup") < t.index('hh_git_update "$HH_REPO_DIR"') < t.index("hh_safety_after_git")
-    assert t.count("hh_safety_backup") == 1 and t.count("trap ") == 1
+    assert t.count("hh_safety_backup") == 1 and sum(1 for l in t.splitlines() if l.lstrip().startswith("trap ")) == 1
     assert "hh_safety_finish" in t[t.index("_hh_end()"):t.index("trap _hh_end EXIT")]
 
 
@@ -440,6 +447,7 @@ def _finish(env: dict, rc: int, meta: str, *, reexec: bool, head_is_old: bool) -
     script = (f'log() {{ echo "$*"; }}\nerr() {{ echo "ERR $*" >&2; exit 1; }}\nsource "{src}"\n'
               f'HH_GIT="git -C {env["repo"]}"\nHH_BACKUP_DIR="{d}"\nhh_safety_finish {rc}\n')
     extra = {"HH_UPDATE_REEXECED": "1"} if reexec else {}
+    extra["HH_UPDATE_ROLLBACK"] = "0"            # hier geht es nur um „Sicherung behalten oder entfernen“
     return subprocess.run(["bash", "-c", script], env=_env(env, **extra), capture_output=True, text=True), d
 
 
