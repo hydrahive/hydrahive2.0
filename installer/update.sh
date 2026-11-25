@@ -460,7 +460,7 @@ fi
 if [ -d /etc/samba/hh-projects.d ]; then
   # shellcheck source=lib/samba-dirs.sh
   source "$HH_REPO_DIR/installer/lib/samba-dirs.sh"
-  hh_samba_includes_dir /etc/samba/hh-projects.d "$HH_USER" || log "samba-Ordnerrechte nicht reparierbar — weiter"
+  hh_samba_includes_dir /etc/samba/hh-projects.d "$HH_USER" || hh_warn "Samba-Ordnerrechte nicht reparierbar"
 fi
 
 # Self-Heal: alter smb.conf-Patch (Verzeichnis-Include statt _index.conf-Datei)
