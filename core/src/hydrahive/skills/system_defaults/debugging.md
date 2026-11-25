@@ -7,7 +7,7 @@ tools_required: [shell_exec, file_read]
 
 # Systematische Fehlersuche
 
-> Überarbeitet nach „systematic-debugging“ aus Superpowers v7.0.2 (github.com/obra/superpowers, MIT, © Jesse Vincent), mit HydraHive-Erfahrungen.
+> Überarbeitet nach „systematic-debugging“ aus Superpowers v7.0.2 (github.com/obra/superpowers, MIT, © 2025 Jesse Vincent – Lizenztext: docs/third-party/superpowers-LICENSE), mit HydraHive-Erfahrungen.
 
 ## Die eiserne Regel
 
@@ -15,7 +15,7 @@ tools_required: [shell_exec, file_read]
 KEIN FIX OHNE BELEGTE URSACHE
 ```
 
-Ohne abgeschlossene Phase 1 schlägst du keinen Fix vor. Das gilt besonders, wenn der Fehler einfach aussieht, wenn es eilt oder wenn schon ein Fix gescheitert ist. Siehe auch Skill `faktencheck-vor-diagnose`: eine Vermutung ist keine Diagnose.
+Ohne abgeschlossene Phase 1 schlägst du keinen Fix vor. Das gilt besonders, wenn der Fehler einfach aussieht, wenn es eilt oder wenn schon ein Fix gescheitert ist. Eine Vermutung ist keine Diagnose – gibt es einen eigenen Faktencheck-Skill (z. B. `faktencheck-vor-diagnose`), lade ihn zusätzlich.
 
 ## Phase 1: Ursache untersuchen
 
@@ -28,7 +28,7 @@ Ohne abgeschlossene Phase 1 schlägst du keinen Fix vor. Das gilt besonders, wen
    Wackelt ein Test nur in der CI: die Lage dort nachbauen (parallele Worker, Daten früherer Tests in derselben DB, Ratenbremsen) und mit dem **Code von main** gegenprüfen, ob es am eigenen PR liegt.
 4. **Letzte Änderungen prüfen** – `git log`, `git diff`, neue Abhängigkeiten, Konfiguration, Unterschiede zwischen Servern.
 5. **Bei mehreren Komponenten: Belege an jeder Grenze sammeln** (Installer → Dienst → DB, API → Agent → Werkzeug). An jeder Grenze protokollieren, was hinein- und was herausgeht. Einmal laufen lassen, dann zeigt sich, **wo** es bricht.
-   **Diagnose-Ausgaben verraten keine Geheimnisse:** nur „gesetzt/nicht gesetzt“ ausgeben, nie den Wert (`[ -n "${VAR:-}" ] && echo gesetzt || echo fehlt`; kein `env | grep`, kein `echo $TOKEN`).
+   **Diagnose-Ausgaben verraten keine Geheimnisse:** nur „gesetzt/nicht gesetzt“ ausgeben, nie den Wert (`if [ -n "${VAR:-}" ]; then echo gesetzt; else echo fehlt; fi`; kein `env | grep`, kein `echo $TOKEN`).
 6. **Datenfluss rückwärts verfolgen** – Wo entsteht der falsche Wert? Wer hat ihn übergeben? So weit zurück, bis du die Quelle hast. **An der Quelle beheben, nicht am Symptom.** Danach lohnt oft eine zweite Prüfung an einer weiteren Schicht (Verteidigung in der Tiefe).
 7. **Ist es überhaupt das Ziel, das du denkst?** Prüfe Identität, bevor du Schlüsse ziehst: richtiger Server, richtiger Container, richtiger Commit, richtige DB (`hostname`, `boot_id`, `git rev-parse HEAD`, `/api/health`). Beispiel: Zwei Container mit gleicher MAC und IP – SSH landete zufällig auf dem falschen.
 

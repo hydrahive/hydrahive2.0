@@ -7,7 +7,7 @@ tools_required: [file_read, shell_exec]
 
 # Review-Befunde annehmen
 
-> Nach „receiving-code-review“ aus Superpowers v7.0.2 (github.com/obra/superpowers, MIT, © Jesse Vincent), für HydraHive übersetzt und angepasst.
+> Nach „receiving-code-review“ aus Superpowers v7.0.2 (github.com/obra/superpowers, MIT, © 2025 Jesse Vincent – Lizenztext: docs/third-party/superpowers-LICENSE), für HydraHive übersetzt und angepasst.
 
 ## Grundsatz
 
@@ -46,7 +46,7 @@ Widerspricht ein Befund einer Entscheidung von Till (Spec, Zieldokument, Chat): 
 ## Umfang klein halten (YAGNI)
 
 - Schlägt ein Reviewer vor, etwas „richtig“ auszubauen: erst nachsehen, ob es überhaupt benutzt wird (`grep`). Unbenutzt → „Das ruft nichts auf. Weglassen?“
-- **Stufen beachten:** „muss“ wird umgesetzt. „sollte“ wird geprüft und meist umgesetzt, wenn klein und im Thema des PRs. „kann“ landet als Notiz im Task oder als eigener Task – nicht ungefragt im laufenden PR.
+- **Stufen beachten:** „muss“ wird umgesetzt. „sollte“ wird geprüft und meist umgesetzt, wenn klein und im Thema des PRs. „kann“ landet als Notiz im Task oder als eigener Task – nicht ungefragt im laufenden PR. **Legt das Zieldokument (Abnahme-Punkt) oder der Nutzer fest, wie mit den Stufen umzugehen ist, gilt das.**
 - Vergrößert ein Befund den PR deutlich oder berührt Dateien außerhalb seines Themas: als eigenen PR/Task vorschlagen.
 - Die Spec bzw. das Zieldokument bestimmt den Umfang, nicht der Reviewer. Was es ausschließt („Nicht-Ziele“), bleibt draußen.
 
@@ -70,7 +70,7 @@ Widerspricht ein Befund einer Entscheidung von Till (Spec, Zieldokument, Chat): 
 
 ## Richtige Befunde bestätigen
 
-Kurz und sachlich, ohne Lob- oder Dankesfloskeln:
+Kurz und sachlich, ohne Lob- oder Dankesfloskeln – also nicht „Du hast völlig recht!“, „Super Hinweis!“, „Danke für …“, sondern:
 - „Behoben: [was sich geändert hat], in `datei.py:42`.“
 - „Stimmt – [konkretes Problem]. Test `test_x` zeigt es, Fix in `abc1234`.“
 

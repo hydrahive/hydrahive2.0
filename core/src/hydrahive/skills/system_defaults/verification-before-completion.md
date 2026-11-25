@@ -7,7 +7,7 @@ tools_required: [shell_exec, file_read]
 
 # Verification Before Completion
 
-> Ergänzt um Teile aus „verification-before-completion“ in Superpowers v7.0.2 (github.com/obra/superpowers, MIT, © Jesse Vincent).
+> Ergänzt um Teile aus „verification-before-completion“ in Superpowers v7.0.2 (github.com/obra/superpowers, MIT, © 2025 Jesse Vincent – Lizenztext: docs/third-party/superpowers-LICENSE).
 
 ## Die Regel
 

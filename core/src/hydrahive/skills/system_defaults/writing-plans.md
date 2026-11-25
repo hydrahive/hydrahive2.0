@@ -7,7 +7,7 @@ tools_required: [file_write, file_read]
 
 # Umsetzungsplan schreiben
 
-> Nach „writing-plans“ aus Superpowers v7.0.2 (github.com/obra/superpowers, MIT, © Jesse Vincent), für HydraHive übersetzt und angepasst.
+> Nach „writing-plans“ aus Superpowers v7.0.2 (github.com/obra/superpowers, MIT, © 2025 Jesse Vincent – Lizenztext: docs/third-party/superpowers-LICENSE), für HydraHive übersetzt und angepasst.
 
 ## Für wen der Plan ist
 
@@ -110,6 +110,7 @@ Ein Schritt ist fertig, wenn genau eine vernünftige Umsetzung daraus folgt – 
 
 ## HydraHive-Besonderheiten
 
+- **Arbeitsort:** jede Änderung in einem eigenen Worktree unter `_work/wt/<thema>` (cd immer mit absolutem Pfad, siehe Skill `shell-sicher`), nicht im Haupt-Checkout.
 - **Tests:** lokal nur gezielte Tests (die Platte ist langsam). „Grün“ heißt am Ende: die CI des PRs ist komplett grün. Bei Fixes zuerst der rote Test (Fix-Test-Guard).
 - **System-Skills, i18n, Migrationen:** Änderst du `skills/system_defaults/*.md`, gehört `python3 scripts/update_skill_history.py` in den Plan; neue Oberflächentexte de/en; neue Migrationen ohne eigenes BEGIN/COMMIT schreiben.
 - **Echte Proben** (Installer, Update, Geräte) als eigene Aufgabe: erst hydratest, Hauptserver nur mit Tills OK.

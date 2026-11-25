@@ -7,7 +7,7 @@ tools_required: [shell_exec]
 
 # Feature-Branch abschließen
 
-> Überarbeitet nach „finishing-a-development-branch“ aus Superpowers v7.0.2 (github.com/obra/superpowers, MIT, © Jesse Vincent).
+> Überarbeitet nach „finishing-a-development-branch“ aus Superpowers v7.0.2 (github.com/obra/superpowers, MIT, © 2025 Jesse Vincent – Lizenztext: docs/third-party/superpowers-LICENSE).
 
 ## Reihenfolge ist Pflicht
 
@@ -76,6 +76,7 @@ cd /var/lib/hydrahive2/workspaces/projects/<projekt>/hydrahive2 || exit 1
 git worktree remove /absoluter/pfad/_work/wt/<name>
 git worktree prune
 git branch -d <branch>            # -d, nicht -D: verweigert ungemergte Branches
+git push origin --delete <branch>  # Remote-Branch nach dem Merge (falls nicht schon per gh pr merge --delete-branch)
 ```
 
 **Verweigert `git worktree remove`** („contains modified or untracked files“): Dort liegen Dateien, die es nirgends sonst gibt – Pläne, Notizen, Probe-Logs. **Nie von dir aus `--force`.** Zeigen, was dort liegt, und fragen:
@@ -104,3 +105,4 @@ Test-Branches (z. B. `test/u4p-*`) erst löschen, wenn die Probe ausgewertet und
 | „Schnell --force, da ist nichts Wichtiges“ | Du weißt nicht, was dort liegt. Erst nachsehen und fragen. |
 | „Verwerfen als Option schadet nicht“ | Neben „Mergen“ verleitet es dazu, fertige Arbeit wegzuwerfen. |
 | „Merge-Commit ist egal“ | HydraHive mergt per Merge-Commit; der Verlauf bleibt nachvollziehbar. |
+| „Push abgelehnt – dann eben --force“ | Abgelehnt heißt: jemand anderes hat gepusht. Erst holen und zusammenführen, nie über fremde Arbeit drüber pushen. |
