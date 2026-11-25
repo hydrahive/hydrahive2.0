@@ -1,116 +1,108 @@
 ---
 name: finishing-development-branch
-description: Strukturierter Abschluss eines Development-Branches — Tests zuerst, dann Entscheidung (merge/PR/keep/discard), dann Cleanup.
-when_to_use: Wenn ein Feature-Branch fertig sein könnte, vor jedem Merge, wenn du "das kann ich jetzt mergen" denkst
+description: Strukturierter Abschluss eines Feature-Branches – erst Tests und CI, dann Entscheidung (PR/Merge/behalten), dann Aufräumen. Verwerfen nur auf ausdrücklichen Wunsch, Worktrees nie mit --force entfernen.
+when_to_use: Wenn ein Feature-Branch fertig sein könnte, vor jedem Merge, wenn du „das kann ich jetzt mergen“ denkst, und beim Aufräumen von Worktrees unter _work/wt/.
 tools_required: [shell_exec]
 ---
 
-# Finishing a Development Branch
+# Feature-Branch abschließen
+
+> Überarbeitet nach „finishing-a-development-branch“ aus Superpowers v7.0.2 (github.com/obra/superpowers, MIT, © 2025 Jesse Vincent – Lizenztext: docs/third-party/superpowers-LICENSE).
 
 ## Reihenfolge ist Pflicht
 
-Cleanup **nach** Merge, nicht vorher. Entscheidung **nach** Tests, nicht davor.
+Entscheidung **nach** Tests und CI, nicht davor. Aufräumen **nach** dem Merge, nicht vorher.
 
-## Schritt 1: Tests verifizieren
-
-```bash
-# Alle Tests grün?
-pytest -v
-
-# Nur neue Tests für diesen Branch
-git diff main..HEAD --name-only | grep test | xargs pytest -v
-
-# Keine Regression in bestehenden Tests
-pytest --tb=short
-```
-
-**Stoppe hier wenn Tests rot sind.** Erst fixen, dann weiter.
-
-## Schritt 2: Branch-Status prüfen
+## Schritt 1: Tests und CI prüfen
 
 ```bash
-# Commits die noch nicht in main sind
-git log main..HEAD --oneline
+# Lokal nur gezielt (die Platte ist langsam) – die Tests der geänderten Bereiche
+cd core && PYTHONPATH=src pytest -q tests/test_<bereich>*.py
 
-# Geänderte Dateien
-git diff main..HEAD --stat
-
-# Konflikte prüfen
-git merge-base HEAD main
-git diff $(git merge-base HEAD main)..HEAD
+# Maßgeblich ist die CI des PRs – alle Jobs grün, auf dem aktuellen Head
+gh pr checks <nr>
 ```
 
-## Schritt 3: Entscheidung — 4 Optionen
+**Stopp, wenn etwas rot ist.** Erst beheben, dann weiter. Ein Test, der auch auf anderen Branches wackelt, ist kein Freibrief: Ursache nachstellen und den Test reparieren (eigener PR), nicht „Rerun bis grün“.
 
-### Option A: Direkt mergen
-Wann: Kleines Feature, vollständig getestet, kein Review nötig.
-```bash
-git checkout main
-git merge --no-ff <branch> -m "feat: [was]"
-git push origin main
-git branch -d <branch>
-```
-
-### Option B: Pull Request öffnen
-Wann: Review gewünscht, öffentliches Repo, Team-Kontext.
-```bash
-gh pr create --title "[Titel]" --body "..."
-# Branch bestehen lassen bis PR gemergt
-```
-
-### Option C: Branch behalten
-Wann: Feature pausiert, wird später weitergeführt.
-```bash
-git stash  # falls uncommitted changes
-git push origin <branch>  # remote backup
-# Kein Merge
-```
-
-### Option D: Branch verwerfen
-Wann: Ansatz falsch, wird neu gemacht.
-```bash
-# Erst sicherstellen dass nichts Wertvolles verloren geht
-git log --oneline  # letzte Chance zu prüfen
-git checkout main
-git branch -D <branch>
-git push origin --delete <branch>  # falls remote existiert
-```
-
-## Schritt 4: Cleanup (nur nach erfolgreichem Merge)
+## Schritt 2: Branch-Stand prüfen
 
 ```bash
-# Lokalen Branch löschen
-git branch -d <branch>
-
-# Remote Branch löschen
-git push origin --delete <branch>
-
-# Aufräumen
-git remote prune origin
+git fetch -q origin
+git log --oneline origin/main..HEAD          # eigene Commits
+git rev-list --count HEAD..origin/main       # wie weit hinter main?
+git diff --stat origin/main...HEAD           # geänderte Dateien
 ```
 
-## Worktree-Kontext
+Liegt der Branch hinter main: main einmergen, Konflikte lösen, betroffene Tests erneut laufen lassen, pushen, CI abwarten.
 
-Falls in einem Worktree:
+## Schritt 3: Entscheidung
+
+Zeig diese Auswahl knapp; die Entscheidung über das Zusammenführen trifft der Nutzer bzw. gilt die vereinbarte Regel.
+
+**1. Pull Request (Standard in HydraHive)**
 ```bash
-# Worktree-Status prüfen
-git worktree list
-
-# Worktree entfernen (nur nach Merge)
-git worktree remove <path>
+gh pr create --base main --title "<typ(bereich): kurz>" --body-file <datei>
 ```
-
-## Checkliste vor Merge
-
-- [ ] Alle Tests grün (lokal ausgeführt, nicht nur "sollten sein")
-- [ ] Kein Debug-Code, keine print()-Statements
-- [ ] Commit-Messages sauber (kein "WIP", kein "fix stuff")
-- [ ] Keine sensiblen Daten im Diff
-- [ ] Merge-Strategie gewählt (A/B/C/D)
-
-## Häufiger Fehler
-
-Branch verwerfen bevor getestet wurde dass main noch funktioniert. Immer:
+Review durch hydrahive-reviewer; bei Auth, Root, Verteilung oder Schreibzugriffen zusätzlich hydrahive-security-reviewer. Merge **per Merge-Commit** und nur bei grüner CI:
 ```bash
-git checkout main && pytest  # Main noch gesund?
+gh pr merge <nr> --merge --match-head-commit "$(gh pr view <nr> --json headRefOid -q .headRefOid)"
 ```
+
+**2. Branch behalten** – Arbeit pausiert. Alles committen und pushen (Sicherung auf dem Server), Worktree bleibt stehen.
+
+**Kein „Verwerfen“-Angebot in der Auswahl.** Fertige, getestete Arbeit wegzuwerfen gehört nicht neben „Mergen“.
+
+### Nur wenn der Nutzer ausdrücklich verwerfen will
+
+Erst bestätigen lassen und dabei nennen, was verloren geht:
+
+```
+Das löscht endgültig:
+- Branch <name> (lokal und auf GitHub)
+- Commits: <liste>
+- Worktree <pfad> samt nicht committeter Dateien
+Bitte mit „verwerfen“ bestätigen.
+```
+
+Erst nach genau dieser Bestätigung: Worktree aufräumen (Schritt 4), dann `git branch -D <name>` und `git push origin --delete <name>`.
+
+## Schritt 4: Aufräumen (nach Merge oder bestätigtem Verwerfen)
+
+Aus dem Haupt-Checkout heraus, nie aus dem Worktree selbst:
+
+```bash
+cd /var/lib/hydrahive2/workspaces/projects/<projekt>/hydrahive2 || exit 1
+git worktree remove /absoluter/pfad/_work/wt/<name>
+git worktree prune
+git branch -d <branch>            # -d, nicht -D: verweigert ungemergte Branches
+git push origin --delete <branch>  # Remote-Branch nach dem Merge (falls nicht schon per gh pr merge --delete-branch)
+```
+
+**Verweigert `git worktree remove`** („contains modified or untracked files“): Dort liegen Dateien, die es nirgends sonst gibt – Pläne, Notizen, Probe-Logs. **Nie von dir aus `--force`.** Zeigen, was dort liegt, und fragen:
+
+```bash
+git -C /absoluter/pfad/_work/wt/<name> status --porcelain -uall
+```
+
+Test-Branches (z. B. `test/u4p-*`) erst löschen, wenn die Probe ausgewertet und festgehalten ist.
+
+## Checkliste vor dem Merge
+
+- [ ] CI des PRs komplett grün, auf dem aktuellen Head
+- [ ] Review(s) durch; „muss“-Befunde erledigt, „sollte“ geprüft (siehe receiving-code-review)
+- [ ] Kein Debug-Code, keine sensiblen Daten im Diff
+- [ ] System-Skills geändert? `_history.json` neu erzeugt (`python3 scripts/update_skill_history.py`)
+- [ ] Commit-Nachrichten sauber und auf Deutsch, keine @-Erwähnungen
+- [ ] Task-Notiz mit PR-Nummer und Merge-Commit
+
+## Ausreden und Wirklichkeit
+
+| Ausrede | Wirklichkeit |
+|---|---|
+| „Lokal grün reicht“ | Die CI läuft auf dem echten Stand von main. Erst sie zählt. |
+| „Der Test wackelt eh“ | Dann Ursache finden und den Test reparieren – nicht übergehen. |
+| „Schnell --force, da ist nichts Wichtiges“ | Du weißt nicht, was dort liegt. Erst nachsehen und fragen. |
+| „Verwerfen als Option schadet nicht“ | Neben „Mergen“ verleitet es dazu, fertige Arbeit wegzuwerfen. |
+| „Merge-Commit ist egal“ | HydraHive mergt per Merge-Commit; der Verlauf bleibt nachvollziehbar. |
+| „Push abgelehnt – dann eben --force“ | Abgelehnt heißt: jemand anderes hat gepusht. Erst holen und zusammenführen, nie über fremde Arbeit drüber pushen. |
