@@ -1,93 +1,73 @@
 ---
 name: dispatching-parallel-agents
-description: Sub-Agenten für unabhängige Teilprobleme parallel starten — einer pro Domäne, klare Aufgabentrennung, definierte Outputs.
-when_to_use: Wenn eine Aufgabe ≥2 unabhängige Teilprobleme hat, bei paralleler Analyse (Security + Performance + Code-Review), bei Multi-File-Refactoring
-tools_required: [shell_exec]
+description: Aufträge an Agenten zuschneiden und parallel vergeben – ein Agent je unabhängigem Teilproblem, eigenständiger Zusammenhang statt Gesprächsverlauf, klares Ziel, Grenzen und Rückgabe, in 20 Minuten machbar; Ergebnisse selbst gegenprüfen.
+when_to_use: Wenn eine Aufgabe zwei oder mehr unabhängige Teilprobleme hat, bei paralleler Analyse (Review + Security, mehrere Testdateien mit verschiedenen Ursachen), und vor jedem ask_agent-Auftrag an einen Projekt-Agenten oder Spezialisten.
+tools_required: [ask_agent]
 ---
 
-# Dispatching Parallel Agents
+# Aufträge an Agenten vergeben
 
-## Wann Sub-Agenten sinnvoll sind
+> Überarbeitet nach „dispatching-parallel-agents“ (und Lehren aus „subagent-driven-development“) in Superpowers v7.0.2 (github.com/obra/superpowers, MIT, © 2025 Jesse Vincent – Lizenztext: docs/third-party/superpowers-LICENSE).
 
-✅ Parallel starten wenn:
-- Teilprobleme unabhängig sind (kein geteilter Zustand)
-- Verschiedene Expertise-Domänen gefragt sind
-- Analyse-Aufgaben die nicht voneinander abhängen
-- Recherche die von mehreren Blickwinkeln profitiert
+## Grundsatz
 
-❌ Nicht parallel wenn:
-- Task B braucht das Ergebnis von Task A
-- Beide Tasks die gleiche Datei schreiben
-- Koordinationsaufwand größer als der Gewinn
+Ein Agent bekommt **genau den Zusammenhang, den er braucht – nie deinen Gesprächsverlauf.** Du baust ihn bewusst zusammen. Das hält ihn auf Kurs und deinen eigenen Zusammenhang frei für die Koordination.
 
-## Struktur eines Sub-Agenten-Auftrags
+**Ein Agent je unabhängigem Teilproblem.** Mehrere unabhängige Aufträge im selben Zug vergeben – sie laufen gleichzeitig.
 
-Jeder Auftrag muss enthalten:
+## Wann parallel
 
-```
-Agent: [Domänen-Name]
-Aufgabe: [Was genau, 1-3 Sätze]
-Input: [Welche Dateien/Daten bekommt er]
-Output: [Was genau soll zurückkommen]
-Scope: [Was ist explizit ausgeschlossen]
-```
+**Ja, wenn:**
+- Teilprobleme unabhängig sind (kein geteilter Zustand, keine gemeinsamen Dateien)
+- verschiedene Blickwinkel gefragt sind (hydrahive-reviewer + hydrahive-security-reviewer, beide nur lesend)
+- mehrere Testdateien aus verschiedenen Gründen rot sind
+- jedes Problem ohne die anderen verständlich ist
 
-## Beispiel: Code-Review-Trio
+**Nein, wenn:**
+- die Fehler zusammenhängen (einer behoben, vielleicht alle weg) – erst gemeinsam untersuchen
+- Aufgabe B das Ergebnis von A braucht
+- beide dieselbe Datei oder denselben Branch schreiben würden
+- noch unklar ist, was überhaupt kaputt ist (erst selbst eingrenzen, siehe `debugging`)
 
-```
-Agent 1 — Security Review
-Aufgabe: api/middleware/api_keys.py auf OWASP Top 10 prüfen
-Input: Dateiinhalt
-Output: Liste von Findings mit Severity (CRITICAL/HIGH/MEDIUM/LOW)
-Scope: Nur Security, keine Style-Kommentare
+## Aufbau eines Auftrags (`ask_agent`)
 
-Agent 2 — Performance Review  
-Aufgabe: db/sessions.py auf N+1-Queries und fehlende Indizes prüfen
-Input: Dateiinhalt + Schema
-Output: Konkrete Query-Probleme mit Fix-Vorschlag
-Scope: Nur Performance, kein Security
+- **goal** *(Pflicht)* – ein Satz, prüfbar: was am Ende erreicht ist.
+- **task** – was genau zu tun ist; Arbeitsort (Worktree unter `_work/wt/…`, Branch, PR-Nummer); was **nicht** zu tun ist („nicht mergen“, „nur lesen, keine Commits“, „nur Tests ändern“).
+- **known** – was du schon weißt: Befunde mit Datei:Zeile, Fehlermeldungen wörtlich, Messwerte, was ausgeschlossen ist, frühere Läufe. Spart dem Agenten das Neusuchen – und damit Zeit bis zum Timeout.
+- **deliverable** *(Pflicht)* – was zurückkommen soll: PR-Nummer, Commits, CI-Status, Befundliste mit Datei:Zeile und Stufe.
+- **ziel_doc + abnahme** – für Umsetzungs-Aufträge (feature/bug_fix/refactor) an den Projekt-Agenten verlangt das Werkzeug ein Zieldokument; `abnahme` nennt die Punkte daraus, die dieser Auftrag erfüllen muss (Format Buchstaben+Ziffern, z. B. `P3`, `UT1`). Hat das Zieldokument Abnahme-Punkte, gib sie an.
+- **task_type** – `review` für reine Prüfungen.
+- **Spezialisten „auf Abruf“** (z. B. `hydrahive-security-reviewer`): nur mit `task_type: review` und `on_demand_reason` (warum dieses Review jetzt nötig ist) – sonst lehnt das Werkzeug ab.
 
-Agent 3 — Test Coverage
-Aufgabe: Prüfen welche Branches in session.py nicht getestet sind
-Input: session.py + tests/test_sessions.py
-Output: Liste unkoverter Pfade, Priorität nach Risiko
-Scope: Nur Coverage-Gaps, kein Implementierungs-Review
-```
+Gute Aufträge sind **fokussiert** (ein Problem), **eigenständig** (aller nötige Zusammenhang drin) und **genau in der Rückgabe**.
 
-## Ausgabe-Integration
+## Zuschnitt auf die Laufzeit
 
-Nach Rückkehr aller Agenten:
-1. Findings zusammenführen
-2. Duplikate eliminieren
-3. Nach Severity sortieren
-4. CRITICAL/HIGH sofort angehen
+Ein Projekt-Agent bricht nach 20 Minuten ab. Deshalb:
+- **Klein schneiden:** ein Auftrag = was in deutlich unter 20 Minuten fertig wird. Lieber zwei Aufträge nacheinander (erst Tests und Fixes, dann Reviews) als einer, der im Timeout endet.
+- **Früh sichern:** Draft-PR nach wenigen Minuten, nach jedem Teilstück committen und pushen – dann geht bei einem Abbruch nichts verloren.
+- **Nichts neu messen oder suchen lassen**, was schon bekannt ist – Werte in `known` mitgeben.
+- **Reviews nur lesend** beauftragen, wenn du selbst einarbeitest. Ein Review-Agent, der Befunde gleich umsetzt, vergrößert den PR und kann die CI rot machen.
+- Agenten starten **keine weiteren Agenten** für eine zweite Meinung – das verdoppelt Kosten und Zeit.
+- **Kleine gleichartige Aufgaben bündeln** statt viele Einzelaufträge.
+- **Unklarheiten im Auftrag entscheidet der Agent selbst und hält die Entscheidung fest**, statt stehen zu bleiben – nur Zerstörerisches oder Unumkehrbares wartet auf den Nutzer. Sag das im Auftrag, wenn es passt. *Gilt nicht für unklare Review-Befunde* – die werden erst geklärt (siehe `receiving-code-review`).
+- Ist eine Kleinigkeit schneller selbst erledigt als beauftragt: selbst machen.
 
-## Typische Parallelisierungs-Muster
+## Häufige Fehler
 
-### Analyse-Muster
-```
-├── Agent: Security-Analyse
-├── Agent: Performance-Analyse  
-└── Agent: Maintainability-Analyse
-    → Zusammenführen → Prioritätsliste
-```
+| Schlecht | Besser |
+|---|---|
+| „Bring alle Tests in Ordnung“ | „Repariere die 3 roten Tests in `test_x.py`: …“ |
+| „Behebe die Race Condition“ | Fehlermeldungen und Testnamen wörtlich mitgeben |
+| keine Grenzen – Agent baut alles um | „Produktivcode nicht ändern“ / „nur diese Datei“ |
+| „Mach das fertig“ | „Zurück: Ursache, Änderungen, PR, CI-Status“ |
+| Review + Umsetzen in einem Auftrag | Review nur lesend, Umsetzen getrennt |
+| Zeitlimit erhöhen statt Ursache | „Nicht einfach Timeouts erhöhen – finde die Ursache“ |
 
-### Recherche-Muster
-```
-├── Agent: Ansatz A evaluieren
-├── Agent: Ansatz B evaluieren
-└── Agent: Ansatz C evaluieren
-    → Vergleich → Empfehlung
-```
+## Nach der Rückkehr
 
-### Multi-Service-Muster
-```
-├── Agent: Service A testen
-├── Agent: Service B testen
-└── Agent: Integration zwischen A+B testen
-    → Alle grün? → Deploy
-```
-
-## Fokus-Regel
-
-Ein Sub-Agent — eine Domäne. Ein Generalist-Agent der alles macht ist schlechter als drei fokussierte Agenten. Überlappende Scopes führen zu inkonsistenten Ergebnissen.
+1. Jeden Bericht lesen – er ist eine **Behauptung, kein Beweis** (siehe `verification-before-completion`).
+2. Selbst gegenprüfen: Commits und Diff da? CI auf dem **aktuellen** Head grün? Bei Timeout: was ist gepusht, was liegt nur lokal?
+3. Prüfen, dass parallele Änderungen sich nicht widersprechen; betroffene Tests gemeinsam laufen lassen.
+4. Befunde aus Reviews nach `receiving-code-review` behandeln: Duplikate zusammenführen, nach Schwere sortieren, „muss“ zuerst.
+5. Dem Nutzer knapp berichten – mit dem, was du selbst geprüft hast, und dem, was offen ist.
