@@ -40,7 +40,7 @@ hh_safety_lock
 INSTALL_CONF="$HH_CONFIG_DIR/install.conf"
 # shellcheck source=lib/install-conf.sh
 source "$HH_REPO_DIR/installer/lib/install-conf.sh"
-hh_load_install_conf "$INSTALL_CONF"
+hh_load_install_conf "$INSTALL_CONF" update   # ohne Tailscale-Schlüssel (nur für die Erstanmeldung)
 
 cd "$HH_REPO_DIR"
 

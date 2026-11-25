@@ -99,7 +99,52 @@ def test_ungueltige_werte_werden_ignoriert(tmp_path: Path, zeile: str) -> None:
     conf.write_text(zeile + "\n")
     key = zeile.split("=", 1)[0]
     r = _load(conf, [key])
-    assert _vals(r.stdout)[key] == "<leer>"
+    # Der untergeschobene Wert kommt nie durch; Zusatz-Module gelten dann als „no“, alles andere bleibt leer.
+    assert _vals(r.stdout)[key] == ("no" if key == "HH_INSTALL_VOICE" else "<leer>")
+
+
+@pytest.mark.parametrize("wert", ["ja", "true", "1", "YES"])
+def test_ungueltiger_wert_bei_zusatzmodul_gilt_als_no(tmp_path: Path, wert: str) -> None:
+    """Fängt (Review #778): ungültiger Wert → „kein Wert“ → hh_addon_wanted schreibt yes und update.sh installiert das Modul.
+
+    Früher galt so ein Wert als „nicht yes“ (Modul nicht gepflegt); er darf die Auswahl nicht still umkehren.
+    """
+    conf = tmp_path / "install.conf"
+    conf.write_text(f"HH_INSTALL_VOICE={wert}\nHH_INSTALL_POSTGRES={wert}\n")
+    r = _load(conf, ["HH_INSTALL_VOICE", "HH_INSTALL_POSTGRES"])
+    v = _vals(r.stdout)
+    assert v["HH_INSTALL_VOICE"] == "no"
+    assert v["HH_INSTALL_POSTGRES"] == "<leer>"      # Kern-Schalter: „!= no“ → wie früher weiter gepflegt
+    assert wert not in r.stderr.replace("[install.conf]", "")
+
+
+def test_ungueltiger_wert_ueberschreibt_die_umgebung_nicht(tmp_path: Path) -> None:
+    conf = tmp_path / "install.conf"
+    conf.write_text("HH_INSTALL_VOICE=ja\n")
+    assert _vals(_load(conf, ["HH_INSTALL_VOICE"], HH_INSTALL_VOICE="yes").stdout)["HH_INSTALL_VOICE"] == "yes"
+
+
+def test_crlf_datei_wird_gelesen(tmp_path: Path) -> None:
+    """Fängt: Datei mit Windows-Zeilenenden – jeder Wert endet auf \\r, alles würde verworfen (Module dann still „yes“)."""
+    conf = tmp_path / "install.conf"
+    conf.write_bytes(b"HH_INSTALL_VOICE='no'\r\nHH_INSTALL_VMS=yes\r\nHH_SYSTEM_UPGRADE=no\r\n")
+    r = _load(conf, ["HH_INSTALL_VOICE", "HH_INSTALL_VMS", "HH_SYSTEM_UPGRADE"])
+    assert _vals(r.stdout) == {"HH_INSTALL_VOICE": "no", "HH_INSTALL_VMS": "yes", "HH_SYSTEM_UPGRADE": "no"}
+    assert r.stderr == ""
+
+
+def test_update_modus_laedt_tailscale_schluessel_nicht(tmp_path: Path) -> None:
+    """Fängt (Security-Review #778): root meldet den Server beim Update mit einem vom Dienstnutzer gewählten Schlüssel an."""
+    conf = tmp_path / "install.conf"
+    conf.write_text("HH_TAILSCALE_AUTHKEY='tskey-fremd'\nHH_INSTALL_TAILSCALE=yes\n")
+    show = 'echo "HH_TAILSCALE_AUTHKEY=${HH_TAILSCALE_AUTHKEY:-<leer>}"; echo "HH_INSTALL_TAILSCALE=$HH_INSTALL_TAILSCALE"'
+    r = subprocess.run(["bash", "-c", f'set -euo pipefail; source "{LIB}"; hh_load_install_conf "{conf}" update; {show}'],
+                       capture_output=True, text=True, env=_clean_env(), timeout=30)
+    assert _vals(r.stdout) == {"HH_TAILSCALE_AUTHKEY": "<leer>", "HH_INSTALL_TAILSCALE": "yes"}
+    # Aus der Umgebung geht es weiter (bewusster Aufruf durch den Admin).
+    r = subprocess.run(["bash", "-c", f'set -euo pipefail; source "{LIB}"; hh_load_install_conf "{conf}" update; {show}'],
+                       capture_output=True, text=True, env=_clean_env(HH_TAILSCALE_AUTHKEY="tskey-admin"), timeout=30)
+    assert _vals(r.stdout)["HH_TAILSCALE_AUTHKEY"] == "tskey-admin"
 
 
 def test_kaputter_schluesselname_bricht_nicht_ab_und_landet_nicht_im_log(tmp_path: Path) -> None:
@@ -128,8 +173,8 @@ def test_update_kopf_uebernimmt_keine_root_pfade_aus_install_conf(tmp_path: Path
     """
     e = make_env(tmp_path)
     (e["cfg"] / "install.conf").write_text("".join(f"{k}='{v}'\n" for k, v in GEFAEHRLICH.items())
-                                           + "HH_INSTALL_VOICE='yes'\n")
-    show = "; ".join(f'echo "{k}=${{{k}:-<leer>}}"' for k in [*GEFAEHRLICH, "HH_INSTALL_VOICE"])
+                                           + "HH_INSTALL_VOICE='yes'\nHH_TAILSCALE_AUTHKEY='tskey-fremd'\n")
+    show = "; ".join(f'echo "{k}=${{{k}:-<leer>}}"' for k in [*GEFAEHRLICH, "HH_INSTALL_VOICE", "HH_TAILSCALE_AUTHKEY"])
     t = UPDATE.read_text()
     nach_laden = t.index('\ncd "$HH_REPO_DIR"\n')          # erste Zeile nach dem Laden (alte und neue Fassung)
     script = t[:nach_laden] + f"\n{show}\necho KOPF-OK\nexit 0\n"
@@ -139,6 +184,7 @@ def test_update_kopf_uebernimmt_keine_root_pfade_aus_install_conf(tmp_path: Path
     v = _vals(r.stdout)
     assert {k: v[k] for k in GEFAEHRLICH} == {k: "<leer>" for k in GEFAEHRLICH}
     assert v["HH_INSTALL_VOICE"] == "yes"
+    assert v["HH_TAILSCALE_AUTHKEY"] == "<leer>"          # nur für die Erstanmeldung (install.sh)
 
 
 def test_update_und_install_laden_nur_ueber_die_allowlist() -> None:
@@ -147,3 +193,4 @@ def test_update_und_install_laden_nur_ueber_die_allowlist() -> None:
         code = "\n".join(l for l in path.read_text().splitlines() if not l.lstrip().startswith("#"))
         assert 'hh_load_install_conf "$INSTALL_CONF"' in code, path.name
         assert 'export "$key=$value"' not in code, path.name
+    assert 'hh_load_install_conf "$INSTALL_CONF" update' in UPDATE.read_text()
