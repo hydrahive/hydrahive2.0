@@ -2,7 +2,7 @@
 name: test
 description: Generiert Unit-Tests, Integrations-Tests und Test-Daten. Für das Schreiben von Tests, Verbesserung der Test-Coverage oder Erstellung von Edge-Case-Szenarien.
 when_to_use: Wenn Tests für neuen Code geschrieben werden sollen, Coverage verbessert werden soll, oder Edge Cases und Fixtures gebraucht werden.
-tools_required: [read_file, write_file, bash, grep]
+tools_required: [file_read, file_write, shell_exec]
 ---
 
 # Test-Generierungs-Skill
@@ -11,7 +11,9 @@ tools_required: [read_file, write_file, bash, grep]
 
 ## 0. Zuerst der rote Test
 
-Neue Funktion oder Fix: **erst der Test, dann der Code.** Den Test laufen lassen und **rot** sehen – sonst testest du das Falsche. Dann minimal umsetzen, grün sehen, aufräumen, committen. Wird ein Test erst nachträglich geschrieben: Fix kurz zurücknehmen, Test muss rot werden, Fix wieder rein.
+Neue Funktion oder Fix: **erst der Test, dann der Code.** Den Test laufen lassen und **rot** sehen – sonst testest du das Falsche. Dann minimal umsetzen, grün sehen, aufräumen, committen.
+
+*HydraHive-Abweichung vom Original* (dort: Code vor dem Test → löschen und neu anfangen): Wird ein Test erst nachträglich geschrieben, Fix kurz zurücknehmen, Test muss rot werden, Fix wieder rein. Erst diese Gegenprobe macht ihn zum Regressionstest.
 
 **„Grün“ heißt die Suite des Projekts, nicht nur deine Datei.** Lokal laufen nur die gezielten Tests der betroffenen Bereiche (die Platte ist langsam, keine lokale Vollsuite) – maßgeblich ist danach die **komplette CI des PRs**. Jeder rote Test dort gehört mit Namen in den Bericht, auch einer, den du nicht verursacht hast. Ein roter Test, den du gesehen und nicht erwähnt hast, macht den Bericht falsch.
 
@@ -83,23 +85,24 @@ def test_insert_and_query(db):
     assert row["agent_id"] == "a1"
 ```
 
-## 4. Mocking
+## 4. Attrappen – nur für das Langsame oder Externe
+
+Nur ersetzen, was langsam oder extern ist (Netz, LLM, `systemctl`, fremde Dienste). Geprüft wird **das Verhalten deines Codes** mit der Attrappe – nicht die Attrappe selbst (siehe Abschnitt 8).
 
 ```python
-from unittest.mock import Mock, patch
+from unittest.mock import patch
 
-def test_with_mock():
-    mock_dep = Mock()
-    mock_dep.get_data.return_value = {"status": "ok"}
-    result = function_using_dep(mock_dep)
-    mock_dep.get_data.assert_called_once()
+def test_holt_kurs_und_rundet_auf_zwei_stellen():
+    # extern: die Kurs-API; echt: unsere Umrechnung und Rundung
+    with patch("hydrahive.mymodule._fetch_price", return_value={"eur": 41234.5678}):
+        assert format_price("bitcoin") == "41.234,57 €"
 
-def test_with_patch():
-    with patch('mymodule.external_call') as mock:
-        mock.return_value = {"data": "mocked"}
-        result = function_calling_external()
-        assert result["data"] == "mocked"
+def test_api_fehler_ergibt_klare_meldung_statt_absturz():
+    with patch("hydrahive.mymodule._fetch_price", side_effect=TimeoutError):
+        assert format_price("bitcoin") == "Kurs gerade nicht erreichbar"
 ```
+
+Nicht so: `mock.assert_called_once()` als einzige Prüfung, oder den Rückgabewert der Attrappe wieder zurück-prüfen (`assert result["data"] == "mocked"`) – das beweist nur, dass die Attrappe da ist. Ist der Aufruf selbst Teil des Vertrags (Argumente, Anzahl, Reihenfolge), ihn **zusätzlich** zum Ergebnis prüfen.
 
 ## 5. Coverage prüfen
 
@@ -124,7 +127,7 @@ Für jede Funktion Tests schreiben für:
 - Testname beschreibt das Szenario: `test_create_session_returns_201`
 - Keine Logik in Tests — deterministischer Input, deterministisches Assert
 - Isoliert — kein Shared State zwischen Tests
-- Schnell — I/O mocken, In-Memory-DB nutzen
+- Schnell — nur Langsames/Externes ersetzen (Netz, LLM, Dienste), echte SQLite im tmp-Pfad statt Attrappe
 
 ## 8. Jeder Test fängt einen bestimmten Fehler
 

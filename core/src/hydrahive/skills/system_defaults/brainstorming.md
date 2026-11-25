@@ -28,7 +28,7 @@ Kein „Bauen“ sind: ein vereinbarter Wegwerf-Versuch (Spike) und das Erledige
 
 ## Erst nachsehen, dann fragen
 
-In einem bestehenden Projekt, oder wenn der Nutzer Zusammenhang mitgibt (Spec, Zieldokument, Task, Idee, Board, Dateien, früheres Gespräch): **vor der ersten Nachricht lesen.** Das Genannte und den Code, an dem es hängt – so lange, bis du erklären kannst, wie die betroffenen Teile heute arbeiten und was die Änderung berührt. Nutze dafür Bereichs-Skills (`bereich-…`), `code-graph`, `task_read`, `idea_read`, `blueprint_read`.
+In einem bestehenden Projekt, oder wenn der Nutzer Zusammenhang mitgibt (Spec, Zieldokument, Task, Idee, Board, Dateien, früheres Gespräch): **vor der ersten Nachricht lesen.** Das Genannte und den Code, an dem es hängt – so lange, bis du erklären kannst, wie die betroffenen Teile heute arbeiten und was die Änderung berührt. Nutze dafür Bereichs-Skills (`bereich-…`), `code-graph` und – falls die Module installiert sind – `task_read`, `idea_read`, `blueprint_read`.
 
 **Nie fragen, was das Projekt oder der Zusammenhang schon beantwortet, und nie wieder aufmachen, was schon entschieden ist.**
 
@@ -61,7 +61,7 @@ Wie die Nachricht endet:
 - **Gebiet, kein Fragebogen** – nie vorlesen: was es ist und was es besonders macht; warum jetzt und woran man Erfolg sieht; Ziele, Nicht-Ziele, Anti-Ziele (was es zum Fehlschlag machte, obwohl es technisch läuft); Vorbilder (gesehen, gemocht, gehasst); was es heute gibt und was schon versucht wurde; die Details, die ihm wichtig sind.
 - **Jede Frage konkret** zu seinem Vorhaben, aufbauend auf seiner letzten Antwort oder einem Fund – so, dass sie ihm eine Folge oder einen Fall zeigt, den er übersehen haben könnte („Die Abstimmung schließt vor dem Treffen, und zwei sind diesen Monat neu dazugekommen. Darf, wer mitten in der Runde kommt, mit abstimmen?“).
 - **Nachsehen.** Hilft es, tiefer zu schauen (Code, seine Daten, Web, Datamining zu früheren Gesprächen): tun und sagen, was du gesucht und gefunden hast.
-- **Zeigen statt beschreiben.** Hilft Sehen mehr als Lesen: eine kurze Text-Skizze. Für Abläufe, Aufbau und Varianten: Skill `diagramme` oder ein Blueprint-Board (`blueprint_propose`).
+- **Zeigen statt beschreiben.** Hilft Sehen mehr als Lesen: eine kurze Text-Skizze. Für Abläufe, Aufbau und Varianten – falls installiert – Skill `diagramme` oder ein Blueprint-Board (`blueprint_propose`).
 - **Wegwerf-Versuch.** Ein schneller Spike ist oft der billigste Weg herauszufinden, was er will oder ob etwas geht. Anbieten, wenn es hilft. Spikes haben keine oder minimale Tests und überspringen Plan und Review. Was er gezeigt hat, zurück ins Gespräch bringen.
 
 ### Ansätze vorlegen
@@ -100,11 +100,13 @@ Ein schlichtes Dokument, nach dem eine fähige Entwicklerin planen kann, ohne be
 
 **Ablage:** im Kern-Repo `docs/specs/<thema>.md`, für Agenten-Aufträge als Zieldokument `hydrahive2-modules/ziele/<thema>.md` – committen und pushen. Vorgabe des Nutzers geht vor.
 
-**Bauherren-Prüfung** (bei einem Projekt): Lass einen frischen Agenten (`ask_agent`, task_type `review`, nur lesen) das Design als die Person lesen, die es bauen soll – ohne mit dir reden zu können:
+Bei einer **kleinen Änderung** deckt das kurze Design dieselben Punkte in je ein, zwei Zeilen ab und geht ohne Bauherren-Prüfung direkt an den Nutzer.
+
+**Bauherren-Prüfung** (bei einem Projekt): Lass `hydrahive-reviewer` oder den Projekt-Agenten (`ask_agent`, task_type `review`, `goal` + `deliverable`, nur lesen) das Design als die Person lesen, die es bauen soll – ohne mit dir reden zu können:
 
 > „Du bist erfahrene Entwicklerin für HydraHive und sollst nach `<pfad>` einen Plan machen, ohne mit der Autorin reden zu können. Nenne nur die Fragen, die du vor einem guten Plan noch beantwortet brauchst: Stellen, an denen du raten müsstest und ein falscher Tipp etwas ausmacht. Je Frage: die Frage und warum die Antwort den Plan ändert, nach Wichtigkeit. Lass weg, was das Dokument ausdrücklich der Umsetzung überlässt oder was du selbst vernünftig entscheiden kannst, und Formulierungs-Kleinkram. Ist nichts Wichtiges offen: ‚nichts Wichtiges offen‘.“
 
-Sag dem Nutzer vorher, dass ein Reviewer es zuerst liest und du einmal mit ein paar Fragen zurückkommen könntest. Die Fragen in drei Stapel sortieren:
+Sag dem Nutzer vorher, dass ein Reviewer es zuerst liest und du einmal mit ein paar Fragen zurückkommen könntest. **Das Design erst übergeben, wenn die Prüfung zurück ist** – nicht vorlegen und die Prüfung nachschieben. Die Fragen in drei Stapel sortieren:
 - **Schon beantwortet** durch Gespräch oder Projekt → Antwort ins Dokument.
 - **Klein** – vernünftig entscheidbar, ohne zu ändern, was gebaut wird → selbst entscheiden, im Dokument als deine Entscheidung markieren.
 - **Seine** – nur er kann sie beantworten, und die Antwort ändert, was gebaut wird.

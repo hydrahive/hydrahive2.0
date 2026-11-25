@@ -31,12 +31,13 @@ Ein Agent bekommt **genau den Zusammenhang, den er braucht – nie deinen Gespr�
 
 ## Aufbau eines Auftrags (`ask_agent`)
 
-- **goal** – ein Satz, prüfbar: was am Ende erreicht ist.
+- **goal** *(Pflicht)* – ein Satz, prüfbar: was am Ende erreicht ist.
 - **task** – was genau zu tun ist; Arbeitsort (Worktree unter `_work/wt/…`, Branch, PR-Nummer); was **nicht** zu tun ist („nicht mergen“, „nur lesen, keine Commits“, „nur Tests ändern“).
 - **known** – was du schon weißt: Befunde mit Datei:Zeile, Fehlermeldungen wörtlich, Messwerte, was ausgeschlossen ist, frühere Läufe. Spart dem Agenten das Neusuchen – und damit Zeit bis zum Timeout.
-- **deliverable** – was zurückkommen soll: PR-Nummer, Commits, CI-Status, Befundliste mit Datei:Zeile und Stufe.
-- **ziel_doc + abnahme** – bei feature/bug_fix/refactor Pflicht; Abnahme-IDs im Format Buchstaben+Ziffern (`P3`, `UT1`).
+- **deliverable** *(Pflicht)* – was zurückkommen soll: PR-Nummer, Commits, CI-Status, Befundliste mit Datei:Zeile und Stufe.
+- **ziel_doc + abnahme** – für Umsetzungs-Aufträge (feature/bug_fix/refactor) an den Projekt-Agenten verlangt das Werkzeug ein Zieldokument; `abnahme` nennt die Punkte daraus, die dieser Auftrag erfüllen muss (Format Buchstaben+Ziffern, z. B. `P3`, `UT1`). Hat das Zieldokument Abnahme-Punkte, gib sie an.
 - **task_type** – `review` für reine Prüfungen.
+- **Spezialisten „auf Abruf“** (z. B. `hydrahive-security-reviewer`): nur mit `task_type: review` und `on_demand_reason` (warum dieses Review jetzt nötig ist) – sonst lehnt das Werkzeug ab.
 
 Gute Aufträge sind **fokussiert** (ein Problem), **eigenständig** (aller nötige Zusammenhang drin) und **genau in der Rückgabe**.
 
@@ -49,7 +50,7 @@ Ein Projekt-Agent bricht nach 20 Minuten ab. Deshalb:
 - **Reviews nur lesend** beauftragen, wenn du selbst einarbeitest. Ein Review-Agent, der Befunde gleich umsetzt, vergrößert den PR und kann die CI rot machen.
 - Agenten starten **keine weiteren Agenten** für eine zweite Meinung – das verdoppelt Kosten und Zeit.
 - **Kleine gleichartige Aufgaben bündeln** statt viele Einzelaufträge.
-- **Unklarheiten im Auftrag entscheidet der Agent selbst und hält die Entscheidung fest**, statt stehen zu bleiben – nur Zerstörerisches oder Unumkehrbares wartet auf den Nutzer. Sag das im Auftrag, wenn es passt.
+- **Unklarheiten im Auftrag entscheidet der Agent selbst und hält die Entscheidung fest**, statt stehen zu bleiben – nur Zerstörerisches oder Unumkehrbares wartet auf den Nutzer. Sag das im Auftrag, wenn es passt. *Gilt nicht für unklare Review-Befunde* – die werden erst geklärt (siehe `receiving-code-review`).
 - Ist eine Kleinigkeit schneller selbst erledigt als beauftragt: selbst machen.
 
 ## Häufige Fehler
