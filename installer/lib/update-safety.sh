@@ -93,7 +93,8 @@ hh_meta_set_in() {   # <ordner> KEY WERT
   HH_BACKUP_DIR="$1"; hh_meta_set "$2" "$3"; HH_BACKUP_DIR="$saved"
 }
 
-hh_meta_get() { [ -f "$2/meta.env" ] && sed -n "s/^$1=//p" "$2/meta.env" | tail -1; }
+# Liefert immer 0 (Review #762): ein Sicherungsordner ohne meta.env darf unter set -e kein Update abbrechen.
+hh_meta_get() { [ -f "$2/meta.env" ] || return 0; sed -n "s/^$1=//p" "$2/meta.env" | tail -1; }
 
 # ---------------------------------------------------------------------------------------------------------------
 # Schritt 1: Sperre
@@ -443,7 +444,9 @@ hh_safety_check_interrupted() {
     # Automatisch nur, wenn der Dienst mit dem neuen Stand nicht läuft (F6).
     if [ -n "$new" ] && [ "$head" = "$new" ] && [ "$(hh_meta_get RESTARTED "$d")" = "1" ] \
        && declare -F hh_safety_verify >/dev/null 2>&1; then
-      HH_UPDATE_HEALTH_TIMEOUT="${HH_INTERRUPTED_HEALTH_TIMEOUT:-20}" hh_safety_verify "$new" 1 || {
+      # Volle Frist wie nach jedem Update (Review #762, Spec F6): ein langsam startender Dienst ist kein Grund,
+      # die DB auf einen älteren Stand zurückzudrehen.
+      HH_UPDATE_HEALTH_TIMEOUT="${HH_INTERRUPTED_HEALTH_TIMEOUT:-${HH_UPDATE_HEALTH_TIMEOUT:-120}}" hh_safety_verify "$new" 1 || {
         log "Der Dienst läuft mit dem Stand des unterbrochenen Updates nicht ($HH_VERIFY_REASON) – automatischer Rückweg"
         hh_safety_rollback_dir "$d"
       }

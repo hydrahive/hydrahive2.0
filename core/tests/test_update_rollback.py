@@ -131,7 +131,8 @@ def test_f9_struktur_upgrade_steht_nach_der_pruefung_nicht_davor():
 def test_e10_warnungen_werden_gesammelt_und_am_ende_ausgegeben_kein_rueckweg(env):
     _setup(env)
     r = _run(env, "ok", prelude='hh_warn "Samba-Update fehlgeschlagen"; hh_warn "nginx-Setup fehlgeschlagen"')
-    assert r.returncode == 0 and _last(r) == "HH-UPDATE-ENDE: ok" or "HH-UPDATE-WARNUNG" in r.stdout
+    assert r.returncode == 0, r.stdout + r.stderr
+    assert _last(r) == "HH-UPDATE-ENDE: ok" and "HH-UPDATE-WARNUNG" in r.stdout
     lines = [l for l in r.stdout.splitlines() if l.startswith("HH-UPDATE-WARNUNG: ")]
     assert lines == ["HH-UPDATE-WARNUNG: Samba-Update fehlgeschlagen", "HH-UPDATE-WARNUNG: nginx-Setup fehlgeschlagen"]
     assert r.stdout.index("Update erfolgreich") < r.stdout.index(lines[0])
@@ -530,3 +531,53 @@ def test_frueher_neustart_mitten_im_update_db_wird_trotzdem_zurueckgespielt(env)
     (d,) = _backups(env)
     assert _meta(d).get("RESTARTED") != "1", "Voraussetzung: der reguläre Neustart wurde nicht erreicht"
     _assert_db_rollback(env, r, old, "nginx-Setup fehlgeschlagen")
+
+
+# --- Review #762 ---------------------------------------------------------------------------------------------------
+
+def test_rueckweg_startet_den_dienst_nicht_mit_leerer_db_wenn_zurueckspielen_scheitert(env):
+    """Review #762 (wichtigster Befund): Scheitert das Zurückspielen der DB (z. B. Platte voll), liegt die alte DB schon
+    zur Seite. Der Dienst darf dann NICHT starten – er legte sonst eine leere sessions.db an (zwei getrennte Stände)."""
+    old, new = _setup(env)
+    (_sysd(env) / "nostart_commits").write_text(new + "\n")
+    # DB-Werkzeug in der Sicherung, dessen restore scheitert (alle anderen Befehle normal)
+    prelude = ('modify_db; python3 - "$HH_BACKUP_DIR/db_snapshot.py" <<\'PY\'\n'
+               'import sys; p = sys.argv[1]; s = open(p).read()\n'
+               's = s.replace("def restore(snap", "def restore(snap, *a, **k):\\n    raise SnapshotError(\\"Platte voll\\")\\n\\n\\ndef _restore_alt(snap", 1)\n'
+               'open(p, "w").write(s)\nPY')
+    r = _run(env, "migration", prelude=prelude)
+    last = _last(r)
+    assert "Rückweg unvollständig" in last and "Datenbank" in last, last
+    assert not (env["data"] / "sessions.db").exists(), "keine leere DB angelegt"
+    assert "Dienst wird NICHT gestartet" in r.stdout
+    calls = _calls(env)
+    assert calls.rfind("systemctl start hydrahive2.service") < calls.rfind("systemctl stop hydrahive2.service"), \
+        "nach dem Anhalten im Rückweg kein Start mehr"
+
+
+def test_rueckweg_laesst_errexit_danach_wie_vorher(tmp_path):
+    """Review #762: set +e im Rückweg darf nicht global bleiben (sonst liefe der Rest des Updates als root ohne errexit)."""
+    script = f"""
+set -euo pipefail
+log() {{ :; }}
+source "{LIB}/update-safety.sh"
+source "{LIB}/update-check.sh"
+source "{LIB}/update-rollback.sh"
+_hh_rollback_run() {{ false; echo "weiter im Rückweg"; }}
+hh_rollback_run /gibt/es/nicht "Test"
+case $- in *e*) echo "errexit an";; *) echo "errexit AUS";; esac
+"""
+    r = subprocess.run(["bash", "-c", script], capture_output=True, text=True, timeout=30)
+    assert "weiter im Rückweg" in r.stdout and "errexit an" in r.stdout, r.stdout + r.stderr
+
+
+def test_sicherungsordner_ohne_meta_env_bricht_kein_update_ab(env):
+    """Review #762: Ein Ordner mit passendem Namen, aber ohne meta.env, beendete jedes künftige Update unter set -e."""
+    _setup(env)
+    root = env["tmp"] / "varbackups" / "update"
+    root.mkdir(parents=True)
+    root.parent.chmod(0o755)
+    root.chmod(0o700)
+    (root / "20261101T100000Z_abcdef12").mkdir()
+    r = _run(env, "ok")
+    assert r.returncode == 0 and _last(r) == "HH-UPDATE-ENDE: ok", r.stdout[-800:] + r.stderr[-800:]

@@ -52,11 +52,15 @@ _rb_kaputt() {
   local k="$HH_RB_DIR/kaputt" ddir f cfg_parent cfg_name
   ( umask 077; mkdir -p "$k" ) || return 1
   if [ "$HH_RB_NEED_DB" = 1 ]; then
-    ddir="$(mktemp -d "$HH_DATA_DIR/.update-kaputt.XXXXXX")" || return 1
-    chmod 700 "$ddir"
+    # Als Dienstnutzer (Review #762): root folgt im Datenordner des Dienstnutzers keinen Links. WAL/SHM zuerst,
+    # damit nie eine fremde WAL neben der zurückgespielten DB liegen bleibt; mv -T ersetzt nie ein Ziel-Verzeichnis.
+    ddir="$(hh_as_dbowner bash -c 'umask 077; mktemp -d "$1/.update-kaputt.XXXXXX"' _ "$HH_DATA_DIR")" || return 1
+    [ -n "$ddir" ] && [ -d "$ddir" ] && [ ! -L "$ddir" ] || return 1
     printf '%s\n' "$ddir" > "$k/ORT-DB.txt"
-    for f in sessions.db sessions.db-wal sessions.db-shm; do
-      if [ -e "$HH_DATA_DIR/$f" ]; then mv "$HH_DATA_DIR/$f" "$ddir/" || return 1; fi
+    for f in sessions.db-wal sessions.db-shm sessions.db; do
+      if [ -e "$HH_DATA_DIR/$f" ] || [ -L "$HH_DATA_DIR/$f" ]; then
+        hh_as_dbowner mv -T -- "$HH_DATA_DIR/$f" "$ddir/$f" || return 1
+      fi
     done
   fi
   cfg_parent="$(dirname "$HH_CONFIG_DIR")"; cfg_name="$(basename "$HH_CONFIG_DIR")"
@@ -150,6 +154,12 @@ _rb_config() {
 }
 
 _rb_start_and_verify() {
+  # Review #762: Liegt die alte DB schon zur Seite und das Zurückspielen ist gescheitert, würde der Dienst eine
+  # LEERE sessions.db anlegen (zwei getrennte Datenstände, die Prüfung bestünde sogar). Dann lieber nicht starten.
+  if [ "$HH_RB_NEED_DB" = 1 ] && [ -n "$HH_RB_SNAP" ] && [ ! -s "$HH_DATA_DIR/sessions.db" ]; then
+    log "Rückweg: keine Datenbank am Platz (Zurückspielen gescheitert) – Dienst wird NICHT gestartet"
+    return 1
+  fi
   systemctl start hydrahive2.service || true
   if [ "${HH_RB_BRIDGE:-0}" = 1 ]; then systemctl start hydra-voice-bridge.service || log "WARNUNG: Voice-Bridge-Start fehlgeschlagen"; fi
   HH_NRESTARTS_BASE=""
@@ -157,9 +167,19 @@ _rb_start_and_verify() {
 }
 
 # hh_rollback_run <sicherungsordner> <grund>
+# set +e gilt nur für den Rückweg selbst; danach ist errexit wieder wie vorher (Review #762 – nach einem E13-Rückweg
+# lief der Rest des Updates sonst als root ohne errexit). Ohne „local -“, das kann bash 3.2 (Mac) nicht.
 hh_rollback_run() {
-  local dir=$1 reason=$2 short snap="" f
+  local had_e=0
+  case $- in *e*) had_e=1 ;; esac
   set +e
+  _hh_rollback_run "$@"
+  if [ "$had_e" = 1 ]; then set -e; fi
+  return 0
+}
+
+_hh_rollback_run() {
+  local dir=$1 reason=$2 short snap="" f
   # Das DB-Werkzeug kommt aus der Sicherung, nicht aus dem Repo: nach dem Zurücksetzen des Codes ist es dort evtl. älter.
   if [ -f "$dir/db_snapshot.py" ] && grep -q "def restore" "$dir/db_snapshot.py" 2>/dev/null; then HH_DB_TOOL="$dir/db_snapshot.py"
   else HH_DB_TOOL="$HH_SAFETY_LIB_DIR/db_snapshot.py"; fi
