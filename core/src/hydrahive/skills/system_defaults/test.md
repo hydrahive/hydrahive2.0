@@ -7,6 +7,16 @@ tools_required: [read_file, write_file, bash, grep]
 
 # Test-Generierungs-Skill
 
+> Abschnitte 0 und 8 nach „test-driven-development“ / „writing-good-tests“ aus Superpowers v7.0.2 (github.com/obra/superpowers, MIT, © 2025 Jesse Vincent – Lizenztext: docs/third-party/superpowers-LICENSE).
+
+## 0. Zuerst der rote Test
+
+Neue Funktion oder Fix: **erst der Test, dann der Code.** Den Test laufen lassen und **rot** sehen – sonst testest du das Falsche. Dann minimal umsetzen, grün sehen, aufräumen, committen. Wird ein Test erst nachträglich geschrieben: Fix kurz zurücknehmen, Test muss rot werden, Fix wieder rein.
+
+**„Grün“ heißt die Suite des Projekts, nicht nur deine Datei.** Lokal laufen nur die gezielten Tests der betroffenen Bereiche (die Platte ist langsam, keine lokale Vollsuite) – maßgeblich ist danach die **komplette CI des PRs**. Jeder rote Test dort gehört mit Namen in den Bericht, auch einer, den du nicht verursacht hast. Ein roter Test, den du gesehen und nicht erwähnt hast, macht den Bericht falsch.
+
+Befehl im Kern: `cd core && PYTHONPATH=src pytest -q tests/test_<bereich>*.py` (parallel: `-n 4`).
+
 ## 1. Unit Tests — Python (pytest)
 
 ```python
@@ -115,3 +125,29 @@ Für jede Funktion Tests schreiben für:
 - Keine Logik in Tests — deterministischer Input, deterministisches Assert
 - Isoliert — kein Shared State zwischen Tests
 - Schnell — I/O mocken, In-Memory-DB nutzen
+
+## 8. Jeder Test fängt einen bestimmten Fehler
+
+**Nenne den Fehler, bevor du den Test schreibst:** Welche Änderung am Produktivcode soll ihn rot machen – und ist das ein Fehler oder eine bewusste Entscheidung?
+
+- **Erwartung unabhängig herleiten:** Literale und von Hand geprüfte Daten. Eine Erwartung, die der getestete Code selbst (oder seine Helfer) berechnet, ist immer wahr.
+  ```python
+  # falsch: beide Seiten aus demselben Builder – immer gleich
+  assert build_query(tag="urgent") == build_query(tag="urgent")
+  # richtig: von Hand
+  assert build_query(tag="urgent") == 'tag:"urgent"'
+  ```
+- **Keine Änderungsmelder:** Ein Test, der nur bei bewussten Entscheidungen rot wird (Konstante, genauer Meldungstext, private Struktur), schlägt bei jedem Umbau an und verschläft Fehler. Teste das Verhalten, das an der Entscheidung hängt: nicht `assert MAX_RETRIES == 5`, sondern „ein fehlschlagender Aufruf wird 5-mal wiederholt, ein 6. Versuch passiert nie“.
+- **Verhalten statt Text:** Dass ein Skript oder eine Konfiguration eine bestimmte Zeile enthält, beweist nur, dass die Datei die Datei ist. Skripte mit kontrollierten Eingaben laufen lassen (Attrappen für `systemctl`, `curl` wie in `tests/_update_fakes.py`) und Ausgabe, Seiteneffekte, Exit-Code prüfen. Strukturtests auf Text nur als Wächter gegen Rückfälle, nicht als einziger Beweis.
+- **Dein Code, nicht das Framework:** Teste den Vertrag an deinen Grenzen (Route, Abfrage, Antwort), nicht die Mechanik von FastAPI oder SQLite.
+
+**Echtes testen, nicht die Attrappe:**
+- Eine Zusicherung auf eine Attrappe beweist nur, dass die Attrappe da ist. „Testen wir gerade das Verhalten eines Mocks?“
+- Auf der richtigen Ebene ersetzen: erst die Seiteneffekte der echten Methode kennen, nur das Langsame oder Externe ersetzen, den Rest echt lassen.
+- Attrappen spiegeln die echte Struktur vollständig (alle Felder), sonst bricht die Integration still.
+- Aufräum-Methoden, die nur Tests brauchen, gehören in Test-Helfer, nicht in die Produktivklasse. Aufräumen nur eigener Zeilen: `tests/_own_rows.py`.
+- Wird der Mock-Aufbau größer als der Test: Integrationstest mit echten Teilen.
+
+**Mutations-Check vor dem Abschluss** – gedanklich den Code verändern; für jede realistische Änderung muss mindestens ein Test rot werden: falsche Konstante/Argument, falscher Zweig, fehlende Zustandsänderung oder Seiteneffekt, leere/Standard-Rückgabe, fehlende Prüfung für 0, leer, None, unberechtigt, kaputte Eingabe. Fängt nichts eine Änderung, ist das Verhalten ungeschützt – oder der Test tautologisch.
+
+**Warnzeichen:** Aufbau und Zusicherung nutzen dasselbe Objekt · Test kann nur durch Absturz rot werden · Erwartungen hinter Schleifen/Helfern versteckt · Test existiert nur für die Abdeckung · Attrappen-Aufbau ist mehr als der halbe Test · „sicherheitshalber gemockt“ · Test hängt von Daten anderer Tests in derselben DB ab (Budget aus den tatsächlich vorhandenen Daten ableiten).

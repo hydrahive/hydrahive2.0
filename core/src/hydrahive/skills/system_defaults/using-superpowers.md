@@ -7,6 +7,8 @@ tools_required: [list_skills, load_skill]
 
 # Skills — Wie und wann nutzen
 
+> Die Arbeitsablauf-Skills (brainstorming, writing-plans, debugging, verification, …) folgen Superpowers v7.0.2 (github.com/obra/superpowers, MIT, © 2025 Jesse Vincent – Lizenztext: docs/third-party/superpowers-LICENSE).
+
 ## Grundregel
 
 Wenn auch nur **1% Chance** besteht dass ein Skill für die aktuelle Aufgabe passt: **lade ihn zuerst**.
@@ -25,14 +27,22 @@ Skills sind keine optionalen Tipps — sie sind Arbeitsanweisungen die Till und 
 
 | Situation | Skill |
 |-----------|-------|
+| Neue Idee, Funktion mit offenen Punkten, „lass uns überlegen“ | `brainstorming` |
+| Spec/Design steht, mehrteilige Umsetzung | `writing-plans` |
+| Aufgabe an Agenten geben, Teilprobleme parallel | `dispatching-parallel-agents` |
 | Bug finden / etwas funktioniert nicht | `debugging` |
-| Code schreiben oder ändern | `code-review` (danach) |
 | Tests schreiben | `test` |
+| Review durchführen oder anfordern | `code-review` |
+| Review-Befunde sind da | `receiving-code-review` |
+| Bevor du „fertig“, „grün“, „läuft“ sagst | `verification-before-completion` |
+| Branch fertig, Merge, Worktree aufräumen | `finishing-development-branch` |
 | Refactoring | `refactor` |
 | Dokumentation | `docs` |
 | Git commit / PR | `git-workflow` |
 | HydraHive2-spezifischer Code | `hh-review` |
 | Skill-Übersicht | `skill-catalog` |
+
+Typische Reihenfolge bei neuer Arbeit: `brainstorming` → `writing-plans` → umsetzen (selbst oder `dispatching-parallel-agents`) → `code-review` → `receiving-code-review` → `verification-before-completion` → `finishing-development-branch`.
 
 ## Red Flags — diese Gedanken sind falsch
 
@@ -45,5 +55,5 @@ Skills sind keine optionalen Tipps — sie sind Arbeitsanweisungen die Till und 
 
 ## Skill-Priorität
 
-1. **Prozess-Skills zuerst** (debugging, test) — definieren WIE du vorgehst
+1. **Prozess-Skills zuerst** (brainstorming, writing-plans, debugging, test) — definieren WIE du vorgehst
 2. **Umsetzungs-Skills danach** (hh-review, code-review) — definieren WAS du prüfst
