@@ -33,6 +33,13 @@ OPEN_ROUTES: tuple[OpenRoute, ...] = (
     OpenRoute("GET", "/api/agentlink/dashboard-auth",
               "Prüfstelle für nginx auth_request vor dem AgentLink-Dashboard: liest nur das "
               "signierte Admin-Cookie hh_agentlink, sonst 401; liefert keinen Inhalt (204)."),
+    OpenRoute("GET", "/api/project-preview/login",
+              "Testseite eines Projekts (projekt-testumgebung.md §4): der Browser kommt über die Durchreiche ohne "
+              "Authorization-Header. Löst nur ein gültiges Einmal-Ticket (60 s, nur Projekt-Mitglieder) ein, sonst "
+              "401; setzt dann das Cookie hh_project_preview (eigener Schlüssel, öffnet keine API). Rate-Limit."),
+    OpenRoute("GET", "/api/project-preview/auth",
+              "Prüfstelle für nginx auth_request vor der Testseite: liest nur das signierte Cookie "
+              "hh_project_preview, sonst 401; falsches Projekt 403; liefert keinen Inhalt außer dem Ziel-Port."),
     OpenRoute("POST", "/api/butler/webhooks/project/{project_id}",
               "Eingehender Projekt-Webhook von außen: prüft X-Webhook-Secret gegen das "
               "Projekt-Secret (compare_digest); unbekanntes Projekt 404, Antwort enthält "

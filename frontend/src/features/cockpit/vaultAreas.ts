@@ -1,8 +1,8 @@
 // Vault-Bereiche: nur zeigen, was installiert ist und freigegeben wurde (keine toten Links).
-// Die drei Module tragen "vault": true im Manifest → ihre Seiten öffnen sich erst nach der Vault-PIN
+// Die Module tragen "vault": true im Manifest → ihre Seiten öffnen sich erst nach der Vault-PIN
 // (docs/specs/vault.md §4.1); Zugangsdaten sind im Kern gesperrt (api/routes/credentials.py).
 import type { ComponentType } from "react"
-import { Coins, FolderHeart, KeyRound, PiggyBank } from "lucide-react"
+import { Coins, FolderHeart, KeyRound, PiggyBank, Scale } from "lucide-react"
 import { pathAllowed } from "@/features/access/navAccess"
 import type { MyAccess } from "@/features/access/types"
 
@@ -23,6 +23,8 @@ export const VAULT_AREAS: VaultArea[] = [
     desc: "Portfolio, Wallets, Kurse und Watchlist." },
   { id: "haushaltsbuch", title: "Haushaltsbuch", path: "/haushaltsbuch", icon: PiggyBank, module: "haushaltsbuch",
     desc: "Konten, Buchungen, Budgets und Kontoimport." },
+  { id: "recht", title: "Recht", path: "/recht", icon: Scale, module: "legal",
+    desc: "Gesetze, eigene Fälle mit Fallakte, Fristen und Schriftverkehr." },
   { id: "credentials", title: "Zugangsdaten", path: "/credentials", icon: KeyRound,
     desc: "API-Schlüssel und Passwörter. Agenten benutzen sie, sehen sie aber nie im Klartext." },
 ]

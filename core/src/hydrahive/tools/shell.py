@@ -155,6 +155,13 @@ def _build_env(ctx: ToolContext) -> dict:
     gitea_token = _resolve_gitea_token(ctx)
     if gitea_token:
         env["GITEA_TOKEN"] = gitea_token
+    # Vorschau-Port des Projekts (ziele/projekt-testumgebung.md §3 Weg B). Der Container-Launcher übernimmt keine
+    # Server-Umgebung und damit auch diesen Wert nicht (kommt mit Weg A).
+    from hydrahive.projects import preview_port
+    env.pop("HH_PREVIEW_PORT", None)              # nie einen geerbten Port eines anderen Projekts weitergeben
+    port = preview_port.for_shell(ctx.project_id)
+    if port is not None:
+        env["HH_PREVIEW_PORT"] = str(port)
     return env
 
 

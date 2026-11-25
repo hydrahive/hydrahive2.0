@@ -11,8 +11,9 @@ SERVICE_FILE=/etc/systemd/system/hydrahive2.service
 # wenn diese Komponenten abgewählt wurden (Befund VPS-Installation 04.10.2026).
 HH_USER="${HH_USER:-hydrahive}"
 install -d -o "$HH_USER" -g "$HH_USER" -m 0700 "/home/$HH_USER/.cache/incus"
-install -d -m 2775 /etc/samba/hh-projects.d
-chgrp "$HH_USER" /etc/samba/hh-projects.d 2>/dev/null || true
+# shellcheck source=../lib/samba-dirs.sh
+source "$(dirname "${BASH_SOURCE[0]}")/../lib/samba-dirs.sh"
+hh_samba_includes_dir /etc/samba/hh-projects.d "$HH_USER"
 UPDATE_SERVICE=/etc/systemd/system/hydrahive2-update.service
 UPDATE_TIMER=/etc/systemd/system/hydrahive2-update.timer
 RESTART_SERVICE=/etc/systemd/system/hydrahive2-restart.service

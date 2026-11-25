@@ -64,7 +64,7 @@ def put_samba(
     if req.enabled:
         ok, err = enable_share(project_id, p["name"])
         if not ok:
-            sc = 400 if err == "samba_not_installed" else 500
+            sc = 400 if err in ("samba_not_installed", "samba_no_access") else 500
             raise coded(sc, err or "samba_failed")
         project_config.update(project_id, samba_enabled=True)
     else:

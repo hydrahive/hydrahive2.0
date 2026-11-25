@@ -455,6 +455,14 @@ EOF
   systemctl restart hydrahive2-migration.timer
 fi
 
+# Self-Heal: /etc/samba muss für den Dienst-User durchgängig sein (Befund WSL 23.11.2026: /etc/samba 700 →
+# Dienst sah hh-projects.d nicht → Freigabe meldete „samba_not_installed“).
+if [ -d /etc/samba/hh-projects.d ]; then
+  # shellcheck source=lib/samba-dirs.sh
+  source "$HH_REPO_DIR/installer/lib/samba-dirs.sh"
+  hh_samba_includes_dir /etc/samba/hh-projects.d "$HH_USER" || log "samba-Ordnerrechte nicht reparierbar — weiter"
+fi
+
 # Self-Heal: alter smb.conf-Patch (Verzeichnis-Include statt _index.conf-Datei)
 if [ -f /etc/samba/smb.conf ] && \
    grep -qE "^(config file|include) = /etc/samba/hh-projects\.d(\$|/%u\.conf)" /etc/samba/smb.conf 2>/dev/null; then
@@ -859,6 +867,7 @@ else
   grep -q "hh_agentlink_auth"             "$NGINX_CONF" || NEEDS_REWRITE=1
   grep -q "hh_peering_tailnet"            "$NGINX_CONF" || NEEDS_REWRITE=1
   grep -q "hh_module_sandbox"             "$NGINX_CONF" || NEEDS_REWRITE=1
+  grep -q "hh_project_preview_auth"       "$NGINX_CONF" || NEEDS_REWRITE=1
   if [ "$NEEDS_REWRITE" = "1" ]; then
     log "nginx: Config braucht Update (HTTPS / VNC-Proxy / ISO-Upload-Limit) — neu schreiben"
     HH_HOST="${HH_HOST:-127.0.0.1}"

@@ -11,8 +11,8 @@ interface Props {
   extraActions?: ReactNode
 }
 
-const HELP: Record<string, HelpTopic> = {
-  projects: "projects", buddy: "buddy", media: "atelier", vault: "patientenakte", admin: "system",
+export const COCKPIT_HELP: Record<string, HelpTopic> = {
+  projects: "projects", buddy: "buddy", media: "atelier", vault: "vault", admin: "system",
 }
 
 /**
@@ -20,5 +20,5 @@ const HELP: Record<string, HelpTopic> = {
  * (⌂ Start · Bereich ▾ · Apps des Bereichs · Kasten). Name und Props bleiben, weil Module sie importieren.
  */
 export function CockpitTopbar({ active, action, extraActions }: Props) {
-  return <AreaTopbar action={action} extraActions={extraActions} help={HELP[active] ?? "onboarding"} />
+  return <AreaTopbar action={action} extraActions={extraActions} help={COCKPIT_HELP[active] ?? "onboarding"} />
 }
