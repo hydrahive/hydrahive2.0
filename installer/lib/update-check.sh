@@ -37,7 +37,8 @@ hh_print_warnings() {
 # Hilfen
 # ---------------------------------------------------------------------------------------------------------------
 
-# Adresse des Dienstes: Port aus der Umgebung (install.conf), sonst aus der Unit, sonst 8001 – nie fest verdrahtet.
+# Adresse des Dienstes: Port aus der Umgebung (nicht aus install.conf, lib/install-conf.sh), sonst aus der Unit,
+# sonst 8001 – nie fest verdrahtet.
 hh_health_url() {
   local host="${HH_HOST:-127.0.0.1}" port="${HH_PORT:-}" unit="${HH_UNIT_FILE:-/etc/systemd/system/hydrahive2.service}"
   if [ -z "$port" ] && [ -r "$unit" ]; then
