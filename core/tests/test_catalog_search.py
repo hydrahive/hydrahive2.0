@@ -16,11 +16,11 @@ import pytest
 ANFRAGEN = [
     ("Bild erzeugen", "generate_image"),
     ("Webseite abrufen", "fetch_url"),
-    ("im Internet suchen", "web_search"),
+    ("im Web suchen", "web_search"),
     ("Mail schicken", "send_mail"),
     ("Notiz merken", "write_memory"),
     ("Befehl in der Shell ausführen", "shell_exec"),
-    ("Text vorlesen lassen", "generate_speech"),
+    ("Text in Sprache umwandeln", "generate_speech"),
     ("Audio in Text umwandeln", "transcribe_audio"),
     ("PDF lesen", "read_document"),
     ("Musik erzeugen", "generate_music"),
