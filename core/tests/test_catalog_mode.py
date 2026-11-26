@@ -120,16 +120,19 @@ def _fake_exec(world):
 
 def test_tool_liste_im_lauf_byte_gleich_trotz_run_tool(world):
     aid = world.agent(tool_mode="catalog")
+    sid = world.session(aid)
     world.script = [[_tu("c1", "find_tools", query="Mail schicken")],
                     [_tu("c2", "run_tool", name="send_mail", args={"to": "a@b.de", "subject": "s", "body": "b"})],
                     [{"type": "text", "text": "fertig"}]]
     world.monkeypatch.setattr("hydrahive.runner._runner_tools.execute_tool", _fake_exec(world))
-    calls = world.run(world.session(aid))
+    calls = world.run(sid)
     assert len(calls) == 3
     ersten = json.dumps(calls[0]["tools"], sort_keys=True)
     assert all(json.dumps(c["tools"], sort_keys=True) == ersten for c in calls)
     assert all(c["stable"] == calls[0]["stable"] for c in calls)         # auch der Prompt bleibt byte-gleich
-    assert world.executed == ["send_mail"]
+    assert world.executed == ["find_tools", "send_mail"]                  # find_tools direkt, send_mail über run_tool
+    from hydrahive.db import sessions as sessions_db
+    assert sessions_db.get(sid).metadata["catalog_remembered"] == ["send_mail"]   # find_tools wird nie vorgemerkt
 
 
 # ── Vormerken (E4, Review-Fokus 5) ────────────────────────────────────────────────────────────────────────────────

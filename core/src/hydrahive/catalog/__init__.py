@@ -6,4 +6,5 @@ ein Recht: gesucht wird nur innerhalb der Freigabe des Laufs, und MCP-Tools komm
 
 #: Die Katalog-Werkzeuge selbst (Spec E4). Eine Stelle für alle Prüfer: nie über run_tool, nie im Katalog, nie über eine
 #: Kategorie, nicht einzeln im Agenten-Editor vergebbar – sie kommen nur über tool_mode catalog dazu (Plan-Aufgabe 5).
-CATALOG_TOOLS: frozenset[str] = frozenset({"run_tool", "find_tools", "find_skills"})
+CATALOG_TOOLS_ORDERED: tuple[str, ...] = ("find_tools", "find_skills", "run_tool")      # feste Reihenfolge im Schema
+CATALOG_TOOLS: frozenset[str] = frozenset(CATALOG_TOOLS_ORDERED)

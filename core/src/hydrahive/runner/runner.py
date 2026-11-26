@@ -31,6 +31,7 @@ from hydrahive.runner._run_origin import OTHER, RunOrigin
 from hydrahive.runner._runner_cancel import persist_on_cancel
 from hydrahive.runner._runner_helpers import close_open_tool_uses, refusal_error
 from hydrahive.runner._runner_lessons import recall_lessons, start_lessons
+from hydrahive.runner import _catalog_mode as catalog_mode
 from hydrahive.runner._runner_iter import (
     IterationResult,
     prepare_history,
@@ -140,8 +141,17 @@ async def run(
     _, mcp_servers = scope_tools(_proj, [], list(agent.get("mcp_servers", [])))
     mcp_schemas = await mcp_bridge.schemas_for_servers(mcp_servers)
     plugin_schemas = plugin_bridge.schemas_for(local_tools)
-    tool_schemas = schemas_for(local_tools) + mcp_schemas + plugin_schemas
-    allowed_tools = local_tools + [s["name"] for s in mcp_schemas]
+    if catalog_mode.is_catalog(agent):
+        # Katalog-Modus (Spec V2/E4): ans Modell nur Kern ∩ Freigabe, angeheftete und vorgemerkte Tools; erlaubt bleibt die
+        # volle Freigabe plus die Katalog-Werkzeuge (run_tool erreicht alles Freigegebene). Beides wird EINMAL beim Laufstart
+        # berechnet; das Vormerken während des Laufs wirkt erst beim nächsten (Liste und Prompt bleiben byte-gleich).
+        _shown = catalog_mode.catalog_schema_names(
+            local_tools, list(agent.get("pinned_tools") or []), catalog_mode.remembered_for(session))
+        tool_schemas = schemas_for(_shown) + mcp_schemas + plugin_bridge.schemas_for(_shown)
+        allowed_tools = catalog_mode.allowed_with_catalog(local_tools) + [s["name"] for s in mcp_schemas]
+    else:
+        tool_schemas = schemas_for(local_tools) + mcp_schemas + plugin_schemas
+        allowed_tools = local_tools + [s["name"] for s in mcp_schemas]
 
     from hydrahive.handover import prompt_for_new_session
     handover_system = prompt_for_new_session(session_id)
@@ -172,8 +182,12 @@ async def run(
     tool_result_max_chars = int(agent.get("tool_result_max_chars") or 0)
     cache_ttl: str = rs.cache_ttl
     max_iterations, run_max_tokens = rs.max_iterations, rs.max_tokens
+    # Katalog-Modus: Kategorien-Zeilen statt der vollen Skill-Tabelle, einmal je Lauf (E4).
+    catalog_block: str | None = None
     agent_skills = load_agent_skills(agent["id"], agent["owner"], disabled=agent.get("disabled_skills") or [],
                                     project_id=skill_project_id(active_project_id, agent))
+    if catalog_mode.is_catalog(agent):
+        catalog_block = catalog_mode.prompt_block(local_tools, agent_skills, list(agent.get("pinned_skills") or []))
 
     # Lehren mit Beleg (L2): einmal je Eingabe, eigene Lehren im aktiven Projekt. Läuft parallel zum Erinnerungs-Abruf
     # und zum Verlauf; gewartet wird erst vor dem ersten Modell-Aufruf (Rückfrage dauert ~2 s).
@@ -232,7 +246,8 @@ async def run(
             extra_system=extra_system,
             workspace=workspace,
             summary=messages_db.get_latest_summary(session_id) or handover_system,
-            skills=agent_skills,
+            skills=None if catalog_block else agent_skills,
+            catalog_block=catalog_block,
             longterm_memory=bool(agent.get("longterm_memory")),
             tool_schemas=tool_schemas,
             allowed_tools=allowed_tools,

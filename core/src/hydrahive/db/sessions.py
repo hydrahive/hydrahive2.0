@@ -156,6 +156,26 @@ def _set_metadata_key(session_id: str, key: str, value: str | None) -> None:
         mirror.schedule_session(s)
 
 
+def remember_catalog_tool(session_id: str, tool_name: str, max_n: int) -> None:
+    """Hängt ``tool_name`` an ``metadata["catalog_remembered"]`` an (Katalog-Modus, Spec E4): ohne Dublette (erneut benutztes
+    rückt ans Ende), höchstens ``max_n`` Einträge, die ältesten fallen raus. Read-Modify-Write unter BEGIN IMMEDIATE."""
+    with db(immediate=True) as conn:
+        row = conn.execute("SELECT metadata FROM sessions WHERE id = ?", (session_id,)).fetchone()
+        if not row:
+            return
+        try:
+            md = json.loads(row["metadata"]) if row["metadata"] else {}
+        except (json.JSONDecodeError, TypeError):
+            md = {}
+        current = [n for n in (md.get("catalog_remembered") or []) if isinstance(n, str) and n != tool_name]
+        md["catalog_remembered"] = (current + [tool_name])[-max_n:]
+        conn.execute("UPDATE sessions SET metadata = ?, updated_at = ? WHERE id = ?",
+                     (json.dumps(md), now_iso(), session_id))
+    s = get(session_id)
+    if s:
+        mirror.schedule_session(s)
+
+
 def adopt_channel(session_id: str, channel: str | None) -> None:
     """Übernimmt den Kanal eines Auftraggebers (Ziel vault-agenten §1.4).
 

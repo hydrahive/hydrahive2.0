@@ -44,6 +44,9 @@ def normalize(cfg: dict) -> dict:
     cfg.setdefault("created_by", cfg.get("owner"))
     cfg.setdefault("tools", [])
     cfg.setdefault("disabled_skills", [])
+    cfg.setdefault("tool_mode", "classic")          # Katalog (Spec V2): classic = alle Tools wie bisher
+    cfg.setdefault("pinned_tools", [])
+    cfg.setdefault("pinned_skills", [])
     cfg.setdefault("require_tool_confirm", False)
     cfg.setdefault("is_buddy", False)
     cfg.setdefault("is_help", False)
