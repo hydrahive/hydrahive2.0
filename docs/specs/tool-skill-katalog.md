@@ -1,6 +1,6 @@
 # Tool- und Skill-Katalog – kleiner Kern, Rest bei Bedarf
 
-Stand: 26.11.2026 · Status: **Entwurf – alle Fragen beantwortet, wartet auf Tills Freigabe** · Task: 2da6ec55 (Weg A) · Gespräch: Buddy-Session 26.11.
+Stand: 26.11.2026 · Status: **Von Till freigegeben (26.11.2026)** – nächster Schritt: Umsetzungsplan · Task: 2da6ec55 (Weg A) · Gespräch: Buddy-Session 26.11.
 
 ## 1. Absicht und Warum
 
@@ -52,6 +52,11 @@ Dazu: Ein Agent soll seinem Unteragenten **pro Auftrag** genau die Tools und Ski
 - Nachladen darf **nie** ein Tool liefern, das der Agent laut seiner Freigabe nicht haben darf. Der Katalog ist eine **Suchhilfe**, keine Rechtequelle.
 - Embeddings: vorhandene Infrastruktur (pgvector 0.8.1 im Postgres-Spiegel, Embed-Modell aus `llm` config). Ohne Postgres/Embed-Modell muss es **trotzdem** gehen (Wortsuche, Fallback „alles wie heute“).
 - Abwärtskompatibel: bestehende Agenten-Configs laufen unverändert weiter, bis der Katalog-Modus je Agent eingeschaltet wird.
+- **Übernahme ohne Neu-Einstellen (Till 26.11.: „muss ich dann alles einstellen?“ – nein):**
+  - Nach dem Update steht jeder Agent auf `tool_mode: classic` – **nichts ändert sich**.
+  - Beim Umschalten auf `catalog` ist die **bisherige Tool-Liste des Agenten automatisch seine Freigabe**. Er darf danach genau dasselbe wie vorher; nur der Prompt zeigt den Kern, der Rest wird gesucht. Kein Tool muss neu eingetragen werden.
+  - Freigabe-Pool (E1/E3) und Besitzer-Freigabe (E5) starten **leer**. Sie werden nur gebraucht, wer Unteragenten pro Auftrag zusätzliche Tools geben will.
+  - Umschalten zurück auf `classic` jederzeit, ohne Verlust.
 
 ## 4. Ansätze
 
