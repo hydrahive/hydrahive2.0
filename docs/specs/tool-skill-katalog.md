@@ -92,9 +92,9 @@ Entscheidungen des Buddys (klein, ändern nicht, was gebaut wird – zum Gegenle
 
 Offen für Till (ändern, was gebaut wird):
 - **F1 (Fragen 2 + 9) Wie kommt ein gefundenes Tool zum Modell, ohne den Cache zu brechen?** Siehe Cache-Regel oben.
-- **F2 (Frage 4) Wer legt den Freigabe-Pool fest, und was darf ein Projekt?**
+- ~~F2~~ → **E3 (Till, 26.11.): Den Freigabe-Pool legt jeder Besitzer für seine eigenen Agenten fest** (nicht nur Admins). Gedeckelt durch die Rechte des Besitzers (`access/tool_filter.py`). *Annahme des Buddys, von Till nicht ausdrücklich bestätigt:* Projekte dürfen den Pool nur **einschränken**, nie erweitern – wie heute (`_project_tool_scope.py`).
 
-Nach Beantwortung von F1/F2 liest **hydrahive-security-reviewer** das Design (Rechte: D1, D2, D4, F2).
+Nach Beantwortung von F1 liest **hydrahive-security-reviewer** das Design (Rechte: D1, D2, D4, F2).
 
 ## 7. Der Umsetzung überlassen
 
