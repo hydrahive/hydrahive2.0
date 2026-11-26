@@ -1,0 +1,36 @@
+name: Windows-Installer
+
+# Prüft installer/windows/ (Ziel hydrahive2-modules/ziele/windows-installer.md, W1/W2).
+# Eigener Workflow, damit die Pflicht-Checks in pytest.yml unverändert bleiben.
+on:
+  push:
+    branches: [main]
+    paths: ['installer/windows/**', '.github/workflows/windows-installer.yml']
+  pull_request:
+    paths: ['installer/windows/**', '.github/workflows/windows-installer.yml']
+
+jobs:
+  pester:
+    name: PowerShell (Analyzer + Pester)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Werkzeuge
+        shell: pwsh
+        run: |
+          Set-PSRepository PSGallery -InstallationPolicy Trusted
+          if (-not (Get-Module -ListAvailable Pester | Where-Object Version -ge '5.0')) { Install-Module Pester -MinimumVersion 5.0 -Force }
+          if (-not (Get-Module -ListAvailable PSScriptAnalyzer)) { Install-Module PSScriptAnalyzer -Force }
+      - name: PSScriptAnalyzer (Fehler brechen ab)
+        shell: pwsh
+        run: |
+          $r = Invoke-ScriptAnalyzer -Path installer/windows -Recurse -Severity Error,Warning `
+               -ExcludeRule PSAvoidUsingWriteHost,PSUseShouldProcessForStateChangingFunctions,PSUseBOMForUnicodeEncodedFile
+          $r | Format-Table -AutoSize | Out-String -Width 200 | Write-Host
+          if ($r | Where-Object Severity -eq 'Error') { exit 1 }
+      - name: Pester
+        shell: pwsh
+        run: |
+          $c = New-PesterConfiguration
+          $c.Run.Path = 'installer/windows/tests'; $c.Run.Exit = $true; $c.Output.Verbosity = 'Detailed'
+          Invoke-Pester -Configuration $c

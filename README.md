@@ -157,7 +157,32 @@ Passwort:  <generated value>
 
 The certificate warning is expected until the generated certificate is trusted or replaced. The backend itself binds to loopback by default.
 
-### Windows via WSL2 (tested)
+### Windows via WSL2
+
+**With one command (recommended, preview).** Open PowerShell as administrator (Start menu, right-click
+"PowerShell", "Run as administrator") and paste:
+
+```powershell
+irm https://raw.githubusercontent.com/hydrahive/hydrahive2.0/main/installer/windows/install.ps1 -OutFile $env:TEMP\hh-install.ps1
+powershell -NoProfile -ExecutionPolicy Bypass -File $env:TEMP\hh-install.ps1
+```
+
+The script installs WSL and Ubuntu 26.04, only asks for a name and password for the Ubuntu user, enables systemd,
+installs HydraHive with the normal Linux installer and sets up autostart. If Windows has to restart, installation
+continues automatically after the next sign-in. At the end the window shows the address (`https://localhost`), user
+`admin` and the password – write it down right away. Running it again is harmless; finished steps are skipped.
+Log: `%LOCALAPPDATA%\HydraHive\install.log` (no passwords).
+
+**Autostart:** The task "HydraHive (WSL)" starts Ubuntu in the background at every Windows sign-in;
+`instanceIdleTimeout=-1` in `%UserProfile%\.wslconfig` keeps it running afterwards, even without an open window
+(existing entries are kept, backup `.wslconfig.bak`). Without a sign-in HydraHive does not start – WSL cannot be
+started from a Windows service ([microsoft/WSL#9231](https://github.com/microsoft/WSL/issues/9231)).
+
+**Uninstall:** Remove the task with `Unregister-ScheduledTask -TaskName 'HydraHive (WSL)'`. Remove Ubuntu including
+all HydraHive data with `wsl --unregister Ubuntu-26.04` – **this deletes all data**, back up first.
+
+#### Manual (tested)
+
 
 The Linux installer can be run inside **WSL2**. This is the recommended Windows setup; run the installer from the Linux distribution, not from PowerShell or a Windows Git checkout.
 
