@@ -81,3 +81,21 @@ def rebuild_tool_index() -> int:
     _store.get_store().replace_all(entries, kind="tool")
     logger.info("Tool-Katalog: %d Einträge", len(entries))
     return len(entries)
+
+
+async def warm_catalog() -> None:
+    """Beim Start im Hintergrund: Index bauen, dann Vektoren nachholen (nie blockierend, Fehler nur geloggt).
+
+    Vektoren liegen im Speicher (≈ 50–500 Einträge × 1–4 KB); eine Postgres-Tabelle lohnt erst bei viel mehr Einträgen.
+    Ohne Embed-Modell oder Postgres bleibt es bei der Wortsuche (K9).
+    """
+    from hydrahive.catalog import _store
+    try:
+        rebuild_tool_index()
+        from hydrahive.db import mirror
+        from hydrahive.llm._config import load_config
+        model = (load_config() or {}).get("embed_model") or ""
+        done = await _store.sync_embeddings(_store.get_store(), pool=mirror._pool, model=model)
+        logger.info("Tool-Katalog: %d Vektoren berechnet", done)
+    except Exception:  # noqa: BLE001 — der Start darf daran nie scheitern
+        logger.warning("Tool-Katalog: Aufwärmen fehlgeschlagen – nur Wortsuche", exc_info=True)

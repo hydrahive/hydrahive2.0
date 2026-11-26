@@ -174,3 +174,42 @@ def test_stabile_reihenfolge_bei_gleichem_rang(store, core_names):
     a = [e.name for e in search("Datei", allowed=core_names, kind="tool", limit=5)]
     b = [e.name for e in search("Datei", allowed=core_names, kind="tool", limit=5)]
     assert a == b
+
+
+
+def test_warm_catalog_baut_index_und_holt_vektoren(monkeypatch):
+    """Fängt: sync_embeddings wurde nirgends aufgerufen – im Betrieb gab es nie Vektoren, nur Wortsuche."""
+    import asyncio
+    from hydrahive.catalog import _store, index
+    _store.reset_store()
+
+    class _Pool:
+        def acquire(self):
+            class _C:
+                async def __aenter__(self_inner): return self_inner
+                async def __aexit__(self_inner, *a): return False
+            return _C()
+
+    async def fake_embed(text, model, **kw):
+        return [1.0, 0.0, 0.5]
+    monkeypatch.setattr("hydrahive.llm.embed.aembed", fake_embed)
+    monkeypatch.setattr("hydrahive.llm._config.load_config", lambda: {"embed_model": "fake"})
+    monkeypatch.setattr("hydrahive.db.mirror._pool", _Pool(), raising=False)
+    asyncio.run(index.warm_catalog())
+    st = _store.get_store()
+    assert st.entries() and len(st.vectors()) == len(st.entries())
+
+
+def test_warm_catalog_ohne_modell_kein_fehler(monkeypatch):
+    import asyncio
+    from hydrahive.catalog import _store, index
+    _store.reset_store()
+    monkeypatch.setattr("hydrahive.llm._config.load_config", lambda: {"embed_model": ""})
+    asyncio.run(index.warm_catalog())
+    assert _store.get_store().entries() and _store.get_store().vectors() == {}
+
+
+def test_lifespan_startet_warm_catalog():
+    from pathlib import Path
+    src = (Path(__file__).resolve().parents[1] / "src/hydrahive/api/lifespan.py").read_text()
+    assert "warm_catalog()" in src
