@@ -91,10 +91,15 @@ Entscheidungen des Buddys (klein, ändern nicht, was gebaut wird – zum Gegenle
 - **D6 (Frage 8) Kern = Kern-Liste ∩ Freigabe** – der Kern erweitert nie Rechte (z. B. kein `shell_exec` für den Helpdesk-Agenten).
 
 Offen für Till (ändern, was gebaut wird):
-- **F1 (Fragen 2 + 9) Wie kommt ein gefundenes Tool zum Modell, ohne den Cache zu brechen?** Siehe Cache-Regel oben.
+- ~~F1~~ → **E4 (Till, 26.11.: „auf jeden Fall b, Cache brechen geht gar nicht“): Die Tool-Liste ändert sich innerhalb eines Laufs NIE.**
+  - Ein gefundenes Tool wird im laufenden Lauf über das feste Kern-Tool **`run_tool(name, args)`** aufgerufen. `find_tools` liefert dazu Name, Kurzbeschreibung und Parameter-Schema als Ergebnis (im Verlauf, nicht in der Tool-Liste).
+  - `run_tool` prüft **genau dieselbe Freigabe** wie ein direkter Aufruf (Freigabe des Agenten inkl. Pool, Projekt-Scope, Besitzer-Freigabe, Shell-Sperre, Bestätigungspflicht `tool_confirmation`) und validiert `args` gegen das Schema. Kein Umweg an einer Prüfung vorbei.
+  - **Fest dabei** ist ein Tool erst ab dem **nächsten Lauf**: beim Buddy ab der nächsten Nutzer-Nachricht (die Liste darf sich dann ändern, weil der Cache ohnehin mit der neuen Nachricht weiterläuft – *Annahme, im Plan nachzumessen*), bei Unteragenten ab ihrem Auftrag (`ask_agent` `tools`).
+  - Damit entfällt V3 („nachgeladen bleibt bis Sitzungsende“) in dieser Form; stattdessen: was in einer Sitzung per `run_tool` benutzt wurde, wird für die nächsten Läufe vorgemerkt, mit Obergrenze (Frage 9).
+  - Abnahme K4 neu: **Innerhalb eines Laufs ist die Schema-Liste byte-gleich** (Test: alle LLM-Aufrufe eines Laufs mit `find_tools`+`run_tool` haben identische `tools`).
 - ~~F2~~ → **E3 (Till, 26.11.): Den Freigabe-Pool legt jeder Besitzer für seine eigenen Agenten fest** (nicht nur Admins). Gedeckelt durch die Rechte des Besitzers (`access/tool_filter.py`). *Annahme des Buddys, von Till nicht ausdrücklich bestätigt:* Projekte dürfen den Pool nur **einschränken**, nie erweitern – wie heute (`_project_tool_scope.py`).
 
-Nach Beantwortung von F1 liest **hydrahive-security-reviewer** das Design (Rechte: D1, D2, D4, F2).
+Damit sind alle Fragen beantwortet. Als Nächstes liest **hydrahive-security-reviewer** das Design (Rechte: D1, D2, D4, F2).
 
 ## 7. Der Umsetzung überlassen
 
@@ -105,7 +110,8 @@ Tabellen-/Spaltennamen, Form des Index (eigene Tabelle im Spiegel vs. Datei), ge
 - **K1** Mit `tool_mode: catalog` schickt der Runner nur Kern + angeheftete + in dieser Sitzung aktivierte Tools an das Modell (Test: Schema-Liste im Payload).
 - **K2** `find_tools` findet bei 10 vorgegebenen Alltagsanfragen (Liste im Test) das richtige Tool unter den ersten 3 – mit und ohne Embed-Modell (ohne: Wortsuche).
 - **K3** `find_tools` liefert/aktiviert **nie** ein Tool außerhalb der Freigabe des Agenten (Projekt-Scope, Besitzer-Freigabe, Shell-Sperre) – Test mit gesperrtem Tool.
-- **K4** Ein aktiviertes Tool bleibt bis Sitzungsende aktiv; die Schema-Liste ist zwischen Aktivierungen stabil (Cache-Test: gleiche Reihenfolge, nur angehängt).
+- **K4** Innerhalb eines Laufs ist die an das Modell geschickte Tool-Liste byte-gleich, auch wenn `find_tools`/`run_tool` benutzt werden (E4). Per `run_tool` Benutztes wird für Folgeläufe vorgemerkt (mit Obergrenze).
+- **K10** `run_tool` lehnt alles ab, was ein direkter Aufruf ablehnen würde (Freigabe, Projekt, Besitzer, Shell-Sperre, Bestätigung), und validiert `args` gegen das Schema – Test je Sperrgrund.
 - **K5** `ask_agent` nimmt `tools`/`skills` an; der Unteragent bekommt genau die Schnittmenge aus Anfrage und Freigabe-Pool, außerhalb des Pools wird abgelehnt mit Grund.
 - **K6** `find_skills` + verkürzte Skill-Liste im Prompt funktionieren analog (K1/K2 für Skills).
 - **K7** `tool_mode: classic` verhält sich exakt wie heute (bestehende Runner-Tests grün).
