@@ -6,11 +6,13 @@ Block bauen. Async-Generator: yields Events, gibt result_blocks zurück.
 """
 from __future__ import annotations
 
+import logging
 from typing import AsyncIterator
 
 from hydrahive.runner import tool_confirmation
 from hydrahive.runner.dispatcher import execute_tool, to_tool_result_block
 from hydrahive.runner.events import Event, ToolConfirmRequired, ToolUseResult, ToolUseStart
+from hydrahive.runner._run_tool_unwrap import unwrap_run_tool
 from hydrahive.runner.integrity import IntegrityState
 from hydrahive.settings import settings
 from hydrahive.tools import ToolContext, ToolResult
@@ -24,6 +26,8 @@ from hydrahive.tools._observations import (
     record_observation,
 )
 from hydrahive.tools._protected_paths import shell_confirm_reason
+
+logger = logging.getLogger(__name__)
 
 # Tools, deren Wirkung nicht rückgängig zu machen ist: immer Bestätigung durch den
 # Benutzer, auch ohne require_tool_confirm am Agenten (ohne Antwort = nicht ausgeführt).
@@ -47,6 +51,22 @@ def _confirm_timeout(ctx: ToolContext) -> float | None:
     return settings.tool_confirm_timeout
 
 
+def _record_unwrap_rejection(tu: dict, error: str, ctx: ToolContext, parent_message_id: str,
+                             iteration: int | None) -> None:
+    from hydrahive.db import tools as tools_db
+    try:
+        rec = tools_db.create(
+            parent_message_id, str(tu.get("name") or ""), tu.get("input", {}) or {},
+            metadata={"via": "run_tool", "rejected": error[:300]},
+            session_id=ctx.session_id, agent_id=ctx.agent_id, user_id=ctx.user_id,
+            tool_use_id=tu.get("id") or None, iteration=iteration,
+        )
+        tools_db.finish(rec.id, result={"success": False, "error": error}, status="error", duration_ms=0,
+                        error_type="run_tool_rejected", error_message=error)
+    except Exception:
+        logger.warning("run_tool-Ablehnung nicht in tool_calls geschrieben", exc_info=True)
+
+
 async def process_tool_uses(
     tool_uses: list[dict],
     *,
@@ -68,10 +88,23 @@ async def process_tool_uses(
     """
     result_blocks: list[dict] = sink if sink is not None else []
     for tu in tool_uses:
+        # ERSTE Handlung: run_tool auspacken (Katalog, Spec E4/S1). Alles Folgende – Bestätigung, vault_gate,
+        # tool_denied, Container-Allowlist, tool_calls, Sperr-Erkennung – sieht damit den INNEREN Namen.
+        tu, unwrap_error = unwrap_run_tool(tu, allowed_tools)
         tu_id = tu.get("id", "")
         tu_name = tu.get("name", "")
         tu_args = tu.get("input", {}) or {}
         yield ToolUseStart(call_id=tu_id, tool_name=tu_name, arguments=tu_args)
+
+        if unwrap_error is not None:
+            # Abgelehnt ohne Ausführung: kein Dispatcher, keine Bestätigung. Der Aufruf bleibt als Ergebnis sichtbar
+            # und steht in tool_calls (Spec S1, Review #782) – mit äußerem Namen, Herkunft und Grund.
+            result = ToolResult.fail(unwrap_error)
+            _record_unwrap_rejection(tu, unwrap_error, ctx, parent_message_id, iteration)
+            yield ToolUseResult(call_id=tu_id, tool_name=tu_name, success=False,
+                                output=None, error=result.error, duration_ms=0)
+            result_blocks.append(to_tool_result_block(tu_id, result, ctx, tu_name))
+            continue
 
         # Harakiri-Schutz: auch ohne globales require_confirm verlangt ein
         # shell_exec, das in einen geschützten Pfad schreibt oder ein Geheimnis
