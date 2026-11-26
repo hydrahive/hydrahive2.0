@@ -14,7 +14,7 @@ async def _noop(args, ctx):
     return ToolResult.ok("x")
 
 
-def _tool(name: str, *, category: str = "medien", module_id: str = "") -> Tool:
+def _tool(name: str, *, category: str = "media", module_id: str = "") -> Tool:
     return Tool(name=name, description=f"Testwerkzeug {name}", schema={"type": "object", "properties": {}},
                 execute=_noop, category=category, module_id=module_id)
 
@@ -32,7 +32,7 @@ def test_migration_067_tabelle_da(mod_env):
 
 def test_kategorie_loest_auf_und_bleibt_stabil(mod_env):
     from hydrahive.catalog.categories import resolve_categories
-    got = resolve_categories(["todo_write", "kategorie:dateien", "file_read"])
+    got = resolve_categories(["todo_write", "kategorie:files", "file_read"])
     assert got[0] == "todo_write" and "file_write" in got and "file_patch" in got
     assert got.count("file_read") == 1                                  # Duplikate raus
     assert resolve_categories(["file_read", "web_search"]) == ["file_read", "web_search"]   # ohne Kategorie unverändert
@@ -41,7 +41,7 @@ def test_kategorie_loest_auf_und_bleibt_stabil(mod_env):
 
 def test_kategorie_in_effective_und_possible_tool_names(mod_env):
     from hydrahive.agents.effective_tools import effective_tool_names, possible_tool_names
-    agent = _agent("kategorie:dateien", "todo_write")
+    agent = _agent("kategorie:files", "todo_write")
     assert {"file_read", "file_write", "todo_write"} <= set(effective_tool_names(agent, username="till", project=None))
     assert {"file_read", "file_write", "todo_write"} <= possible_tool_names(agent)
     assert not any(n.startswith("kategorie:") for n in possible_tool_names(agent))
@@ -69,37 +69,37 @@ def test_nachtraeglich_zugeordnet_nicht_frei_bis_bestaetigt(mod_env, monkeypatch
     from hydrahive.catalog.categories import approve, resolve_categories
     from hydrahive.tools import REGISTRY
     monkeypatch.setitem(REGISTRY, "mod_bildchen", _tool("mod_bildchen", module_id="mod1"))
-    assert "mod_bildchen" not in resolve_categories(["kategorie:medien"])
+    assert "mod_bildchen" not in resolve_categories(["kategorie:media"])
     with pytest.raises(PermissionError):
-        approve("medien", "mod_bildchen", "testuser")                  # Nicht-Admin darf nicht
-    assert "mod_bildchen" not in resolve_categories(["kategorie:medien"])
-    approve("medien", "mod_bildchen", "admin")
-    assert "mod_bildchen" in resolve_categories(["kategorie:medien"])
-    assert "mod_bildchen" not in resolve_categories(["kategorie:dateien"])      # Bestätigung gilt nur für diese Kategorie
+        approve("media", "mod_bildchen", "testuser")                  # Nicht-Admin darf nicht
+    assert "mod_bildchen" not in resolve_categories(["kategorie:media"])
+    approve("media", "mod_bildchen", "admin")
+    assert "mod_bildchen" in resolve_categories(["kategorie:media"])
+    assert "mod_bildchen" not in resolve_categories(["kategorie:files"])      # Bestätigung gilt nur für diese Kategorie
 
 
 def test_bestaetigung_gilt_nicht_fuer_andere_kategorie_des_tools(mod_env, monkeypatch):
     from hydrahive.catalog.categories import approve, resolve_categories
     from hydrahive.tools import REGISTRY
-    monkeypatch.setitem(REGISTRY, "mod_x", _tool("mod_x", category="dateien", module_id="mod1"))
+    monkeypatch.setitem(REGISTRY, "mod_x", _tool("mod_x", category="files", module_id="mod1"))
     with pytest.raises(ValueError):
-        approve("medien", "mod_x", "admin")                            # Tool gehört gar nicht in „medien“
-    assert "mod_x" not in resolve_categories(["kategorie:medien"])
+        approve("media", "mod_x", "admin")                            # Tool gehört gar nicht in „medien“
+    assert "mod_x" not in resolve_categories(["kategorie:media"])
 
 
 def test_plugin_mit_kategorie_nicht_frei(mod_env, monkeypatch):
-    """K12: Ein Plugin mit category: medien ist über die Kategorie nicht frei, auch nicht nach einer Bestätigung."""
+    """K12: Ein Plugin mit category: media ist über die Kategorie nicht frei, auch nicht nach einer Bestätigung."""
     from hydrahive.catalog.categories import approve, resolve_categories
     from hydrahive.db.connection import db
     from hydrahive.tools import REGISTRY
     monkeypatch.setitem(REGISTRY, "plugin__bild__mal", _tool("plugin__bild__mal"))
-    assert "plugin__bild__mal" not in resolve_categories(["kategorie:medien"])
+    assert "plugin__bild__mal" not in resolve_categories(["kategorie:media"])
     with pytest.raises(ValueError):
-        approve("medien", "plugin__bild__mal", "admin")
+        approve("media", "plugin__bild__mal", "admin")
     with db() as conn:                                                  # sogar eine direkt eingetragene Zeile hilft nicht
         conn.execute("INSERT OR REPLACE INTO tool_category_approvals(category, tool, approved_by, approved_at) "
-                     "VALUES ('medien', 'plugin__bild__mal', 'admin', 'x')")
-    assert "plugin__bild__mal" not in resolve_categories(["kategorie:medien"])
+                     "VALUES ('media', 'plugin__bild__mal', 'admin', 'x')")
+    assert "plugin__bild__mal" not in resolve_categories(["kategorie:media"])
 
 
 @pytest.mark.parametrize("gruppe, name, module_id", [
@@ -119,13 +119,13 @@ def test_ausschluesse_nie_ueber_kategorie(mod_env, monkeypatch, gruppe, name, mo
         monkeypatch.setitem(REGISTRY, name, _tool(name, module_id=module_id))
     if gruppe == "capability":
         monkeypatch.setattr(categories, "_capability_for", lambda n, mid: "module.mod2" if n == name else None)
-    monkeypatch.setattr(categories, "CATEGORY_MAP", {**categories.CATEGORY_MAP, "medien": (*categories.CATEGORY_MAP["medien"], name)})
+    monkeypatch.setattr(categories, "CATEGORY_MAP", {**categories.CATEGORY_MAP, "media": (*categories.CATEGORY_MAP["media"], name)})
     with db() as conn:
         conn.execute("INSERT OR REPLACE INTO tool_category_approvals(category, tool, approved_by, approved_at) "
-                     "VALUES ('medien', ?, 'admin', 'x')", (name,))
-    assert name not in categories.resolve_categories(["kategorie:medien"])
+                     "VALUES ('media', ?, 'admin', 'x')", (name,))
+    assert name not in categories.resolve_categories(["kategorie:media"])
     with pytest.raises(ValueError):
-        categories.approve("medien", name, "admin")
+        categories.approve("media", name, "admin")
 
 
 def test_explizit_genanntes_tool_bleibt_wie_heute(mod_env):
@@ -141,5 +141,31 @@ def test_fehler_in_db_gibt_nichts_frei(mod_env, monkeypatch):
     from hydrahive.tools import REGISTRY
     monkeypatch.setitem(REGISTRY, "mod_y", _tool("mod_y", module_id="mod1"))
     monkeypatch.setattr(categories, "_approved", lambda category: (_ for _ in ()).throw(RuntimeError("db kaputt")))
-    got = categories.resolve_categories(["kategorie:medien"])
+    got = categories.resolve_categories(["kategorie:media"])
     assert "mod_y" not in got and "generate_image" in got
+
+
+
+def test_kategorien_heissen_wie_tool_category():
+    """Fängt (Buddy-Review #784): deutsche Kategorie-Namen ↔ englische Tool.category → approve() wirkte für 7 von 10
+    Kategorien nie. Jede Kategorie (außer der Sonderfall ``skills``) muss der Tool.category ihrer Tools entsprechen."""
+    from hydrahive.catalog.categories import CATEGORY_LABELS, CATEGORY_MAP
+    from hydrahive.tools import REGISTRY
+    for cat, names in CATEGORY_MAP.items():
+        if cat == "skills":
+            continue
+        cats = {REGISTRY[n].category for n in names if n in REGISTRY}
+        assert cats == {cat}, f"Kategorie {cat}: Tools liegen in {cats}"
+    assert set(CATEGORY_LABELS) == set(CATEGORY_MAP), "jede Kategorie braucht eine deutsche Beschreibung"
+
+
+def test_approve_wirkt_fuer_eine_feste_kategorie(monkeypatch, client):
+    """Eine bestätigte Zuordnung muss auch in einer Kategorie mit festem Mapping wirken (z. B. files)."""
+    from hydrahive.catalog import categories
+    from hydrahive.tools import REGISTRY
+    monkeypatch.setitem(REGISTRY, "mod_datei_extra", _tool("mod_datei_extra", category="files", module_id="mod1"))
+    monkeypatch.setattr(categories, "_capability_for", lambda n, m: None)
+    monkeypatch.setattr("hydrahive.api.middleware.users.get_by_username", lambda u: {"role": "admin"})
+    assert "mod_datei_extra" not in categories.resolve_categories(["kategorie:files"])
+    categories.approve("files", "mod_datei_extra", "admin")
+    assert "mod_datei_extra" in categories.resolve_categories(["kategorie:files"])

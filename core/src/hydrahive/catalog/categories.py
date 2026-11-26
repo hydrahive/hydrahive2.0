@@ -17,19 +17,37 @@ logger = logging.getLogger(__name__)
 PREFIX = "kategorie:"
 
 #: Feste Zuordnung Kategorie → Kern-Tools (im Kern gepflegt). Ohne Außen-Tools, Authoring, ask_agent und Capability-Tools.
+#: Die Namen SIND die ``Tool.category``-Werte (Till 26.11.: englische Namen aus dem Code, eine Bezeichnung statt zwei).
+#: Nur so wirkt ``approve()`` (prüft ``Tool.category``); der Test ``test_kategorien_heissen_wie_tool_category`` sichert das.
+#: Ausnahme ``skills``: list_skills/load_skill liegen in ``agents``, die Kategorie ``agents`` würde sonst Authoring-Nähe
+#: suggerieren – bestätigt werden kann darin nichts (kein Tool hat category ``skills``).
 CATEGORY_MAP: dict[str, tuple[str, ...]] = {
-    "dateien": ("file_read", "file_write", "file_patch", "read_document"),
+    "files": ("file_read", "file_write", "file_patch", "read_document"),
     "web": ("web_search",),
-    "gedaechtnis": ("read_memory", "write_memory", "search_memory", "datamining_search", "datamining_semantic",
+    "memory": ("read_memory", "write_memory", "search_memory", "datamining_search", "datamining_semantic",
                     "datamining_timeline", "datamining_today"),
-    "aufgaben": ("todo_write",),
-    "medien": ("analyze_image", "generate_image", "generate_music", "generate_speech", "generate_video",
+    "tasks": ("todo_write",),
+    "media": ("analyze_image", "generate_image", "generate_music", "generate_speech", "generate_video",
                "transcribe_audio"),
     "code": ("graph_query", "graph_explain", "graph_path", "graph_affected", "graph_refresh"),
-    "hilfe": ("help_search", "help_read", "error_report_prepare"),
+    "help": ("help_search", "help_read", "error_report_prepare"),
     "prompts": ("list_prompts", "get_prompt", "save_prompt"),
     "skills": ("list_skills", "load_skill"),
-    "post": ("read_mail",),
+    "mail": ("read_mail",),
+}
+
+#: Kurzbeschreibung je Kategorie auf Deutsch – für die Kategorien-Zeilen im Prompt (Plan-Aufgabe 5).
+CATEGORY_LABELS: dict[str, str] = {
+    "files": "Dateien lesen, schreiben, ändern, PDFs lesen",
+    "web": "im Internet suchen",
+    "memory": "Notizen merken, Gedächtnis und frühere Gespräche durchsuchen",
+    "tasks": "Aufgabenliste der Sitzung",
+    "media": "Bilder, Videos, Musik, Sprache erzeugen; Bilder beschreiben; Audio abtippen",
+    "code": "Code-Graph: Zusammenhänge im Code verstehen",
+    "help": "HydraHive-Hilfe lesen, Fehlerbericht vorbereiten",
+    "prompts": "gespeicherte Prompts nutzen",
+    "skills": "Skills auflisten und laden",
+    "mail": "E-Mails lesen",
 }
 
 _PLUGIN_PREFIX = "plugin__"

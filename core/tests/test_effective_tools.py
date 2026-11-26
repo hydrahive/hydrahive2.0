@@ -121,7 +121,7 @@ def test_moegliche_tools_ohne_projekt_und_besitzerfilter():
 def test_kategorien_hook_loest_nur_kategorien_auf():
     """Aufgabe 4 hat resolve_categories eingehängt: Einzelne Namen bleiben, ``kategorie:<name>`` wird aufgelöst."""
     from hydrahive.agents import effective_tools as et
-    got = et.resolve_categories(["file_read", "kategorie:medien", "plugin__git-stats__git_commits"])
+    got = et.resolve_categories(["file_read", "kategorie:media", "plugin__git-stats__git_commits"])
     assert got[0] == "file_read" and got[-1] == "plugin__git-stats__git_commits"
     assert "generate_image" in got and not any(n.startswith("kategorie:") for n in got)
 
