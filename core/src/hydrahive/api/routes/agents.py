@@ -41,6 +41,10 @@ def _public(agent: dict) -> dict:
     return {**agent, "tool_config": _tool_config.mask(tc)}
 
 
+# Katalog-Werkzeuge erst mit tool_mode catalog (Plan-Aufgabe 5) – bis dahin nicht einzeln vergebbar (Review #782).
+_HIDDEN_IN_EDITOR = frozenset({"run_tool"})
+
+
 @router.get("/_meta/tools")
 def list_available_tools(_: Annotated[tuple[str, str], Depends(require_auth)]) -> list[dict]:
     from hydrahive.access.capabilities import catalog
@@ -48,6 +52,7 @@ def list_available_tools(_: Annotated[tuple[str, str], Depends(require_auth)]) -
         {"name": t.name, "description": t.description, "category": t.category,
          "capability": catalog().capability_for_tool(t.name, module_id=getattr(t, "module_id", ""))}
         for t in TOOL_REGISTRY.values()
+        if t.name not in _HIDDEN_IN_EDITOR
     ]
     return core + [
         {**m, "capability": catalog().capability_for_tool(m["name"], module_id="")}

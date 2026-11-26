@@ -37,6 +37,7 @@ from hydrahive.runner._runner_iter import (
     stream_llm_call,
 )
 from hydrahive.runner.system_prompt import compose as compose_system_prompts
+from hydrahive.runner._run_tool_unwrap import loop_signature_input, loop_signature_name
 from hydrahive.runner._runner_tools import process_tool_uses
 from hydrahive.runner.context import (
     extract_tool_uses,
@@ -383,7 +384,9 @@ async def run(
                        cache_creation_tokens=total_cache_creation, cache_read_tokens=total_cache_read)
             return
 
-        signature = "|".join(f"{tu.get('name')}:{json.dumps(tu.get('input', {}), sort_keys=True)}" for tu in tool_uses)
+        # Am ausgepackten Namen (run_tool → inneres Tool), sonst umgeht ein Wechsel run_tool(x)/x die Bremse (Review #782).
+        signature = "|".join(f"{loop_signature_name(tu)}:{json.dumps(loop_signature_input(tu), sort_keys=True)}"
+                             for tu in tool_uses)
         recent_tool_calls.append(signature)
         recent_tool_calls = recent_tool_calls[-LOOP_DETECTION_WINDOW:]
         if len(recent_tool_calls) == LOOP_DETECTION_WINDOW and len(set(recent_tool_calls)) == 1:
@@ -394,7 +397,7 @@ async def run(
             return
 
         # Tool-Use-Loop: in Sub-Modul. Letzter yield ist result_blocks.
-        activity.set_tool(session_id, tool_uses[-1].get("name") if tool_uses else None,
+        activity.set_tool(session_id, loop_signature_name(tool_uses[-1]) if tool_uses else None,
                          result_summary=pending_activity_summary)
         pending_activity_summary = None
         result_blocks: list[dict] = []

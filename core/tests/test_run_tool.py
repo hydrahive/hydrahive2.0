@@ -237,8 +237,70 @@ def test_run_tool_ist_registriert_aber_in_keiner_default_liste():
     assert "run_tool" in REGISTRY
     from pathlib import Path
     src = Path(__file__).resolve().parents[1] / "src" / "hydrahive"
+    allowed_files = {"run_tool.py", "_run_tool_unwrap.py", "_runner_tools.py",
+                     "agents.py"}                       # agents.py: Ausblende-Liste für den Editor (Review #782)
     for f in src.rglob("*.py"):
-        if f.name in ("run_tool.py", "_run_tool_unwrap.py", "_runner_tools.py"):
+        if f.name in allowed_files:
             continue
         code = "\n".join(l for l in f.read_text().splitlines() if not l.lstrip().startswith("#"))
         assert '"run_tool"' not in code, f"run_tool in {f}"
+    # Und direkt: in keiner Standard-Liste der Agenten-Typen.
+    from hydrahive.agents._defaults import DEFAULT_TOOLS
+    for typ, tools in DEFAULT_TOOLS.items():
+        assert "run_tool" not in tools, f"run_tool in DEFAULT_TOOLS[{typ}]"
+
+
+# --- Review #782 -------------------------------------------------------------------------------------------------
+
+def test_ohne_run_tool_freigabe_wird_nicht_ausgepackt(recorded, tmp_path):
+    """Fängt (Review #782, sollte): ein classic-Agent ohne run_tool bekam einen erfundenen Aufruf ausgeführt (K7)."""
+    events = asyncio.run(_drive([_rt("file_read", {"path": "x"})], _ctx(tmp_path), ["file_read"]))
+    assert recorded and recorded[0]["tool_use"]["name"] == "run_tool", "unverändert an den Dispatcher → dort abgelehnt"
+    assert "via" not in recorded[0]["tool_use"]
+
+
+def test_ablehnung_beim_auspacken_steht_in_tool_calls(monkeypatch, tmp_path, client):
+    """Fängt (Review #782, sollte / Spec S1): ein abgelehntes run_tool(send_mail) blieb in tool_calls unsichtbar."""
+    from hydrahive.db import messages as messages_db
+    from hydrahive.db import sessions as sessions_db
+    from hydrahive.db import tools as tools_db
+    monkeypatch.setattr(_runner_tools, "record_observation", lambda **k: None)
+    s = sessions_db.create(agent_id="a1", user_id="u1", title="t")
+    msg = messages_db.append(s.id, "assistant", "hi")
+    ctx = ToolContext(session_id=s.id, agent_id="a1", user_id="u1", workspace=tmp_path)
+
+    async def go():
+        return [e async for e in _runner_tools.process_tool_uses(
+            [_rt("send_mail", {"to": "a@b.c"}, "tu-x")], ctx=ctx, allowed_tools=["run_tool", "file_read"],
+            parent_message_id=msg.id, require_confirm=False, tool_result_max_chars=10000)]
+
+    assert _results(asyncio.run(go()))[0].success is False
+    rows = tools_db.list_for_message(msg.id)
+    assert len(rows) == 1
+    assert rows[0].tool_name == "run_tool" and rows[0].status == "error"
+    assert rows[0].metadata.get("via") == "run_tool" and "nicht erlaubt" in rows[0].metadata.get("rejected", "")
+
+
+def test_mcp_ueber_run_tool_klare_meldung(recorded, tmp_path):
+    events = asyncio.run(_drive([_rt("mcp__srv__x", {})], _ctx(tmp_path), ["run_tool", "mcp__srv__x"]))
+    res = _results(events)
+    assert res[0].success is False and "MCP" in (res[0].error or "") and "direkt" in (res[0].error or "")
+    assert recorded == []
+
+
+def test_loop_signatur_am_inneren_namen():
+    """Fängt (Review #782, Security sollte): Wechsel run_tool(x)/x umging die Loop-Bremse (Signatur am äußeren Namen)."""
+    from hydrahive.runner._run_tool_unwrap import loop_signature_input, loop_signature_name
+    direkt = {"id": "a", "name": "shell_exec", "input": {"cmd": "ls"}}
+    umweg = _rt("shell_exec", {"cmd": "ls"}, "b")
+    assert loop_signature_name(direkt) == loop_signature_name(umweg) == "shell_exec"
+    assert loop_signature_input(direkt) == loop_signature_input(umweg) == {"cmd": "ls"}
+    src = (Path(__file__).resolve().parents[1] / "src/hydrahive/runner/runner.py").read_text()
+    assert "loop_signature_name(tu)" in src and "loop_signature_name(tool_uses[-1])" in src
+
+
+def test_run_tool_nicht_im_agenten_editor(client):
+    """Bis Plan-Aufgabe 5 lässt sich run_tool nicht einzeln vergeben (Review #782)."""
+    from hydrahive.api.routes import agents as agents_route
+    names = {t["name"] for t in agents_route.list_available_tools(("admin", "admin"))}
+    assert "run_tool" not in names and "file_read" in names

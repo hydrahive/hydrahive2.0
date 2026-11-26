@@ -71,6 +71,25 @@ def _schema_of(name: str) -> tuple[dict | None, bool]:
     return None, False
 
 
+def loop_signature_name(tool_use: dict) -> str:
+    """Name für die Loop-Bremse und die Aktivitätsanzeige: bei run_tool der innere Name (Review #782).
+
+    Sonst ließe sich die Endlos-Bremse umgehen, indem das Modell zwischen run_tool(x, …) und x(…) wechselt.
+    """
+    if tool_use.get("name") == OUTER and isinstance(tool_use.get("input"), dict):
+        inner = tool_use["input"].get("name")
+        if isinstance(inner, str) and inner.strip():
+            return inner.strip()
+    return str(tool_use.get("name") or "")
+
+
+def loop_signature_input(tool_use: dict) -> dict:
+    if tool_use.get("name") == OUTER and isinstance(tool_use.get("input"), dict):
+        args = tool_use["input"].get("args")
+        return args if isinstance(args, dict) else {}
+    return tool_use.get("input", {}) or {}
+
+
 def unwrap_run_tool(tool_use: dict, allowed_tools: list[str]) -> tuple[dict, str | None]:
     """(ausgepackter tool_use, Fehlertext | None). Kein ``run_tool`` → unverändert zurück.
 
@@ -78,6 +97,10 @@ def unwrap_run_tool(tool_use: dict, allowed_tools: list[str]) -> tuple[dict, str
     Fehler als Ergebnis des Aufrufs und führt nichts aus.
     """
     if tool_use.get("name") != OUTER:
+        return tool_use, None
+    if OUTER not in allowed_tools:
+        # Agent ohne run_tool (classic): nicht auspacken. Der Dispatcher lehnt den Aufruf dann wie jedes nicht
+        # erlaubte Tool ab („für diesen Agent nicht erlaubt“) – exakt wie vor dem Katalog (K7, Review #782).
         return tool_use, None
     raw = tool_use.get("input") or {}
     inner = raw.get("name") if isinstance(raw, dict) else None
@@ -91,6 +114,10 @@ def unwrap_run_tool(tool_use: dict, allowed_tools: list[str]) -> tuple[dict, str
         return tool_use, f"'{inner}' lässt sich nicht über run_tool aufrufen."
     if inner not in allowed_tools:
         return tool_use, f"Tool '{inner}' für diesen Agent nicht erlaubt."
+    from hydrahive.mcp import tool_bridge as mcp_bridge
+    if inner.startswith(mcp_bridge.PREFIX):
+        # MCP bleibt in Stufe 1 klassisch (Spec D3): MCP-Tools direkt aufrufen, nicht über run_tool.
+        return tool_use, f"'{inner}' ist ein MCP-Werkzeug – bitte direkt aufrufen, nicht über run_tool."
     schema, known = _schema_of(inner)
     if not known:
         return tool_use, f"Tool '{inner}' ist nicht mehr vorhanden."
