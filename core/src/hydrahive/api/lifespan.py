@@ -201,6 +201,9 @@ async def lifespan(app: FastAPI):
         if m.loaded and m.ctx and m.manifest for t in m.ctx.tools
     ])
     agent_bootstrap.migrate_tools(include_module_defaults=True)
+    # Tool-Katalog (docs/specs/tool-skill-katalog.md): nach allen Tool-Registrierungen, im Hintergrund.
+    from hydrahive.catalog.index import warm_catalog
+    asyncio.create_task(warm_catalog(), name="catalog-warm")
     from hydrahive.llm import registry as llm_registry
     # Hintergrund-Warm: blockiert den Start nicht (Provider-Fetch-Timeouts);
     # validate ist failopen während des kurzen kalten Fensters.

@@ -238,7 +238,8 @@ def test_run_tool_ist_registriert_aber_in_keiner_default_liste():
     from pathlib import Path
     src = Path(__file__).resolve().parents[1] / "src" / "hydrahive"
     allowed_files = {"run_tool.py", "_run_tool_unwrap.py", "_runner_tools.py",
-                     "agents.py"}                       # agents.py: Ausblende-Liste für den Editor (Review #782)
+                     "agents.py",                       # agents.py: Ausblende-Liste für den Editor (Review #782)
+                     "index.py"}                        # catalog/index.py: schließt die Such-Werkzeuge aus dem Katalog aus
     for f in src.rglob("*.py"):
         if f.name in allowed_files:
             continue
