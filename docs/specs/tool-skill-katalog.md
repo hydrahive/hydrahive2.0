@@ -1,6 +1,6 @@
 # Tool- und Skill-Katalog – kleiner Kern, Rest bei Bedarf
 
-Stand: 26.11.2026 · Status: **Entwurf, wartet auf Freigabe** · Task: 2da6ec55 (Weg A) · Gespräch: Buddy-Session 26.11.
+Stand: 26.11.2026 · Status: **Entwurf – Security-Review eingearbeitet, offen F3, dann Freigabe** · Task: 2da6ec55 (Weg A) · Gespräch: Buddy-Session 26.11.
 
 ## 1. Absicht und Warum
 
@@ -99,7 +99,24 @@ Offen für Till (ändern, was gebaut wird):
   - Abnahme K4 neu: **Innerhalb eines Laufs ist die Schema-Liste byte-gleich** (Test: alle LLM-Aufrufe eines Laufs mit `find_tools`+`run_tool` haben identische `tools`).
 - ~~F2~~ → **E3 (Till, 26.11.): Den Freigabe-Pool legt jeder Besitzer für seine eigenen Agenten fest** (nicht nur Admins). Gedeckelt durch die Rechte des Besitzers (`access/tool_filter.py`). *Annahme des Buddys, von Till nicht ausdrücklich bestätigt:* Projekte dürfen den Pool nur **einschränken**, nie erweitern – wie heute (`_project_tool_scope.py`).
 
-Damit sind alle Fragen beantwortet. Als Nächstes liest **hydrahive-security-reviewer** das Design (Rechte: D1, D2, D4, F2).
+Danach las **hydrahive-security-reviewer** das Design (Rechte: D1, D2, D4, F2).
+
+## 6b. Nach dem Security-Review (26.11., hydrahive-security-reviewer: 3 muss / 3 sollte / 1 kann)
+
+Alle Befunde übernommen; sie gehen den Entscheidungen oben vor, wo sie sie schärfen.
+
+- **S1 (muss) `run_tool` wird im Runner ausgepackt, BEVOR irgendeine Prüfung läuft.** Aus `run_tool(name, args)` wird intern ein normaler Tool-Aufruf `{name: inner, input: args, via: "run_tool"}`, der denselben Weg nimmt wie ein direkter: Bestätigung (Harakiri `shell_confirm_reason`, `ALWAYS_CONFIRM`, Discord-Admin), `vault_gate`, `tool_denied`, `agent_tree`-Sperr-Erkennung, Eintrag in `tool_calls` (innerer Name + Herkunft). Verboten als innerer Name: `run_tool`, `find_tools`, `find_skills`. Der innere Name muss in der **effektiven Freigabe des Laufs** stehen (S6), sonst Ablehnung. Die Tool-Liste an das Modell bleibt dabei unverändert (E4).
+- **S2 (muss) Kategorien-Freigabe nur über ein festes, im Kern gepflegtes Mapping** und nur für Kern- und Modul-Tools – nie für Plugin- oder MCP-Tools, nie für Tools mit Capability, `AUTHORING_TOOLS`, `ask_agent`, Außen-Tools (`OUTWARD_TOOLS`). Ein Tool, das nachträglich in eine Kategorie kommt (Modul-Update), ist **sichtbar, aber nicht frei**, bis ein Admin es bestätigt. Das ersetzt D1s freie `kategorie:…`-Form.
+- **S3 (muss) Pool und Zuweisung schließen `AUTHORING_TOOLS` immer aus** (`create_specialist`, `configure_specialist`, `write_skill` …). `create_specialist`/`configure_specialist` rechnen weiter nur mit den Config-Tools des Erzeugers (`bounded_tools` bleibt unverändert) – aus temporär zugewiesenen Tools wird nie ein dauerhafter Spezialist. `ask_agent` kommt nur über die Config, nie über Pool/Zuweisung (keine Ketten-Delegation mit immer neuen Pools).
+- **S4 (sollte) Deckel für Nicht-Admins:** siehe offene Frage F3 unten.
+- **S5 (sollte) Wer setzt welchen Pool:** Den Pool eines Agenten setzt nur dessen `owner` (oder Admin); den Projekt-Pool nur die Projektrolle `admin`. Wirksam ist **Agenten-Pool ∩ Projekt-Pool** (Projekte schränken nur ein – bisherige Annahme, jetzt Teil des Designs). Spezialisten nutzen den Projekt-Pool. Föderierte Ziele (`persona@workstation`) mit `tools`/`skills` → **Fehler** statt still ignorieren.
+- **S6 (sollte) Eine zentrale Funktion `effective_tool_names(agent, pool, project)`**, die alle Prüfer nutzen (Runner, Dispatcher, `_mirror_scope`/`has_outward_tools`, `agent_knowledge`, `scope_tools`, `access_filter_tools`). Feste Reihenfolge: **Config ∪ Pool → Kategorien auflösen → `scope_tools` (Projekt, Container-Allowlist) → `access_filter_tools` (Besitzer) → Kern-Schnitt (D6).** Damit stimmt D4 (Gedächtnis-Sicht) auch bei Kategorien.
+- **S7 (kann) Kein Informationsleck:** `find_tools` zeigt von gesperrten Tools weder Beschreibung noch Schema; Katalog-Schlüssel ist der volle Name inkl. Präfix (`plugin__…`, `mcp__…`); `find_skills` indexiert nie Skills fremder Nutzer/Projekte.
+
+**Geprüft ohne Befund:** Shell-Sperre hält auch bei zugewiesenem `shell_exec` (hängt am Agent-Typ, `_shell_guard.py:148–154`) – solange S1 gilt. D6 korrekt.
+
+Offen für Till:
+- **F3 (S4) Wie weit darf ein Nicht-Admin seinem Agenten Tools geben?** Heute setzt nur ein Admin `agent.tools`. Der Deckel `tool_filter` greift nur bei Tools mit Capability (heute u. a. `shell_exec`, `web_browser`) – Mail, Discord, `file_write`, Hausautomation haben keine.
 
 ## 7. Der Umsetzung überlassen
 
@@ -117,3 +134,9 @@ Tabellen-/Spaltennamen, Form des Index (eigene Tabelle im Spiegel vs. Datei), ge
 - **K7** `tool_mode: classic` verhält sich exakt wie heute (bestehende Runner-Tests grün).
 - **K8** Messung: gesucht/gefunden/aktiviert/benutzt je Sitzung abrufbar.
 - **K9** Ohne Postgres/Embed-Modell kein Fehler: Wortsuche, notfalls classic.
+- **K11** (S1) `run_tool(shell_exec, …)` löst das Harakiri-Popup aus; `run_tool` auf ein Vault-Tool ohne Freigabe → gesperrt; `run_tool(run_tool, …)` → abgelehnt; Container-Projekt: `run_tool` auf ein Tool außerhalb `CONTAINER_ALLOWED` → abgelehnt; `agent_tree` und `tool_calls` zeigen den inneren Namen.
+- **K12** (S2) Ein nachträglich einer Kategorie zugeordnetes Tool ist nicht frei; ein Plugin mit `category: medien` ist nicht über die Kategorie frei.
+- **K13** (S3) Pool/Zuweisung mit `create_specialist`/`ask_agent` → abgelehnt; ein Unteragent mit zugewiesenem Tool X legt per `create_specialist` einen Spezialisten **ohne** X an.
+- **K14** (S5) `write`-Mitglied setzt Pool eines Projekt-Agenten → 403; `ask_agent` an `persona@ws` mit `tools` → Fehler; wirksam = Agenten-Pool ∩ Projekt-Pool.
+- **K15** (S6) Agent mit Kategorie, die ein Außen-Tool enthält → Gedächtnis-Stufe höchstens `normal`.
+- **K16** (S4/F3) Nicht-Admin setzt Pool mit Tool außerhalb seines Deckels → 403.
