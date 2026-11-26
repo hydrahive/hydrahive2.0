@@ -118,10 +118,12 @@ def test_moegliche_tools_ohne_projekt_und_besitzerfilter():
     assert possible_tool_names(agent) == {"file_read", "web_browser", "send_mail", "plugin__git-stats__git_commits"}
 
 
-def test_kategorien_hook_ist_identitaet(monkeypatch):
-    """Aufgabe 4 hängt resolve_categories später ein; bis dahin ändert es nichts."""
+def test_kategorien_hook_loest_nur_kategorien_auf():
+    """Aufgabe 4 hat resolve_categories eingehängt: Einzelne Namen bleiben, ``kategorie:<name>`` wird aufgelöst."""
     from hydrahive.agents import effective_tools as et
-    assert et.resolve_categories(["file_read", "kategorie:medien"]) == ["file_read", "kategorie:medien"]
+    got = et.resolve_categories(["file_read", "kategorie:media", "plugin__git-stats__git_commits"])
+    assert got[0] == "file_read" and got[-1] == "plugin__git-stats__git_commits"
+    assert "generate_image" in got and not any(n.startswith("kategorie:") for n in got)
 
 
 def test_scope_mirror_nutzt_possible_tool_names():

@@ -236,15 +236,15 @@ def test_run_tool_ist_registriert_aber_in_keiner_default_liste():
     from hydrahive.tools import REGISTRY
     assert "run_tool" in REGISTRY
     from pathlib import Path
+    # Nur die zentrale Konstante (catalog/__init__.py) und das Tool selbst dürfen den Namen als Text tragen.
     src = Path(__file__).resolve().parents[1] / "src" / "hydrahive"
-    allowed_files = {"run_tool.py", "_run_tool_unwrap.py", "_runner_tools.py",
-                     "agents.py",                       # agents.py: Ausblende-Liste für den Editor (Review #782)
-                     "index.py"}                        # catalog/index.py: schließt die Such-Werkzeuge aus dem Katalog aus
+    erlaubt = {src / "catalog" / "__init__.py", src / "tools" / "run_tool.py", src / "runner" / "_run_tool_unwrap.py",
+               src / "runner" / "_runner_tools.py"}   # _run_tool_unwrap/_runner_tools: OUTER/VIA = "run_tool" (der Mechanismus)
     for f in src.rglob("*.py"):
-        if f.name in allowed_files:
+        if f in erlaubt:
             continue
         code = "\n".join(l for l in f.read_text().splitlines() if not l.lstrip().startswith("#"))
-        assert '"run_tool"' not in code, f"run_tool in {f}"
+        assert '"run_tool"' not in code, f"run_tool in {f} – bitte catalog.CATALOG_TOOLS nutzen"
     # Und direkt: in keiner Standard-Liste der Agenten-Typen.
     from hydrahive.agents._defaults import DEFAULT_TOOLS
     for typ, tools in DEFAULT_TOOLS.items():

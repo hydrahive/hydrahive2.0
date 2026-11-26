@@ -12,7 +12,7 @@ from typing import Literal
 logger = logging.getLogger(__name__)
 
 #: Nie im Katalog: die Werkzeuge der Suche selbst.
-EXCLUDED = frozenset({"run_tool", "find_tools", "find_skills"})
+from hydrahive.catalog import CATALOG_TOOLS as EXCLUDED  # noqa: E402
 MCP_PREFIX = "mcp__"
 
 
@@ -99,3 +99,19 @@ async def warm_catalog() -> None:
         logger.info("Tool-Katalog: %d Vektoren berechnet", done)
     except Exception:  # noqa: BLE001 — der Start darf daran nie scheitern
         logger.warning("Tool-Katalog: Aufwärmen fehlgeschlagen – nur Wortsuche", exc_info=True)
+
+
+def build_skill_entries(agent: dict, *, user_id: str, project_id: str | None) -> list[CatalogEntry]:
+    """Skill-Einträge genau für diesen Agenten (S7): nur, was ``skills.loader.list_for_agent`` liefert.
+
+    Skills gehören Nutzern, Projekten und Agenten und stehen deshalb NIE im globalen Speicher; ``find_skills`` baut diese
+    Menge je Aufruf und sucht nur darin. ``owner_scope`` ist der Bereich des Skills (system/user/project/agent).
+    """
+    from hydrahive.skills import list_for_agent
+    owner = agent.get("owner") or user_id
+    skills = list_for_agent(agent.get("id", ""), owner, disabled=list(agent.get("disabled_skills") or []),
+                            project_id=project_id or agent.get("project_id"))
+    return [CatalogEntry(
+        name=s.name, kind="skill", title=(s.description or s.name).strip()[:140],
+        text=f"{s.name.replace('-', ' ').replace('_', ' ')}. {s.description} {s.when_to_use}",
+        category="skill", owner_scope=s.scope) for s in skills]
