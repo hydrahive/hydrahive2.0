@@ -54,7 +54,8 @@ def scope_for(agent: dict | None, *, username: str, project_id: str | None) -> S
         projects.insert(0, str(project_id))
     own = agent.get("knowledge_access") or {}
     level = _max_level(own, base["max_level"])
-    if agent.get("type") != "master" and groups.has_outward_tools(agent.get("tools")):
+    from hydrahive.agents.effective_tools import possible_tool_names   # lazy: agents ↔ db nicht zyklisch importieren
+    if agent.get("type") != "master" and groups.has_outward_tools(sorted(possible_tool_names(agent))):
         level = "normal"                                  # Außenwirkung: nie über normal
     members = groups.group_usernames(own.get("groups"), exclude=username) if own.get("groups") else ()
     return Scope(username=username, scope=scope, projects=tuple(dict.fromkeys(projects)), max_level=level,

@@ -11,6 +11,7 @@ import logging
 from fastapi import APIRouter, Depends, status
 
 from hydrahive.agents import config as agent_config
+from hydrahive.agents.effective_tools import possible_tool_names
 from hydrahive.api.middleware.auth import require_admin
 from hydrahive.api.middleware.errors import coded
 from hydrahive.db import _mirror_groups as groups
@@ -47,7 +48,8 @@ async def agent_knowledge(agent_id: str) -> dict:
         raise coded(status.HTTP_404_NOT_FOUND, "agent_not_found")
     project_id = agent.get("project_id")
     scope = scope_for(agent, username=_username(agent), project_id=project_id)
-    outward = agent.get("type") != "master" and groups.has_outward_tools(agent.get("tools"))
+    possible = possible_tool_names(agent)          # nach möglicher Freigabe (D4): Config ∪ Pool
+    outward = agent.get("type") != "master" and groups.has_outward_tools(sorted(possible))
     return {
         "settings": agent.get("knowledge_access") or {},
         "effective": {
@@ -57,7 +59,7 @@ async def agent_knowledge(agent_id: str) -> dict:
             "group_users": list(scope.group_users),
         },
         "limited_by_outward_tools": outward,
-        "outward_tools": sorted(t for t in (agent.get("tools") or []) if t in groups.OUTWARD_TOOLS),
+        "outward_tools": sorted(t for t in possible if t in groups.OUTWARD_TOOLS),
         "counted_for": scope.username,          # Sicht hängt im Chat vom Nutzer des Laufs ab
         "visible_events": await _count(scope),
     }

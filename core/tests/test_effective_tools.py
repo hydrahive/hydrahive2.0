@@ -57,8 +57,8 @@ def test_container_projekt_filtert_pool():
     from hydrahive.agents.effective_tools import effective_tool_names
     agent = {"id": "a", "type": "project", "tools": ["file_read"]}
     got = effective_tool_names(agent, username="till", project=CONTAINER_PROJEKT,
-                               pool=["web_browser", "send_mail", "shell_exec", "plugin__git-stats__git_commits"])
-    assert got == ["file_read", "shell_exec"]                      # nur Container-Allowlist, Rest fällt raus
+                               pool=["web_browser", "send_mail", "web_search", "plugin__git-stats__git_commits"])
+    assert got == ["file_read", "web_search"]                      # nur Container-Allowlist, Rest fällt raus
 
 
 def test_besitzer_filter_gilt_fuer_pool():
