@@ -11,6 +11,7 @@ from typing import AsyncIterator
 from hydrahive.runner import tool_confirmation
 from hydrahive.runner.dispatcher import execute_tool, to_tool_result_block
 from hydrahive.runner.events import Event, ToolConfirmRequired, ToolUseResult, ToolUseStart
+from hydrahive.runner._run_tool_unwrap import unwrap_run_tool
 from hydrahive.runner.integrity import IntegrityState
 from hydrahive.settings import settings
 from hydrahive.tools import ToolContext, ToolResult
@@ -68,10 +69,21 @@ async def process_tool_uses(
     """
     result_blocks: list[dict] = sink if sink is not None else []
     for tu in tool_uses:
+        # ERSTE Handlung: run_tool auspacken (Katalog, Spec E4/S1). Alles Folgende – Bestätigung, vault_gate,
+        # tool_denied, Container-Allowlist, tool_calls, Sperr-Erkennung – sieht damit den INNEREN Namen.
+        tu, unwrap_error = unwrap_run_tool(tu, allowed_tools)
         tu_id = tu.get("id", "")
         tu_name = tu.get("name", "")
         tu_args = tu.get("input", {}) or {}
         yield ToolUseStart(call_id=tu_id, tool_name=tu_name, arguments=tu_args)
+
+        if unwrap_error is not None:
+            # Abgelehnt ohne Ausführung: kein Dispatcher, keine Bestätigung. Der Aufruf bleibt als Ergebnis sichtbar.
+            result = ToolResult.fail(unwrap_error)
+            yield ToolUseResult(call_id=tu_id, tool_name=tu_name, success=False,
+                                output=None, error=result.error, duration_ms=0)
+            result_blocks.append(to_tool_result_block(tu_id, result, ctx, tu_name))
+            continue
 
         # Harakiri-Schutz: auch ohne globales require_confirm verlangt ein
         # shell_exec, das in einen geschützten Pfad schreibt oder ein Geheimnis

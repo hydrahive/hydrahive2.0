@@ -51,8 +51,11 @@ async def execute_tool(
     tool_use_id = tool_use.get("id") or None
 
     # Always persist the call attempt — even if it fails validation.
+    # Herkunft: gesetzt, wenn der Runner einen run_tool-Aufruf ausgepackt hat (Katalog, Spec S1)
+    via = tool_use.get("via")
     record = tools_db.create(
         parent_message_id, tool_name, args,
+        metadata={"via": via} if via else None,
         session_id=ctx.session_id, agent_id=ctx.agent_id, user_id=ctx.user_id,
         tool_use_id=tool_use_id, iteration=iteration,
     )

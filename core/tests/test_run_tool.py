@@ -92,15 +92,26 @@ def test_shell_ueber_run_tool_loest_harakiri_aus(launcher, monkeypatch, tmp_path
     assert launcher.calls == [], "nach Ablehnung darf nichts laufen"
 
 
-def test_vault_gesperrt_auch_ueber_run_tool(monkeypatch, tmp_path):
+def test_vault_gesperrt_auch_ueber_run_tool(monkeypatch, tmp_path, client):
     """vault_gate sieht den INNEREN Namen: bei gesperrtem Vault läuft das Vault-Werkzeug nicht."""
+    from hydrahive.db import messages as messages_db
+    from hydrahive.db import sessions as sessions_db
     from hydrahive.vault import agent_gate
     monkeypatch.setattr(_runner_tools, "record_observation", lambda **k: None)
     monkeypatch.setattr(agent_gate, "vault_tools", lambda: frozenset({"read_memory"}))
     monkeypatch.setattr("hydrahive.vault.unlocks.use", lambda uid: False, raising=False)
     monkeypatch.setattr("hydrahive.access.check.user_id_for", lambda u: "uid-1")
-    events = asyncio.run(_drive([_rt("read_memory", {"query": "x"})], _ctx(tmp_path), ["run_tool", "read_memory"]))
-    res = _results(events)
+    monkeypatch.setattr("hydrahive.runner.dispatcher.tool_denied", lambda u, t: None)
+    s = sessions_db.create(agent_id="a1", user_id="u1", title="t")
+    msg = messages_db.append(s.id, "assistant", "hi")
+    ctx = ToolContext(session_id=s.id, agent_id="a1", user_id="u1", workspace=tmp_path)
+
+    async def go():
+        return [e async for e in _runner_tools.process_tool_uses(
+            [_rt("read_memory", {"key": "x"})], ctx=ctx, allowed_tools=["run_tool", "read_memory"],
+            parent_message_id=msg.id, require_confirm=False, tool_result_max_chars=10000)]
+
+    res = _results(asyncio.run(go()))
     assert res and res[0].success is False and "Vault" in (res[0].error or "")
 
 
@@ -179,12 +190,13 @@ def test_run_tool_auf_direkt_vorhandenes_tool_wie_direkt(recorded, tmp_path):
     assert via.get("via") == "run_tool" and "via" not in direct
 
 
-def test_agent_tree_erkennt_sperre_ueber_run_tool(launcher, tmp_path, client):
+def test_agent_tree_erkennt_sperre_ueber_run_tool(launcher, tmp_path, client, monkeypatch):
     """Ein über run_tool gesperrter Shell-Befehl wird als shell_exec mit Sperre im Agenten-Baum erkannt."""
     from hydrahive.db import messages as messages_db
     from hydrahive.db import sessions as sessions_db
     from hydrahive.db import tools as tools_db
     from hydrahive.runner import agent_tree
+    monkeypatch.setattr(_runner_tools, "record_observation", lambda **k: None)
     s = sessions_db.create(agent_id="a1", user_id="u1", title="t")
     msg = messages_db.append(s.id, "assistant", "hi")
     ctx = ToolContext(session_id=s.id, agent_id="a1", user_id="u1", workspace=tmp_path)
@@ -195,13 +207,9 @@ def test_agent_tree_erkennt_sperre_ueber_run_tool(launcher, tmp_path, client):
             parent_message_id=msg.id, require_confirm=False, tool_result_max_chars=10000)]
 
     from hydrahive.tools import _shell_guard
-    import hydrahive.tools._shell_guard as sg
-    sg_orig = sg.agent_type
-    sg.agent_type = lambda agent_id: "project"           # Schutz gilt für Projekt-Agenten
-    try:
-        asyncio.run(go())
-    finally:
-        sg.agent_type = sg_orig
+    monkeypatch.setattr("hydrahive.runner.dispatcher.tool_denied", lambda u, t: None)   # Nutzer hat die Freigabe
+    monkeypatch.setattr(_shell_guard, "agent_type", lambda agent_id: "project")        # Schutz gilt für Projekt-Agenten
+    asyncio.run(go())
     rows = tools_db.list_for_message(msg.id)
     assert len(rows) == 1 and rows[0].tool_name == "shell_exec"
     flagged = agent_tree._row(rows[0].tool_name, json.dumps(rows[0].arguments), rows[0].status, rows[0].created_at,
@@ -230,7 +238,7 @@ def test_run_tool_ist_registriert_aber_in_keiner_default_liste():
     from pathlib import Path
     src = Path(__file__).resolve().parents[1] / "src" / "hydrahive"
     for f in src.rglob("*.py"):
-        text = f.read_text()
         if f.name in ("run_tool.py", "_run_tool_unwrap.py", "_runner_tools.py"):
             continue
-        assert '"run_tool"' not in text or f.name.startswith("test"), f"run_tool in {f}"
+        code = "\n".join(l for l in f.read_text().splitlines() if not l.lstrip().startswith("#"))
+        assert '"run_tool"' not in code, f"run_tool in {f}"
