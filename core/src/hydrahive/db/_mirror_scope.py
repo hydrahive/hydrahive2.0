@@ -16,10 +16,13 @@ Regeln (Spec §2):
 """
 from __future__ import annotations
 
+import logging
 from dataclasses import dataclass, field
 
 from hydrahive.db import _mirror_groups as groups
 from hydrahive.db._mirror_levels import LEVELS, hidden_tools
+
+logger = logging.getLogger(__name__)
 
 SCOPES = ("project", "user")
 
@@ -54,11 +57,24 @@ def scope_for(agent: dict | None, *, username: str, project_id: str | None) -> S
         projects.insert(0, str(project_id))
     own = agent.get("knowledge_access") or {}
     level = _max_level(own, base["max_level"])
-    if agent.get("type") != "master" and groups.has_outward_tools(agent.get("tools")):
+    if agent.get("type") != "master" and _outward(agent):
         level = "normal"                                  # Außenwirkung: nie über normal
     members = groups.group_usernames(own.get("groups"), exclude=username) if own.get("groups") else ()
     return Scope(username=username, scope=scope, projects=tuple(dict.fromkeys(projects)), max_level=level,
                  group_users=members, master_agents=groups.master_agent_ids() if members else ())
+
+
+def _outward(agent: dict) -> bool:
+    """Kann der Agent nach außen wirken (nach möglicher Freigabe, Spec D4)? Fehler → True (fail-closed: Stufe normal).
+
+    possible_tool_names löst künftig Kategorien auf (DB) – ein Fehler dort darf die Einstufung nie lockern.
+    """
+    try:
+        from hydrahive.agents.effective_tools import possible_tool_names   # lazy: agents ↔ db nicht zyklisch
+        return groups.has_outward_tools(sorted(possible_tool_names(agent)))
+    except Exception:
+        logger.warning("Außen-Einstufung für Agent %s fehlgeschlagen – Stufe normal", agent.get("id"), exc_info=True)
+        return True
 
 
 def _max_level(own: dict, default: str) -> str:

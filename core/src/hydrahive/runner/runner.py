@@ -26,7 +26,7 @@ from hydrahive.runner._buddy_mode import with_buddy_mode
 from hydrahive.runner._language_rule import language_for, with_language_rule
 from hydrahive.runner._emote_hint import with_emote_hint
 from hydrahive.runner._project_tool_scope import scope_tools
-from hydrahive.access.tool_filter import filter_tools as access_filter_tools
+from hydrahive.agents.effective_tools import effective_tool_names
 from hydrahive.runner._run_origin import OTHER, RunOrigin
 from hydrahive.runner._runner_cancel import persist_on_cancel
 from hydrahive.runner._runner_helpers import close_open_tool_uses, refusal_error
@@ -134,9 +134,9 @@ async def run(
             base_system_prompt = (f"{base_system_prompt}\n\n"
                                   f"{project_layout_hint(workspace, _proj, agent=agent, username=session.user_id)}")
 
-    local_tools, mcp_servers = scope_tools(
-        _proj, list(agent.get("tools", [])), list(agent.get("mcp_servers", [])))
-    local_tools = access_filter_tools(session.user_id, local_tools)
+    # Wirksame Tools über die zentrale Stelle (Katalog Etappe 1, Spec S6); MCP bleibt wie bisher daneben.
+    local_tools = effective_tool_names(agent, username=session.user_id, project=_proj)
+    _, mcp_servers = scope_tools(_proj, [], list(agent.get("mcp_servers", [])))
     mcp_schemas = await mcp_bridge.schemas_for_servers(mcp_servers)
     plugin_schemas = plugin_bridge.schemas_for(local_tools)
     tool_schemas = schemas_for(local_tools) + mcp_schemas + plugin_schemas

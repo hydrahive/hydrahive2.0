@@ -117,5 +117,5 @@ def test_testseite_hinweis_nur_mit_projekt(monkeypatch):
 
     from hydrahive.runner import runner
     src = inspect.getsource(runner)
-    block = src[src.index("_proj = None"):src.index("local_tools, mcp_servers")]
+    block = src[src.index("_proj = None"):src.index("local_tools = effective_tool_names(")]   # Anker: erste Zeile nach dem Projekt-Block
     assert "if active_project_id:" in block and "if _proj:" in block and "project_layout_hint(" in block
