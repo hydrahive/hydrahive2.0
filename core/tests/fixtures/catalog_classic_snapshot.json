@@ -1,0 +1,530 @@
+{
+ "classic_default": {
+  "schemas": [
+   {
+    "description": "Führt einen Shell-Befehl im Workspace aus (bash). Gibt stdout, stderr und Exit-Code zurück. Default-Timeout: 60s. GH_TOKEN + GITHUB_TOKEN sind automatisch gesetzt wenn das Projekt einen GitHub-Token hat — `gh issue create`, `git push` etc. ohne extra Auth. GITEA_TOKEN ist gesetzt wenn ein Credential für localhost/127.0.0.1 (lokales Gitea) existiert — für Gitea-Pushes: `git -c http.extraHeader='Authorization: token '\"$GITEA_TOKEN\" push ...`. Für Projekt-Agenten und Spezialisten gesperrt (Ablehnung ohne Ausführung): fremde Rechner (ssh/scp/rsync host:), sudo/su, Container-exec und Geheimnis-Dateien (/etc/hydrahive2, .ssh, /proc/*/environ). Brauchst du so etwas: als Blocker melden.",
+    "input_schema": {
+     "properties": {
+      "cmd": {
+       "description": "Shell-Befehl der ausgeführt werden soll.",
+       "type": "string"
+      },
+      "description": {
+       "description": "Kurze Beschreibung was der Befehl macht (optional).",
+       "type": "string"
+      },
+      "timeout": {
+       "default": 60,
+       "description": "Timeout in Sekunden (default 60, maximal 600). Länger laufende Jobs im Hintergrund starten: `befehl > log 2>&1 &` und danach das Log lesen.",
+       "maximum": 600,
+       "minimum": 1,
+       "type": "integer"
+      }
+     },
+     "required": [
+      "cmd"
+     ],
+     "type": "object"
+    },
+    "name": "shell_exec"
+   },
+   {
+    "description": "Liest eine Datei aus dem Workspace. Gibt den Inhalt mit Zeilennummern zurück. Optionen: offset/limit für Zeilenbereiche; grep (Regex) um nur passende Zeilen zurückzugeben (+ context_lines Zeilen Kontext davor/danach). Nutze grep wenn du nur bestimmte Werte/Funktionen aus einer großen Datei brauchst — z.B. grep='secret_key|jwt_algorithm' statt die ganze settings.py zu lesen.",
+    "input_schema": {
+     "properties": {
+      "context_lines": {
+       "default": 2,
+       "description": "Zeilen Kontext vor/nach jedem grep-Treffer (default 2).",
+       "type": "integer"
+      },
+      "grep": {
+       "description": "Regex: gibt nur Zeilen zurück die matchen, plus context_lines Zeilen Kontext.",
+       "type": "string"
+      },
+      "limit": {
+       "default": 2000,
+       "description": "Anzahl Zeilen (default 2000, ignoriert wenn grep gesetzt).",
+       "type": "integer"
+      },
+      "offset": {
+       "default": 1,
+       "description": "Erste Zeile (1-basiert, optional, ignoriert wenn grep gesetzt).",
+       "type": "integer"
+      },
+      "path": {
+       "description": "Pfad relativ zum Workspace (oder absolut, muss innerhalb liegen).",
+       "type": "string"
+      }
+     },
+     "required": [
+      "path"
+     ],
+     "type": "object"
+    },
+    "name": "file_read"
+   },
+   {
+    "description": "Schreibt eine Datei. Überschreibt vorhandene Inhalte. Parent-Verzeichnisse werden automatisch angelegt.",
+    "input_schema": {
+     "properties": {
+      "content": {
+       "description": "Vollständiger Datei-Inhalt.",
+       "type": "string"
+      },
+      "path": {
+       "description": "Pfad relativ zum Workspace.",
+       "type": "string"
+      }
+     },
+     "required": [
+      "path",
+      "content"
+     ],
+     "type": "object"
+    },
+    "name": "file_write"
+   },
+   {
+    "description": "Websuche über lokalen SearxNG. Gibt Titel, URL, Snippet, Quelle und – falls bekannt – das Datum (published) zurück. Für aktuelle Ereignisse category='news' und time_range (day/week/month/year) nutzen. Fallen die Suchanbieter aus und ist ein Tavily-Schlüssel eingetragen, springt Tavily automatisch ein (provider='tavily'); bei wenigen allgemeinen Treffern ergänzt Tavily die Liste (supplemented='tavily').",
+    "input_schema": {
+     "properties": {
+      "category": {
+       "default": "general",
+       "description": "general = Web, news = Nachrichten (für Aktuelles).",
+       "enum": [
+        "general",
+        "news"
+       ],
+       "type": "string"
+      },
+      "count": {
+       "default": 10,
+       "description": "Anzahl Ergebnisse (default 10).",
+       "type": "integer"
+      },
+      "query": {
+       "description": "Suchanfrage.",
+       "type": "string"
+      },
+      "time_range": {
+       "description": "Optional: nur Treffer aus diesem Zeitraum.",
+       "enum": [
+        "day",
+        "week",
+        "month",
+        "year"
+       ],
+       "type": "string"
+      }
+     },
+     "required": [
+      "query"
+     ],
+     "type": "object"
+    },
+    "name": "web_search"
+   },
+   {
+    "description": "Sendet eine E-Mail. Nutzt standardmäßig die globalen Mail-Settings (System → Einstellungen → Mail). Eine agent-eigene `smtp`-Tool-Config (host, port, user, password, from, use_tls) überschreibt diese optional.",
+    "input_schema": {
+     "properties": {
+      "body": {
+       "description": "Klartext-Body.",
+       "type": "string"
+      },
+      "cc": {
+       "description": "CC-Empfänger (optional).",
+       "type": "string"
+      },
+      "subject": {
+       "description": "Betreff.",
+       "type": "string"
+      },
+      "to": {
+       "description": "Empfänger (komma-separiert für mehrere).",
+       "type": "string"
+      }
+     },
+     "required": [
+      "to",
+      "subject",
+      "body"
+     ],
+     "type": "object"
+    },
+    "name": "send_mail"
+   },
+   {
+    "description": "Schreibt die Todo-Liste der Session komplett neu. Der Agent gibt jedes Mal die volle Liste — sie ersetzt die vorherige. Status: pending | in_progress | done.",
+    "input_schema": {
+     "properties": {
+      "items": {
+       "description": "Liste von Todo-Einträgen.",
+       "items": {
+        "properties": {
+         "content": {
+          "description": "Beschreibung der Aufgabe.",
+          "type": "string"
+         },
+         "status": {
+          "default": "pending",
+          "enum": [
+           "pending",
+           "in_progress",
+           "done"
+          ],
+          "type": "string"
+         }
+        },
+        "required": [
+         "content"
+        ],
+        "type": "object"
+       },
+       "type": "array"
+      }
+     },
+     "required": [
+      "items"
+     ],
+     "type": "object"
+    },
+    "name": "todo_write"
+   },
+   {
+    "description": "Lädt den vollen Body eines Skills in die Konversation. Skills sind wiederverwendbare Anweisungs-Templates (z.B. 'code-review', 'git-workflow'). Mit `list_skills` siehst du was verfügbar ist.",
+    "input_schema": {
+     "properties": {
+      "name": {
+       "description": "Skill-Name (siehe list_skills)",
+       "type": "string"
+      }
+     },
+     "required": [
+      "name"
+     ],
+     "type": "object"
+    },
+    "name": "load_skill"
+   }
+  ],
+  "stable": "Du bist ein persönlicher Assistent für deinen User. Du koordinierst Aufgaben, delegierst an Spezialisten wenn nötig und arbeitest selbst an kleineren Aufgaben direkt im Workspace.\n\nDu sprichst Deutsch, antwortest direkt und ehrlich, vermeidest leere Bestätigungen. Bei Unsicherheit fragst du nach — lieber eine kurze Rückfrage als in die falsche Richtung arbeiten.\n\n## Sprache\nAntworte immer auf Deutsch. Das gilt für jede Ausgabe, auch für kurze Zwischensätze vor Werkzeugaufrufen, Rückfragen, Berichte sowie Commit- und PR-Texte. Code, Befehle, Dateinamen und wörtliche Zitate bleiben im Original. Auch wenn Werkzeug-Ergebnisse, Code oder Logs englisch sind, bleibt deine Sprache Deutsch.\n\nWorkspace: <WS>\n\n## Skills\nLade einen Skill mit `load_skill(name)`, wenn er zur Aufgabe passt.\n\n| Skill | Wann nutzen |\n|-------|-------------|\n| `debugging` | wenn etwas nicht funktioniert |\n| `docs` | wenn Doku gebraucht wird |",
+  "tools": [
+   "shell_exec",
+   "file_read",
+   "file_write",
+   "web_search",
+   "send_mail",
+   "todo_write",
+   "load_skill"
+  ]
+ },
+ "classic_longterm": {
+  "schemas": [
+   {
+    "description": "Führt einen Shell-Befehl im Workspace aus (bash). Gibt stdout, stderr und Exit-Code zurück. Default-Timeout: 60s. GH_TOKEN + GITHUB_TOKEN sind automatisch gesetzt wenn das Projekt einen GitHub-Token hat — `gh issue create`, `git push` etc. ohne extra Auth. GITEA_TOKEN ist gesetzt wenn ein Credential für localhost/127.0.0.1 (lokales Gitea) existiert — für Gitea-Pushes: `git -c http.extraHeader='Authorization: token '\"$GITEA_TOKEN\" push ...`. Für Projekt-Agenten und Spezialisten gesperrt (Ablehnung ohne Ausführung): fremde Rechner (ssh/scp/rsync host:), sudo/su, Container-exec und Geheimnis-Dateien (/etc/hydrahive2, .ssh, /proc/*/environ). Brauchst du so etwas: als Blocker melden.",
+    "input_schema": {
+     "properties": {
+      "cmd": {
+       "description": "Shell-Befehl der ausgeführt werden soll.",
+       "type": "string"
+      },
+      "description": {
+       "description": "Kurze Beschreibung was der Befehl macht (optional).",
+       "type": "string"
+      },
+      "timeout": {
+       "default": 60,
+       "description": "Timeout in Sekunden (default 60, maximal 600). Länger laufende Jobs im Hintergrund starten: `befehl > log 2>&1 &` und danach das Log lesen.",
+       "maximum": 600,
+       "minimum": 1,
+       "type": "integer"
+      }
+     },
+     "required": [
+      "cmd"
+     ],
+     "type": "object"
+    },
+    "name": "shell_exec"
+   },
+   {
+    "description": "Liest eine Datei aus dem Workspace. Gibt den Inhalt mit Zeilennummern zurück. Optionen: offset/limit für Zeilenbereiche; grep (Regex) um nur passende Zeilen zurückzugeben (+ context_lines Zeilen Kontext davor/danach). Nutze grep wenn du nur bestimmte Werte/Funktionen aus einer großen Datei brauchst — z.B. grep='secret_key|jwt_algorithm' statt die ganze settings.py zu lesen.",
+    "input_schema": {
+     "properties": {
+      "context_lines": {
+       "default": 2,
+       "description": "Zeilen Kontext vor/nach jedem grep-Treffer (default 2).",
+       "type": "integer"
+      },
+      "grep": {
+       "description": "Regex: gibt nur Zeilen zurück die matchen, plus context_lines Zeilen Kontext.",
+       "type": "string"
+      },
+      "limit": {
+       "default": 2000,
+       "description": "Anzahl Zeilen (default 2000, ignoriert wenn grep gesetzt).",
+       "type": "integer"
+      },
+      "offset": {
+       "default": 1,
+       "description": "Erste Zeile (1-basiert, optional, ignoriert wenn grep gesetzt).",
+       "type": "integer"
+      },
+      "path": {
+       "description": "Pfad relativ zum Workspace (oder absolut, muss innerhalb liegen).",
+       "type": "string"
+      }
+     },
+     "required": [
+      "path"
+     ],
+     "type": "object"
+    },
+    "name": "file_read"
+   },
+   {
+    "description": "Schreibt eine Datei. Überschreibt vorhandene Inhalte. Parent-Verzeichnisse werden automatisch angelegt.",
+    "input_schema": {
+     "properties": {
+      "content": {
+       "description": "Vollständiger Datei-Inhalt.",
+       "type": "string"
+      },
+      "path": {
+       "description": "Pfad relativ zum Workspace.",
+       "type": "string"
+      }
+     },
+     "required": [
+      "path",
+      "content"
+     ],
+     "type": "object"
+    },
+    "name": "file_write"
+   },
+   {
+    "description": "Websuche über lokalen SearxNG. Gibt Titel, URL, Snippet, Quelle und – falls bekannt – das Datum (published) zurück. Für aktuelle Ereignisse category='news' und time_range (day/week/month/year) nutzen. Fallen die Suchanbieter aus und ist ein Tavily-Schlüssel eingetragen, springt Tavily automatisch ein (provider='tavily'); bei wenigen allgemeinen Treffern ergänzt Tavily die Liste (supplemented='tavily').",
+    "input_schema": {
+     "properties": {
+      "category": {
+       "default": "general",
+       "description": "general = Web, news = Nachrichten (für Aktuelles).",
+       "enum": [
+        "general",
+        "news"
+       ],
+       "type": "string"
+      },
+      "count": {
+       "default": 10,
+       "description": "Anzahl Ergebnisse (default 10).",
+       "type": "integer"
+      },
+      "query": {
+       "description": "Suchanfrage.",
+       "type": "string"
+      },
+      "time_range": {
+       "description": "Optional: nur Treffer aus diesem Zeitraum.",
+       "enum": [
+        "day",
+        "week",
+        "month",
+        "year"
+       ],
+       "type": "string"
+      }
+     },
+     "required": [
+      "query"
+     ],
+     "type": "object"
+    },
+    "name": "web_search"
+   },
+   {
+    "description": "Sendet eine E-Mail. Nutzt standardmäßig die globalen Mail-Settings (System → Einstellungen → Mail). Eine agent-eigene `smtp`-Tool-Config (host, port, user, password, from, use_tls) überschreibt diese optional.",
+    "input_schema": {
+     "properties": {
+      "body": {
+       "description": "Klartext-Body.",
+       "type": "string"
+      },
+      "cc": {
+       "description": "CC-Empfänger (optional).",
+       "type": "string"
+      },
+      "subject": {
+       "description": "Betreff.",
+       "type": "string"
+      },
+      "to": {
+       "description": "Empfänger (komma-separiert für mehrere).",
+       "type": "string"
+      }
+     },
+     "required": [
+      "to",
+      "subject",
+      "body"
+     ],
+     "type": "object"
+    },
+    "name": "send_mail"
+   },
+   {
+    "description": "Schreibt die Todo-Liste der Session komplett neu. Der Agent gibt jedes Mal die volle Liste — sie ersetzt die vorherige. Status: pending | in_progress | done.",
+    "input_schema": {
+     "properties": {
+      "items": {
+       "description": "Liste von Todo-Einträgen.",
+       "items": {
+        "properties": {
+         "content": {
+          "description": "Beschreibung der Aufgabe.",
+          "type": "string"
+         },
+         "status": {
+          "default": "pending",
+          "enum": [
+           "pending",
+           "in_progress",
+           "done"
+          ],
+          "type": "string"
+         }
+        },
+        "required": [
+         "content"
+        ],
+        "type": "object"
+       },
+       "type": "array"
+      }
+     },
+     "required": [
+      "items"
+     ],
+     "type": "object"
+    },
+    "name": "todo_write"
+   },
+   {
+    "description": "Lädt den vollen Body eines Skills in die Konversation. Skills sind wiederverwendbare Anweisungs-Templates (z.B. 'code-review', 'git-workflow'). Mit `list_skills` siehst du was verfügbar ist.",
+    "input_schema": {
+     "properties": {
+      "name": {
+       "description": "Skill-Name (siehe list_skills)",
+       "type": "string"
+      }
+     },
+     "required": [
+      "name"
+     ],
+     "type": "object"
+    },
+    "name": "load_skill"
+   },
+   {
+    "description": "Volltextsuche im Langzeitgedächtnis — vergangene Sessions, Tool-Calls, Gespräche. Bei historischen Events `from_date` setzen, sonst wird die Suche zu breit. Stop nach zwei aufeinanderfolgenden `count: 0`-Treffern — keine Synonym-Brute-Force.",
+    "input_schema": {
+     "properties": {
+      "agent_name": {
+       "description": "Optional: nur Events dieses Agents",
+       "type": "string"
+      },
+      "event_type": {
+       "description": "Optional: user_input|assistant_text|tool_call|tool_result",
+       "type": "string"
+      },
+      "from_date": {
+       "description": "Optional: ISO-Datum z.B. 2026-01-01",
+       "type": "string"
+      },
+      "limit": {
+       "default": 20,
+       "description": "Max. Ergebnisse (1-50)",
+       "type": "integer"
+      },
+      "query": {
+       "description": "Suchbegriff",
+       "type": "string"
+      },
+      "to_date": {
+       "description": "Optional: ISO-Datum",
+       "type": "string"
+      }
+     },
+     "required": [
+      "query"
+     ],
+     "type": "object"
+    },
+    "name": "datamining_search"
+   },
+   {
+    "description": "Übersicht was heute im HydraHive-System passiert ist — Sessions, Anfragen, Tool-Calls.",
+    "input_schema": {
+     "properties": {
+      "date": {
+       "description": "ISO-Datum (default: heute)",
+       "type": "string"
+      }
+     },
+     "type": "object"
+    },
+    "name": "datamining_today"
+   },
+   {
+    "description": "Zeitstrahl aller Sessions, gruppiert nach Tag. Default: letzte 7 Tage. Jeder Tag enthält Anzahl Sessions, Gesamtevents und beteiligte Agents. **Erste Wahl** wenn der User nach einem Zeitraum fragt ('letzte Woche', 'gestern', 'im November') — vermeidet raten nach Suchbegriffen. sort='activity' liefert die aktivsten Tage zuerst.",
+    "input_schema": {
+     "properties": {
+      "agent_name": {
+       "description": "Optional: nur Sessions dieses Agents",
+       "type": "string"
+      },
+      "from_date": {
+       "description": "ISO-Datum z.B. '2025-11-01' (default: letzte 7 Tage)",
+       "type": "string"
+      },
+      "limit": {
+       "default": 200,
+       "description": "Max. Sessions",
+       "type": "integer"
+      },
+      "sort": {
+       "description": "Sortierung: 'date' = neueste zuerst (default), 'activity' = meiste Events zuerst",
+       "enum": [
+        "date",
+        "activity"
+       ],
+       "type": "string"
+      },
+      "to_date": {
+       "description": "ISO-Datum (default: heute)",
+       "type": "string"
+      }
+     },
+     "required": [],
+     "type": "object"
+    },
+    "name": "datamining_timeline"
+   }
+  ],
+  "stable": "Du bist ein persönlicher Assistent für deinen User. Du koordinierst Aufgaben, delegierst an Spezialisten wenn nötig und arbeitest selbst an kleineren Aufgaben direkt im Workspace.\n\nDu sprichst Deutsch, antwortest direkt und ehrlich, vermeidest leere Bestätigungen. Bei Unsicherheit fragst du nach — lieber eine kurze Rückfrage als in die falsche Richtung arbeiten.\n\n## Sprache\nAntworte immer auf Deutsch. Das gilt für jede Ausgabe, auch für kurze Zwischensätze vor Werkzeugaufrufen, Rückfragen, Berichte sowie Commit- und PR-Texte. Code, Befehle, Dateinamen und wörtliche Zitate bleiben im Original. Auch wenn Werkzeug-Ergebnisse, Code oder Logs englisch sind, bleibt deine Sprache Deutsch.\n\nWorkspace: <WS>\n\n## Skills\nLade einen Skill mit `load_skill(name)`, wenn er zur Aufgabe passt.\n\n| Skill | Wann nutzen |\n|-------|-------------|\n| `debugging` | wenn etwas nicht funktioniert |\n| `docs` | wenn Doku gebraucht wird |\n\nLangzeitgedächtnis: für Fragen die konkret auf Vergangenes verweisen, stehen `datamining_*`-Tools zur Verfügung. Bei generischen Fragen ohne klaren Vergangenheits-Bezug direkt aus dem Kontext antworten — keine spekulativen Suchen.",
+  "tools": [
+   "shell_exec",
+   "file_read",
+   "file_write",
+   "web_search",
+   "send_mail",
+   "todo_write",
+   "load_skill",
+   "datamining_search",
+   "datamining_today",
+   "datamining_timeline"
+  ]
+ }
+}
