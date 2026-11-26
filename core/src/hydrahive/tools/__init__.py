@@ -40,6 +40,7 @@ from hydrahive.tools import (
     delete_skill_tool,
     write_skill,
     prompt_archive,
+    find_tools,
     read_document,
     read_mail,
     read_memory,
@@ -117,6 +118,7 @@ def _build_registry() -> dict[str, Tool]:
     tools.extend([help_search.TOOL, help_read.TOOL, error_report_prepare.TOOL])
     tools.append(webmin_status.TOOL)
     tools.append(webmin_call.TOOL)
+    tools.append(find_tools.TOOL)   # nur registriert; in keiner Agenten-Config (Katalog-Modus schaltet es frei)
     tools.append(run_tool.TOOL)     # nur registriert; in keiner Agenten-Config (Katalog-Modus schaltet es frei)
     return {t.name: t for t in tools}
 

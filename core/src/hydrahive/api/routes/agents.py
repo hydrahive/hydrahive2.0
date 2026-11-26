@@ -42,7 +42,7 @@ def _public(agent: dict) -> dict:
 
 
 # Katalog-Werkzeuge erst mit tool_mode catalog (Plan-Aufgabe 5) – bis dahin nicht einzeln vergebbar (Review #782).
-_HIDDEN_IN_EDITOR = frozenset({"run_tool"})
+_HIDDEN_IN_EDITOR = frozenset({"run_tool", "find_tools"})
 
 
 @router.get("/_meta/tools")
