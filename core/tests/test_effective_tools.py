@@ -11,6 +11,8 @@ from unittest.mock import patch
 import pytest
 
 HOST_PROJEKT = {"id": "p", "mcp_server_ids": [], "allowed_plugins": []}
+PLUGIN_PROJEKT = {"id": "p", "mcp_server_ids": ["m1"], "allowed_plugins": ["git-stats"]}
+KAPUTT_PROJEKT = {"id": "p", "execution": {"mode": "container"}}       # Container ohne Namen → beschädigt
 CONTAINER_PROJEKT = {"id": "p", "mcp_server_ids": [], "allowed_plugins": [],
                      "execution": {"mode": "container", "container": "hh-labor-probe", "workdir": "/work", "user": 1000}}
 
@@ -35,7 +37,8 @@ def _alt(agent: dict, project: dict | None, username: str) -> list[str]:
 
 
 @pytest.mark.parametrize("name", list(AGENTEN))
-@pytest.mark.parametrize("project", [None, HOST_PROJEKT, CONTAINER_PROJEKT], ids=["ohne", "host", "container"])
+@pytest.mark.parametrize("project", [None, HOST_PROJEKT, CONTAINER_PROJEKT, PLUGIN_PROJEKT, KAPUTT_PROJEKT],
+                         ids=["ohne", "host", "container", "plugins", "kaputt"])
 def test_classic_gleich_wie_heute(name, project):
     from hydrahive.agents.effective_tools import effective_tool_names
     agent = AGENTEN[name]
@@ -146,3 +149,28 @@ def test_agent_knowledge_nutzt_possible_tool_names():
     src = (Path(__file__).resolve().parents[1] / "src" / "hydrahive" / "api" / "routes" / "agent_knowledge.py").read_text()
     assert "possible_tool_names(" in src
     assert 'groups.has_outward_tools(agent.get("tools"))' not in src
+
+
+def test_effective_liest_tool_pool_aus_der_config_nicht():
+    """Review #781 (Security, sollte): der Pool darf nur als geprüfter Parameter wirken, nie aus dem Config-Feld."""
+    from hydrahive.agents.effective_tools import effective_tool_names
+    agent = {"id": "x", "type": "project", "tools": ["file_read"], "tool_pool": ["shell_exec"]}
+    with patch("hydrahive.access.tool_filter.filter_tools", side_effect=lambda u, n: list(n)):
+        assert effective_tool_names(agent, username="u", project=None) == ["file_read"]
+
+
+def test_doppelte_eintraege_werden_entfernt_bewusste_abweichung():
+    """Einzige Abweichung vom alten Pfad: Duplikate in agent.tools fallen weg (vorher doppelt an das Modell)."""
+    from hydrahive.agents.effective_tools import effective_tool_names
+    agent = {"id": "x", "type": "project", "tools": ["file_read", "file_write", "file_read"]}
+    with patch("hydrahive.access.tool_filter.filter_tools", side_effect=lambda u, n: list(n)):
+        assert effective_tool_names(agent, username="u", project=None) == ["file_read", "file_write"]
+
+
+def test_aussen_einstufung_fail_closed_bei_fehler():
+    """Review #781 (Security, sollte): wirft possible_tool_names, bleibt die Gedächtnis-Stufe höchstens normal."""
+    from hydrahive.db import _mirror_scope
+    agent = {"id": "x", "type": "project", "tools": ["file_read"]}
+    with patch("hydrahive.agents.effective_tools.possible_tool_names", side_effect=RuntimeError("DB weg")):
+        assert _mirror_scope._outward(agent) is True
+    assert _mirror_scope._outward(agent) is False

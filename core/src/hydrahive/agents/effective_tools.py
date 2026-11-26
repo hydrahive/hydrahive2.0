@@ -42,4 +42,7 @@ def possible_tool_names(agent: dict) -> set[str]:
     Für die Gedächtnis-Einstufung (D4): Der Agent wird nach dem beurteilt, was er bekommen KÖNNTE, nicht nach dem,
     was in diesem Lauf gerade durch den Filter kommt. Das ist die strengere Richtung.
     """
+    # ``tool_pool`` gibt es erst ab Plan-Aufgabe 6. Gesetzt werden darf es NUR über agents/tool_pools.py (Besitzer-Prüfung
+    # E5/S5); die Agenten-API lehnt das Feld ab (AgentUpdate kennt es nicht). effective_tool_names liest es bewusst NICHT –
+    # der Pool kommt dort nur als geprüfter Parameter herein.
     return set(resolve_categories(_union(agent.get("tools"), agent.get("tool_pool"))))
