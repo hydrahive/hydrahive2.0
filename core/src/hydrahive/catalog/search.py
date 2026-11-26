@@ -15,6 +15,35 @@ _TOKEN = re.compile(r"[a-zäöüß0-9]+")
 _STOP = frozenset({"der", "die", "das", "den", "dem", "ein", "eine", "einen", "und", "oder", "zu", "zum", "zur", "im", "in",
                    "ist", "mit", "von", "für", "auf", "an", "ich", "mir", "mal", "bitte", "the", "a", "of", "to", "and"})
 RRF_K = 60
+
+# Kleine Synonymliste für die Wortsuche (Review #783, muss): Alltagswörter → Wörter, die in Tool-Beschreibungen stehen.
+# Bewusst knapp; die Bedeutungssuche (Embedding) deckt den Rest ab. Schlüssel und Werte als Wortanfänge (_STEM).
+_SYNONYME: dict[str, tuple[str, ...]] = {
+    "internet": ("web", "websuche", "suche"),
+    "online": ("web",),
+    "netz": ("web", "websuche"),
+    "googeln": ("web", "suche"),
+    "vorlesen": ("sprache", "speech", "tts"),
+    "vorlese": ("sprache", "speech", "tts"),
+    "sprechen": ("sprache", "speech"),
+    "abtippen": ("transkribiert", "text", "audio"),
+    "diktat": ("transkribiert", "audio"),
+    "sprachnachricht": ("audio", "transkribiert"),
+    "merken": ("memory", "notiz", "speichert"),
+    "merk": ("memory", "notiz", "speichert"),
+    "erinnern": ("memory", "notiz"),
+    "aufrufen": ("abrufen", "url", "http"),
+    "öffnen": ("abrufen", "url"),
+    "webseite": ("url", "http", "seite"),
+    "foto": ("bild", "image"),
+    "bild": ("image",),
+    "mail": ("mail", "e-mail"),
+    "email": ("mail",),
+    "lied": ("musik", "music"),
+    "song": ("musik", "music"),
+    "aufgabe": ("todo", "task"),
+    "später": ("todo", "task"),
+}
 _STEM = 5            # Wortanfang: „erzeugen“ ↔ „erzeugt“, „schicken“ ↔ „schickt“, „lesen“ ↔ „liest“ (grob, aber ohne Abhängigkeit)
 
 
@@ -27,8 +56,13 @@ def _stems(text: str) -> list[str]:
 
 
 def _expand(query_tokens: list[str], vocab: set[str]) -> list[str]:
-    """Anfrage-Wörter plus Bestandteile deutscher Komposita („Webseite“ → „seite“), soweit der Katalog sie kennt."""
+    """Anfrage-Wörter plus Synonyme plus Bestandteile deutscher Komposita („Webseite“ → „seite“), soweit der Katalog sie
+    kennt."""
     terms = [t[:_STEM] for t in query_tokens]
+    for t in query_tokens:
+        for key, syns in _SYNONYME.items():
+            if t == key or (len(t) >= _STEM and t.startswith(key[:_STEM])):
+                terms += [w[:_STEM] for w in syns]
     for t in query_tokens:
         if len(t) >= 8:
             terms += [w[:_STEM] for w in vocab if len(w) >= _STEM and w != t and w[:_STEM] in t]
@@ -49,6 +83,8 @@ def bm25_rank(query: str, entries: list[CatalogEntry]) -> list[CatalogEntry]:
     lens = [len(d) or 1 for d in doc_tokens]
     avg = sum(lens) / len(lens)
     n = len(docs)
+    # df je Begriff EINMAL vorab (Review #783: vorher je Eintrag × Begriff neu → quadratisch, 144 ms bei 460 Tools)
+    df_of = {term: sum(1 for j, x in enumerate(docs) if term in x or any(term in w for w in subs[j])) for term in q}
     scored: list[tuple[float, int]] = []
     for i, d in enumerate(docs):
         score = 0.0
@@ -56,7 +92,7 @@ def bm25_rank(query: str, entries: list[CatalogEntry]) -> list[CatalogEntry]:
             tf = d.get(term, 0) + 0.5 * sum(c for w, c in subs[i].items() if not w.startswith(term) and term in w)
             if not tf:
                 continue
-            df = sum(1 for j, x in enumerate(docs) if term in x or any(term in w for w in subs[j]))
+            df = df_of[term]
             idf = math.log(1 + (n - df + 0.5) / (df + 0.5))
             score += idf * (tf * 2.2) / (tf + 1.2 * (0.25 + 0.75 * lens[i] / avg))
         if score > 0:

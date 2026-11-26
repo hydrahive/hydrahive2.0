@@ -73,6 +73,23 @@ async def _query_vector(query: str, store) -> list[float] | None:
         return None
 
 
+_BG_TASKS: set = set()
+
+
+def _schedule_vector_sync(store) -> None:
+    try:
+        from hydrahive.catalog import _store
+        from hydrahive.llm._config import load_config
+        model = (load_config() or {}).get("embed_model") or ""
+        if not model:
+            return
+        task = asyncio.get_running_loop().create_task(_store.sync_embeddings(store, model=model))
+        _BG_TASKS.add(task)
+        task.add_done_callback(_BG_TASKS.discard)
+    except Exception:  # noqa: BLE001
+        logger.debug("find_tools: Vektor-Nachholen nicht gestartet", exc_info=True)
+
+
 async def _execute(args: dict, ctx: ToolContext) -> ToolResult:
     from hydrahive.catalog import _store
     from hydrahive.catalog.index import rebuild_tool_index
@@ -89,6 +106,9 @@ async def _execute(args: dict, ctx: ToolContext) -> ToolResult:
 
     rebuild_tool_index()                      # spiegelt die aktuelle Tool-Menge (entfernte Tools verschwinden, S7)
     store = _store.get_store()
+    if store.missing_vectors():
+        # Neu installierte/geänderte Tools bekommen ihren Vektor im Hintergrund (Review #783); dieser Aufruf wartet nicht.
+        _schedule_vector_sync(store)
     allowed = _allowed_for(ctx)
     vector = await _query_vector(query, store)
     found = search(query, allowed=allowed, kind="tool", limit=limit, query_vector=vector)

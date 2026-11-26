@@ -38,10 +38,14 @@ class MemoryStore:
                 if name not in self._entries or name in changed:
                     self._vectors.pop(name, None)           # veraltet oder weg → Vektor neu berechnen
 
-    def set_vector(self, name: str, vector: list[float]) -> None:
+    def set_vector(self, name: str, vector: list[float], *, for_entry: CatalogEntry | None = None) -> None:
+        """Vektor speichern – mit ``for_entry`` nur, wenn der Eintrag inzwischen nicht ersetzt wurde (Review #783: Race
+        zwischen Hintergrund-Embedding und replace_all ließ sonst einen veralteten Vektor stehen)."""
         with self._lock:
-            if name in self._entries:
-                self._vectors[name] = list(vector)
+            current = self._entries.get(name)
+            if current is None or (for_entry is not None and current != for_entry):
+                return
+            self._vectors[name] = list(vector)
 
     def missing_vectors(self) -> list[CatalogEntry]:
         with self._lock:
@@ -66,29 +70,41 @@ def reset_store() -> None:
         _STORE = None
 
 
-async def sync_embeddings(store: MemoryStore, *, pool, model: str) -> int:
-    """Vektoren für Einträge ohne Vektor nachholen. Liefert die Anzahl neuer Vektoren.
+_SYNC_LOCK = None
 
-    Ohne Pool oder Modell: 0, ohne Fehler (Wortsuche, K9). Fehler (Pool, Modell, Netz) werden geschluckt und geloggt; die
-    Suche läuft unabhängig davon weiter. Postgres-Persistenz folgt in ``_pg`` (siehe unten), nie im Anfragepfad.
+
+async def sync_embeddings(store: MemoryStore, *, pool=None, model: str) -> int:
+    """Vektoren für Einträge ohne Vektor nachholen (im Speicher). Liefert die Anzahl neuer Vektoren.
+
+    Ohne Modell: 0, ohne Fehler (Wortsuche, K9). ``pool`` wird nicht gebraucht (Vektoren liegen im Speicher, keine
+    Postgres-Tabelle – Review #783); der Parameter bleibt für Aufrufer. Gebündelt per ``aembed_batch``, ein Lauf
+    gleichzeitig. Fehler werden geschluckt und geloggt; die Suche läuft unabhängig davon weiter.
     """
-    if pool is None or not model:
+    global _SYNC_LOCK
+    import asyncio
+    if not model:
         return 0
-    try:
-        async with pool.acquire():
-            pass
-        from hydrahive.llm.embed import aembed
-    except Exception:  # noqa: BLE001 — nie blockieren, nie kippen
-        logger.debug("Katalog-Embeddings: Pool/Modell nicht verfügbar", exc_info=True)
-        return 0
-    done = 0
-    for entry in store.missing_vectors():
+    if _SYNC_LOCK is None:
+        _SYNC_LOCK = asyncio.Lock()
+    if _SYNC_LOCK.locked():
+        return 0                                           # läuft schon – nicht doppelt
+    async with _SYNC_LOCK:
         try:
-            vec = await aembed(f"{entry.name}: {entry.text}"[:4000], model)
+            from hydrahive.llm.embed import aembed_batch
         except Exception:  # noqa: BLE001
-            logger.debug("Katalog-Embedding für %s fehlgeschlagen", entry.name, exc_info=True)
-            continue
-        if vec:
-            store.set_vector(entry.name, vec)
-            done += 1
-    return done
+            logger.debug("Katalog-Embeddings: Modul nicht verfügbar", exc_info=True)
+            return 0
+        done = 0
+        missing = store.missing_vectors()
+        for start in range(0, len(missing), 32):
+            chunk = missing[start:start + 32]
+            try:
+                vecs = await aembed_batch([f"{e.name}: {e.text}"[:4000] for e in chunk], model, embed_type="db")
+            except Exception:  # noqa: BLE001
+                logger.debug("Katalog-Embeddings: Batch fehlgeschlagen", exc_info=True)
+                continue
+            for entry, vec in zip(chunk, vecs or []):
+                if vec:
+                    store.set_vector(entry.name, vec, for_entry=entry)
+                    done += 1
+        return done

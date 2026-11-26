@@ -79,7 +79,7 @@ def rebuild_tool_index() -> int:
     from hydrahive.catalog import _store
     entries = build_entries()
     _store.get_store().replace_all(entries, kind="tool")
-    logger.info("Tool-Katalog: %d Einträge", len(entries))
+    logger.debug("Tool-Katalog: %d Einträge", len(entries))
     return len(entries)
 
 

@@ -16,11 +16,11 @@ import pytest
 ANFRAGEN = [
     ("Bild erzeugen", "generate_image"),
     ("Webseite abrufen", "fetch_url"),
-    ("im Web suchen", "web_search"),
+    ("im Internet suchen", "web_search"),
     ("Mail schicken", "send_mail"),
     ("Notiz merken", "write_memory"),
     ("Befehl in der Shell ausführen", "shell_exec"),
-    ("Text in Sprache umwandeln", "generate_speech"),
+    ("Text vorlesen lassen", "generate_speech"),
     ("Audio in Text umwandeln", "transcribe_audio"),
     ("PDF lesen", "read_document"),
     ("Musik erzeugen", "generate_music"),
@@ -190,9 +190,9 @@ def test_warm_catalog_baut_index_und_holt_vektoren(monkeypatch):
                 async def __aexit__(self_inner, *a): return False
             return _C()
 
-    async def fake_embed(text, model, **kw):
-        return [1.0, 0.0, 0.5]
-    monkeypatch.setattr("hydrahive.llm.embed.aembed", fake_embed)
+    async def fake_batch(texts, model, **kw):
+        return [[1.0, 0.0, 0.5] for _ in texts]
+    monkeypatch.setattr("hydrahive.llm.embed.aembed_batch", fake_batch)
     monkeypatch.setattr("hydrahive.llm._config.load_config", lambda: {"embed_model": "fake"})
     monkeypatch.setattr("hydrahive.db.mirror._pool", _Pool(), raising=False)
     asyncio.run(index.warm_catalog())
@@ -213,3 +213,56 @@ def test_lifespan_startet_warm_catalog():
     from pathlib import Path
     src = (Path(__file__).resolve().parents[1] / "src/hydrahive/api/lifespan.py").read_text()
     assert "warm_catalog()" in src
+
+
+
+# --- Review #783 ---------------------------------------------------------------------------------------------------
+
+@pytest.mark.parametrize("anfrage,erwartet", [
+    ("im Internet suchen", "web_search"), ("Text vorlesen lassen", "generate_speech"),
+    ("merk dir das", "write_memory"), ("Webseite aufrufen", "fetch_url"), ("Sprachnachricht abtippen", "transcribe_audio"),
+    ("schau im Netz nach", "web_search"),
+])
+def test_wortsuche_versteht_alltagssynonyme(store, core_names, anfrage, erwartet):
+    """Fängt (Review #783, muss): ohne Synonyme fand die Wortsuche diese Alltagsformulierungen nicht (7/10)."""
+    from hydrahive.catalog.search import search
+    assert erwartet in [e.name for e in search(anfrage, allowed=core_names, kind="tool", limit=3)]
+
+
+def test_veralteter_vektor_wird_nicht_gespeichert(store):
+    """Fängt (Review #783, sollte): Eintrag während des Embeddings ersetzt → alter Vektor blieb stehen."""
+    from hydrahive.catalog.index import CatalogEntry
+    alt = CatalogEntry(name="x", kind="tool", title="alt", text="alt", category="c", owner_scope="", schema={})
+    neu = CatalogEntry(name="x", kind="tool", title="neu", text="neu", category="c", owner_scope="", schema={})
+    store.replace_all([alt], kind="tool")
+    store.replace_all([neu], kind="tool")                      # während das Embedding für „alt“ lief
+    store.set_vector("x", [1.0], for_entry=alt)
+    assert store.vectors() == {} and [e.name for e in store.missing_vectors()] == ["x"]
+    store.set_vector("x", [1.0], for_entry=neu)
+    assert store.vectors() == {"x": [1.0]}
+
+
+def test_vektoren_ohne_postgres_pool(store, monkeypatch):
+    """Fängt (Review #783, sollte): sync_embeddings verlangte einen Pool, obwohl die Vektoren im Speicher liegen."""
+    from hydrahive.catalog import _store
+    from hydrahive.catalog.index import rebuild_tool_index
+    rebuild_tool_index()
+
+    async def fake_batch(texts, model, **kw):
+        return [[1.0, 0.0] for _ in texts]
+    monkeypatch.setattr("hydrahive.llm.embed.aembed_batch", fake_batch)
+    n = asyncio.run(_store.sync_embeddings(store, pool=None, model="fake"))
+    assert n == len(store.entries()) > 0
+
+
+def test_wortsuche_bleibt_schnell_bei_vielen_tools(store):
+    """Fängt (Review #783, sollte): df wurde je Eintrag × Begriff neu berechnet (quadratisch)."""
+    import time
+    from hydrahive.catalog.index import CatalogEntry
+    from hydrahive.catalog.search import search
+    viele = [CatalogEntry(name=f"t{i}", kind="tool", title=f"Werkzeug {i} für Dateien und Web", text=f"liest schreibt sucht {i}",
+                          category="c", owner_scope="", schema={}) for i in range(500)]
+    store.replace_all(viele, kind="tool")
+    t = time.perf_counter()
+    search("Dateien im Web suchen und schreiben", allowed={e.name for e in viele}, kind="tool", limit=5)
+    assert time.perf_counter() - t < 0.5
