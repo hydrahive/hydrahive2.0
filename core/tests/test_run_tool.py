@@ -254,7 +254,7 @@ def test_run_tool_ist_registriert_aber_in_keiner_default_liste():
 
 def test_ohne_run_tool_freigabe_wird_nicht_ausgepackt(recorded, tmp_path):
     """Fängt (Review #782, sollte): ein classic-Agent ohne run_tool bekam einen erfundenen Aufruf ausgeführt (K7)."""
-    events = asyncio.run(_drive([_rt("file_read", {"path": "x"})], _ctx(tmp_path), ["file_read"]))
+    asyncio.run(_drive([_rt("file_read", {"path": "x"})], _ctx(tmp_path), ["file_read"]))
     assert recorded and recorded[0]["tool_use"]["name"] == "run_tool", "unverändert an den Dispatcher → dort abgelehnt"
     assert "via" not in recorded[0]["tool_use"]
 
