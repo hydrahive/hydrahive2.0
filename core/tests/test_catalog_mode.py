@@ -29,8 +29,8 @@ def _names(call) -> list[str]:
     return [t["name"] for t in call["tools"]]
 
 
-def _tu(call_id: str, name: str, **inp) -> dict:
-    return {"type": "tool_use", "id": call_id, "name": name, "input": inp}
+def _tu(call_id: str, tool: str, **inp) -> dict:
+    return {"type": "tool_use", "id": call_id, "name": tool, "input": inp}
 
 
 # ── K7: classic exakt wie vorher ──────────────────────────────────────────────────────────────────────────────────
@@ -79,7 +79,8 @@ def test_catalog_schickt_nur_kern_pinned_remembered(world):
 
     aid = world.agent(tool_mode="catalog", pinned_tools=["send_mail"])
     call = world.run(world.session(aid))[0]
-    assert _names(call) == ["shell_exec", "file_read", "file_write", "todo_write", "load_skill", *KATALOG, "send_mail"]
+    # Reihenfolge wie CORE_TOOLS im Plan, dann angeheftete
+    assert _names(call) == ["shell_exec", "file_read", "file_write", "todo_write", *KATALOG, "load_skill", "send_mail"]
     assert "web_search" not in _names(call)
 
 
@@ -88,7 +89,7 @@ def test_kern_erweitert_keine_rechte(world):
     aid = world.agent(tools=["file_read", "load_skill"], tool_mode="catalog", pinned_tools=["shell_exec"])
     call = world.run(world.session(aid))[0]
     assert "shell_exec" not in _names(call) and "file_write" not in _names(call)
-    assert _names(call) == ["file_read", "load_skill", *KATALOG]
+    assert _names(call) == ["file_read", *KATALOG, "load_skill"]
 
 
 def test_run_tool_erreicht_alles_freigegebene_nicht_mehr(world):
