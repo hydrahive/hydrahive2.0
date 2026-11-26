@@ -22,6 +22,8 @@ Dazu: Ein Agent soll seinem Unteragenten **pro Auftrag** genau die Tools und Ski
 | Grundlast je Aufruf (kleinster Prompt) | Buddy ≈ 56.000, Projekt-Agent ≈ 18.000 Tokens | `llm_calls` |
 | Schnitt je Aufruf | Buddy ≈ 354.000, Projekt-Agent ≈ 392.000; aus dem Cache 92 % / 79 % | `llm_calls` |
 
+**Cache-Regel (Anthropic-Doku „Prompt caching → What invalidates the cache“, geprüft 26.11.):** Reihenfolge des Caches ist tools → system → messages; **jede Änderung an den Tool-Definitionen verwirft den ganzen Cache, auch den Verlauf.** Ein Nachladen mitten in einer Buddy-Sitzung kostet damit den Neuaufbau von im Schnitt ≈ 354.000 Tokens. Gleichzeitig kommt der Tool-Block heute zu 92 % (Buddy) aus dem Cache – die laufende Ersparnis pro Aufruf ist also kleiner als die rohe Token-Zahl (Rechnung nicht gemessen, nur abgeleitet).
+
 **Einordnung (wichtig für die Erwartung):** Der Schnitt besteht fast nur aus Gesprächsverlauf. Der Katalog spart heute einen **Teil** der Grundlast (beim Buddy grob 25–35 k Tokens je Aufruf, geschätzt, nicht gemessen) – der große Gewinn ist das **Wachstum**: das 500. Tool kostet im Prompt nichts. Verlaufskosten löst der Katalog nicht (eigenes Thema).
 
 ## 2. Ziele, Nicht-Ziele, Anti-Ziele
@@ -70,13 +72,29 @@ Till hat am 26.11. Weg A (mit B als Kategorien, nach C) und für die Zuweisung *
 ## 6. Vorschläge des Buddys (zum Gegenlesen – noch nicht von Till bestätigt)
 
 - **V1 Eigener Katalog statt Anbieter-Feature** (wegen Z4).
-- **V2 Kern-Set** (immer geladen, ≈ 12): `shell_exec`, `file_read`, `file_write`, `file_patch`, `todo_write`, `find_tools`, `find_skills`, `load_skill`, `ask_agent`, `read_memory`/`write_memory`/`search_memory`. Pro Agent erweiterbar („angeheftet“).
-- **V3 Nachgeladen bleibt geladen** bis Sitzungsende (gegen A2). Nachladen gebündelt: `find_tools` darf mehrere auf einmal aktivieren.
+- **V2 Kern-Set** (immer geladen, ≈ 12, aber nur soweit freigegeben – D6): `shell_exec`, `file_read`, `file_write`, `file_patch`, `todo_write`, `find_tools`, `find_skills`, `load_skill`, `ask_agent`, `read_memory`/`write_memory`/`search_memory`. Pro Agent erweiterbar („angeheftet“).
+- **V3 Nachgeladen bleibt geladen** bis Sitzungsende (gegen A2). Nachladen gebündelt: `find_tools` darf mehrere auf einmal aktivieren. *(Durch die Cache-Regel fraglich – siehe F1.)*
 - **V4 Kategorien-Zeilen im Prompt** (eine Zeile je Bereich, z. B. „Medien: Bild/Video/Musik/Sprache erzeugen“) gegen A1. Kategorien aus dem vorhandenen Feld `Tool.category` bzw. Modul-Zuordnung.
 - **V5 Hybrid-Suche** über Name, Beschreibung, `prompt_hint`, Kategorie und Beispiel-Anfragen; Ergebnis: höchstens 5 Tools mit Kurzbeschreibung und Aktivieren in einem Schritt.
 - **V6 Skills genauso**: Prompt zeigt statt der vollen Tabelle nur angeheftete Skills + Kategorien, `find_skills` sucht.
 - **V7 Messung eingebaut**: je Sitzung festhalten, was gesucht, gefunden, aktiviert und benutzt wurde – so sieht man A1 (gesucht, nicht gefunden) und kann Beschreibungen nachschärfen.
 - **V8 Einführung schrittweise**: Schalter je Agent (`tool_mode: classic | catalog`), zuerst ein Test-Agent, dann Spezialisten, zuletzt Buddys.
+
+## 6a. Nach der Bauherren-Prüfung (26.11., hydrahive-reviewer, 9 Fragen)
+
+Entscheidungen des Buddys (klein, ändern nicht, was gebaut wird – zum Gegenlesen):
+- **D1 (Frage 1) Obergrenze bleibt die Freigabe des Agenten** (`agent.tools` + Freigabe-Pool, §5 E1). Der Katalog ist nur Suchhilfe (§3). Damit bei Hunderten Tools nicht jedes einzeln eingetragen werden muss: `agent.tools` darf ganze **Kategorien** freigeben (z. B. `kategorie:medien`) – gesetzt vom Admin/Besitzer wie heute.
+- **D2 (Frage 3) Zuweisung kommt dazu, ersetzt nicht:** Unteragent = eigene Freigabe + aus dem Auftrag zugewiesene Tools ∩ Pool. Ohne `tools` im Auftrag wie heute. Föderierte Ziele (`persona@workstation`): keine Zuweisung (die Gegenstelle entscheidet). Spezialisten „auf Abruf“: wie alle. Abweichung von `bounded_tools` ist durch E1 gewollt.
+- **D3 (Frage 5)** Plugin-Tools kommen in den Katalog (lokal, statisch). **MCP bleibt in Stufe 1 klassisch** (Schemas live je Lauf, je Nutzer/Projekt verschieden).
+- **D4 (Frage 6) Gedächtnis-Sicht nach der möglichen Freigabe**, nicht nach dem Geladenen: Kann ein Agent ein Außen-Tool bekommen (Config oder Pool), gilt er als „nach außen“ (`db/_mirror_scope.py`). Vorsichtige Richtung.
+- **D5 (Frage 7) Skills bekommen keine Rechte:** Sichtbarkeit wie heute (System/Nutzer/Projekt/Agent, `disabled_skills`), Index je Besitzer und Projekt getrennt; der Skill-Pool ist eine Vorauswahl.
+- **D6 (Frage 8) Kern = Kern-Liste ∩ Freigabe** – der Kern erweitert nie Rechte (z. B. kein `shell_exec` für den Helpdesk-Agenten).
+
+Offen für Till (ändern, was gebaut wird):
+- **F1 (Fragen 2 + 9) Wie kommt ein gefundenes Tool zum Modell, ohne den Cache zu brechen?** Siehe Cache-Regel oben.
+- **F2 (Frage 4) Wer legt den Freigabe-Pool fest, und was darf ein Projekt?**
+
+Nach Beantwortung von F1/F2 liest **hydrahive-security-reviewer** das Design (Rechte: D1, D2, D4, F2).
 
 ## 7. Der Umsetzung überlassen
 
