@@ -8,15 +8,16 @@ Feste Reihenfolge (S6):
     →  ``access_filter_tools`` (Besitzer)
 
 Der Katalog ist nur eine Suchhilfe und erweitert nie ein Recht: Was hier nicht herauskommt, darf der Agent nicht.
-In dieser Etappe ist ``pool`` immer ``None`` und ``resolve_categories`` die Identität; Pool (Aufgabe 6) und Kategorien
-(Aufgabe 4) hängen sich später an genau diesen beiden Stellen ein. MCP-Server bleiben im Runner wie bisher daneben.
+In dieser Etappe ist ``pool`` immer ``None``; der Pool (Aufgabe 6) hängt sich später an genau dieser Stelle ein.
+Kategorien löst ``catalog/categories.py`` auf. MCP-Server bleiben im Runner wie bisher daneben.
 """
 from __future__ import annotations
 
 
 def resolve_categories(names: list[str]) -> list[str]:
-    """Ersetzt ``kategorie:<name>`` durch bestätigte Tool-Namen. Bis Aufgabe 4: Identität."""
-    return list(names)
+    """Ersetzt ``kategorie:<name>`` durch bestätigte Tool-Namen (catalog/categories.py, Spec S2)."""
+    from hydrahive.catalog.categories import resolve_categories as _resolve
+    return _resolve(list(names))
 
 
 def _union(config_tools: list[str] | None, pool: list[str] | None) -> list[str]:
