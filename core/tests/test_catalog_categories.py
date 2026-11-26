@@ -169,3 +169,42 @@ def test_approve_wirkt_fuer_eine_feste_kategorie(monkeypatch, client):
     assert "mod_datei_extra" not in categories.resolve_categories(["kategorie:files"])
     categories.approve("files", "mod_datei_extra", "admin")
     assert "mod_datei_extra" in categories.resolve_categories(["kategorie:files"])
+
+
+
+@pytest.mark.parametrize("kategorie,tool", [("system", "webmin_call"), ("catalog", "run_tool"), ("catalog", "find_tools")])
+def test_approve_nur_fuer_kategorien_aus_dem_mapping(monkeypatch, client, kategorie, tool):
+    """Fängt (Review #784, sollte): approve() akzeptierte jede Tool.category – webmin_call über kategorie:system."""
+    from hydrahive.catalog import categories
+    from hydrahive.tools import REGISTRY
+    if tool not in REGISTRY:
+        monkeypatch.setitem(REGISTRY, tool, _tool(tool, category=kategorie))
+    monkeypatch.setattr(categories, "_capability_for", lambda n, m: None)
+    monkeypatch.setattr("hydrahive.api.middleware.users.get_by_username", lambda u: {"role": "admin"})
+    with pytest.raises(ValueError):
+        categories.approve(kategorie, tool, "admin")
+    assert categories.resolve_categories([f"kategorie:{kategorie}"]) == []
+
+
+def test_alt_eintrag_ausserhalb_des_mappings_wirkt_nie(monkeypatch, client):
+    """Auch eine schon in der Tabelle stehende Zeile für eine fremde Kategorie gibt nichts frei."""
+    from hydrahive.catalog import categories
+    from hydrahive.db.connection import db
+    with db() as conn:
+        conn.execute("INSERT OR REPLACE INTO tool_category_approvals(category, tool, approved_by, approved_at) "
+                     "VALUES ('system', 'webmin_call', 'admin', 'x')")
+    assert categories.resolve_categories(["kategorie:system"]) == []
+
+
+def test_fehlende_tabelle_warnt_nur_einmal(monkeypatch, caplog):
+    """Fängt (Review #784, sollte): bei fehlender Tabelle je Aufruf und Kategorie ein WARNING mit Traceback."""
+    import logging
+    from hydrahive.catalog import categories
+    monkeypatch.setattr(categories, "_WARNED", False)
+    monkeypatch.setattr(categories, "_approved", lambda c: (_ for _ in ()).throw(RuntimeError("no such table")))
+    with caplog.at_level(logging.WARNING, logger="hydrahive.catalog.categories"):
+        for _ in range(5):
+            categories.resolve_categories(["kategorie:files", "kategorie:media"])
+    warnungen = [r for r in caplog.records if r.levelno >= logging.WARNING]
+    assert len(warnungen) == 1 and warnungen[0].exc_info is None
+    assert "file_read" in categories.resolve_categories(["kategorie:files"])          # fail-closed: festes Mapping gilt

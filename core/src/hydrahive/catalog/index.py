@@ -12,7 +12,7 @@ from typing import Literal
 logger = logging.getLogger(__name__)
 
 #: Nie im Katalog: die Werkzeuge der Suche selbst.
-EXCLUDED = frozenset({"run_tool", "find_tools", "find_skills"})
+from hydrahive.catalog import CATALOG_TOOLS as EXCLUDED  # noqa: E402
 MCP_PREFIX = "mcp__"
 
 

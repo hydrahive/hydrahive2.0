@@ -52,7 +52,9 @@ CATEGORY_LABELS: dict[str, str] = {
 
 _PLUGIN_PREFIX = "plugin__"
 _MCP_PREFIX = "mcp__"
-_ALWAYS = frozenset({"ask_agent"})
+#: Nie über eine Kategorie: ask_agent und die Katalog-Werkzeuge selbst (die kommen im Katalog-Modus fest dazu).
+from hydrahive.catalog import CATALOG_TOOLS as _CATALOG_TOOLS  # noqa: E402
+_ALWAYS = frozenset({"ask_agent"}) | _CATALOG_TOOLS
 
 
 def _capability_for(name: str, module_id: str) -> str | None:
@@ -83,17 +85,32 @@ def _approved(category: str) -> set[str]:
     return {r["tool"] for r in rows}
 
 
+_WARNED = False
+
+
+def _warn_once(exc: Exception) -> None:
+    """Einmal je Prozess warnen statt bei jedem Aufruf mit Traceback (Review #784: >600 kB Log bei fehlender Tabelle)."""
+    global _WARNED
+    if _WARNED:
+        logger.debug("Kategorien-Bestätigungen nicht lesbar: %s", exc)
+        return
+    _WARNED = True
+    logger.warning("Kategorien-Bestätigungen nicht lesbar – nur festes Mapping (%s: %s)", type(exc).__name__, exc)
+
+
 def tools_in_category(category: str) -> list[str]:
     """Freigegebene Tool-Namen einer Kategorie (festes Mapping + Bestätigtes), nach Abzug der Ausschlüsse."""
     from hydrahive.tools import REGISTRY
-    names = list(CATEGORY_MAP.get(category, ()))
+    if category not in CATEGORY_MAP:
+        return []                                       # nur Kategorien aus dem festen Mapping (S2) – auch für Altdaten
+    names = list(CATEGORY_MAP[category])
     try:
         for tool in sorted(_approved(category)):
             reg = REGISTRY.get(tool)
             if reg is not None and (reg.category or "other") == category:     # nur, solange es wirklich dort liegt
                 names.append(tool)
-    except Exception:  # noqa: BLE001 — Fail-closed: nur das feste Mapping
-        logger.warning("Kategorien-Bestätigungen nicht lesbar – nur festes Mapping", exc_info=True)
+    except Exception as exc:  # noqa: BLE001 — Fail-closed: nur das feste Mapping
+        _warn_once(exc)
     return [n for n in dict.fromkeys(names) if n in REGISTRY and not _excluded(n)]
 
 
@@ -122,6 +139,10 @@ def approve(category: str, tool: str, by_admin: str) -> None:
     user = get_by_username(by_admin)
     if not user or user.get("role") != "admin":
         raise PermissionError("Nur ein Admin darf Kategorie-Zuordnungen bestätigen.")
+    if category not in CATEGORY_MAP:
+        # Spec S2: Kategorien nur aus dem festen Mapping im Kern. Sonst ließe sich z. B. webmin_call über
+        # kategorie:system oder run_tool über kategorie:catalog freigeben (Review #784, sollte).
+        raise ValueError(f"Unbekannte Kategorie {category!r} – erlaubt: {', '.join(sorted(CATEGORY_MAP))}.")
     reg = REGISTRY.get(tool)
     if reg is None or _excluded(tool):
         raise ValueError(f"{tool} kann nie über eine Kategorie frei werden.")

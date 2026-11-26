@@ -12,7 +12,7 @@ from __future__ import annotations
 VIA = "run_tool"
 OUTER = "run_tool"
 #: Als innerer Name verboten: kein Auspacken im Auspacken, keine Such-Werkzeuge über den Umweg.
-FORBIDDEN_INNER = frozenset({"run_tool", "find_tools", "find_skills"})
+from hydrahive.catalog import CATALOG_TOOLS as FORBIDDEN_INNER  # noqa: E402
 
 _TYPES: dict[str, tuple] = {
     "string": (str,), "integer": (int,), "number": (int, float), "boolean": (bool,),

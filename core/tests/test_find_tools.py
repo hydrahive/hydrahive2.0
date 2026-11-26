@@ -79,13 +79,14 @@ def test_find_tools_in_registry_aber_in_keiner_default_liste():
     assert "find_tools" in REGISTRY
     for typ, tools in DEFAULT_TOOLS.items():
         assert "find_tools" not in tools, f"find_tools in DEFAULT_TOOLS[{typ}]"
+    # Nur die zentrale Konstante (catalog/__init__.py) und das Tool selbst dürfen den Namen als Text tragen.
     src = Path(__file__).resolve().parents[1] / "src" / "hydrahive"
-    erlaubt = {"find_tools.py", "_run_tool_unwrap.py", "agents.py", "index.py"}
+    erlaubt = {src / "catalog" / "__init__.py", src / "tools" / "find_tools.py"}
     for f in src.rglob("*.py"):
-        if f.name in erlaubt:
+        if f in erlaubt:
             continue
         code = "\n".join(l for l in f.read_text().splitlines() if not l.lstrip().startswith("#"))
-        assert '"find_tools"' not in code, f"find_tools in {f}"
+        assert '"find_tools"' not in code, f"find_tools in {f} – bitte catalog.CATALOG_TOOLS nutzen"
 
 
 def test_find_tools_im_editor_ausgeblendet():
