@@ -287,3 +287,40 @@ def test_create_agent_ohne_alles_bekommt_typ_template(client, admin_headers):
     res = client.post("/api/agents", headers=admin_headers, json={"type": "specialist", "name": "Nur Name"})
     assert res.status_code == 201, res.text
     assert res.json()["template"] == "recherche"
+
+
+# ---------------------------------------------------------------------------
+# Bereiche Aufgabe 6 (AB10, E2): neue Editor-Agenten starten im Katalog-Modus, Bestand/config.create nicht
+# ---------------------------------------------------------------------------
+
+def test_neuer_agent_per_api_startet_katalog(client, admin_headers):
+    a = _create_agent(client, admin_headers, name="Katalog-Neu")
+    assert a["tool_mode"] == "catalog"
+    assert client.get(f"/api/agents/{a['id']}", headers=admin_headers).json()["tool_mode"] == "catalog"
+
+
+def test_neuer_agent_per_api_ausdrueckliches_classic_bleibt(client, admin_headers):
+    assert _create_agent(client, admin_headers, name="Classic-Neu", tool_mode="classic")["tool_mode"] == "classic"
+
+
+def test_neuer_agent_per_api_ungueltiger_tool_mode_400(client, admin_headers):
+    res = client.post("/api/agents", headers=admin_headers,
+                      json={**_CREATE_PAYLOAD, "name": "Kaputt", "tool_mode": "quatsch"})
+    assert res.status_code == 400, res.text
+
+
+def test_config_create_bleibt_classic():
+    """Buddy, Projekt-Agent, Helpdesk, Bootstrap gehen über config.create ohne tool_mode: Standard classic (K7)."""
+    from hydrahive.agents import config as agent_config
+    a = agent_config.create(agent_type="master", name="cc-classic", llm_model="claude-haiku-4-5-20251001", owner="admin",
+                            temperature=0.7, max_tokens=1000, thinking_budget=0)
+    try:
+        assert a.get("tool_mode", "classic") == "classic"
+        assert agent_config.get(a["id"])["tool_mode"] == "classic"
+    finally:
+        agent_config.delete(a["id"])
+
+
+def test_bestand_ohne_tool_mode_bleibt_classic():
+    from hydrahive.agents._config_utils import normalize
+    assert normalize({"id": "x", "tools": []})["tool_mode"] == "classic"
