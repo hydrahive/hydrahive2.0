@@ -36,5 +36,6 @@ export const OPS_LINKS: AdminLink[] = [
   { title: "Automationen", path: "/scheduled-tasks", icon: RefreshCw },
   { title: "Föderation", path: "/federation", icon: Globe },
   { title: "Zahnfee", path: "/zahnfee-config", icon: MoonStar },
+  { title: "Agenten-Rechte", path: "/agent-rights", icon: ShieldCheck },
   { title: "Globale Einstellungen", path: "/system/settings", icon: CircuitBoard },
 ]

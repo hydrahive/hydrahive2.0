@@ -218,5 +218,36 @@
     "pool_save": "Pool speichern",
     "pool_saved": "Pool gespeichert.",
     "pool_save_failed": "Pool konnte nicht gespeichert werden"
+  },
+  "areas": {
+    "never": "wird nie per Auftrag vergeben",
+    "load_failed": "Konnte nicht geladen werden.",
+    "loading": "Wird geladen …",
+    "saved": "Gespeichert.",
+    "save_failed": "Konnte nicht gespeichert werden.",
+    "save": "Speichern",
+    "owner_title": "Was die Agenten dieses Nutzers bekommen dürfen",
+    "owner_hint": "Obergrenze für Aufträge: Nicht-Admins können in ihren Agenten nur Bereiche vergeben, die hier an sind.",
+    "project_title": "Was Agenten in diesem Projekt bekommen dürfen",
+    "project_hint": "Schränkt nur ein. Ist nichts an, gibt es keine Einschränkung.",
+    "page_title": "Agenten-Rechte",
+    "page_subtitle": "Wer hat wann welchen Bereich vergeben, und was hat noch keinen Bereich.",
+    "expert": "Expertenansicht (Werkzeug-Namen zeigen)",
+    "audit_title": "Protokoll",
+    "audit_empty": "Noch nichts protokolliert.",
+    "action": {
+      "tool_pool_set": "Pool gesetzt",
+      "tool_grants_set": "Besitzer-Freigabe gesetzt",
+      "tool_category_approve": "Kategorie bestätigt",
+      "tool_category_revoke": "Kategorie-Bestätigung widerrufen"
+    },
+    "unassigned_title": "Werkzeuge ohne Bereich",
+    "unassigned_hint": "Das Modul muss seinen Bereich melden (agent_areas). Eine Zuordnung von Hand gibt es nicht.",
+    "unassigned_none": "Alle Werkzeuge haben einen Bereich.",
+    "categories_title": "Kategorie-Bestätigungen (Expertenansicht)",
+    "categories_hint": "Bestätigte Werkzeuge in Kategorien. Ein Widerruf wirkt sofort.",
+    "categories_none": "Keine Bestätigungen.",
+    "inactive": "inaktiv",
+    "revoke": "Widerrufen"
   }
 }

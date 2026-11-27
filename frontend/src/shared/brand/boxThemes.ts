@@ -29,5 +29,5 @@ export const ADMIN_OVERLAY_THEME: Record<AdminOverlayId, BoxTheme> = {
   vms: "werkzeug", nodes: "werkzeug", jobs: "werkzeug", "scheduled-tasks": "werkzeug", archive: "werkzeug",
   system: "status", "system-settings": "status",
   llm: "ideen", mcp: "ideen", federation: "ideen",
-  zahnfee: "wissen",
+  zahnfee: "wissen", "agent-rights": "kontakt",
 }

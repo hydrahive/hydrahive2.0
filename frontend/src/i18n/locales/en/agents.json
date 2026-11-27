@@ -218,5 +218,36 @@
     "pool_save": "Save pool",
     "pool_saved": "Pool saved.",
     "pool_save_failed": "Could not save the pool"
+  },
+  "areas": {
+    "never": "is never assigned per job",
+    "load_failed": "Could not be loaded.",
+    "loading": "Loading …",
+    "saved": "Saved.",
+    "save_failed": "Could not be saved.",
+    "save": "Save",
+    "owner_title": "What this user's agents may receive",
+    "owner_hint": "Upper limit for jobs: non-admins can only assign areas that are on here.",
+    "project_title": "What agents in this project may receive",
+    "project_hint": "Only restricts. With nothing on there is no restriction.",
+    "page_title": "Agent permissions",
+    "page_subtitle": "Who assigned which area and when, and what has no area yet.",
+    "expert": "Expert view (show tool names)",
+    "audit_title": "Log",
+    "audit_empty": "Nothing logged yet.",
+    "action": {
+      "tool_pool_set": "Pool set",
+      "tool_grants_set": "Owner grant set",
+      "tool_category_approve": "Category approved",
+      "tool_category_revoke": "Category approval revoked"
+    },
+    "unassigned_title": "Tools without an area",
+    "unassigned_hint": "The module has to report its area (agent_areas). There is no manual assignment.",
+    "unassigned_none": "Every tool has an area.",
+    "categories_title": "Category approvals (expert view)",
+    "categories_hint": "Approved tools in categories. Revoking takes effect immediately.",
+    "categories_none": "No approvals.",
+    "inactive": "inactive",
+    "revoke": "Revoke"
   }
 }
