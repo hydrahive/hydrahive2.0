@@ -141,10 +141,17 @@ def test_area_never_nur_admin(client, auth_headers):
     assert client.get("/api/admin/area-never", headers=auth_headers).status_code == 403
 
 
-def test_area_never_nimmt_check_item_als_massstab(client, admin_headers):
+def test_area_never_nimmt_check_item_als_massstab(client, admin_headers, monkeypatch):
     """Ein Bereich ist „nie“, wenn check_item JEDES seiner Tools ablehnt – nicht schon, wenn eines abgelehnt wird."""
     from hydrahive.agents import _area_registry as registry
     from hydrahive.agents import tool_pools
+    from hydrahive.tools import REGISTRY
+    from hydrahive.tools.base import Tool, ToolResult
+
+    async def _x(args, ctx):
+        return ToolResult.ok("x")
+    # ask_agent ist nur registriert, wenn AgentLink konfiguriert ist; der Test darf nicht davon abhängen.
+    monkeypatch.setitem(REGISTRY, "ask_agent", Tool(name="ask_agent", description="a", schema={"type": "object"}, execute=_x))
 
     def abgelehnt(tool: str) -> bool:
         try:
