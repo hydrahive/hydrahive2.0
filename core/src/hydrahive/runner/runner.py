@@ -149,8 +149,11 @@ async def run(
         # Katalog-Modus (Spec V2/E4): ans Modell nur Kern ∩ Freigabe, angeheftete und vorgemerkte Tools; erlaubt bleibt die
         # volle Freigabe plus die Katalog-Werkzeuge (run_tool erreicht alles Freigegebene). Beides wird EINMAL beim Laufstart
         # berechnet; das Vormerken während des Laufs wirkt erst beim nächsten (Liste und Prompt bleiben byte-gleich).
+        # Zugewiesene Tools aus dem Auftrag gehören direkt in die gezeigte Liste – dafür hat der Auftraggeber sie gewählt
+        # (Buddy-Review #786); einmal je Lauf, also byte-gleich im Lauf (E4).
         _shown = catalog_mode.catalog_schema_names(
-            local_tools, list(agent.get("pinned_tools") or []), catalog_mode.remembered_for(session))
+            local_tools, list(agent.get("pinned_tools") or []) + list(_assigned or []),
+            catalog_mode.remembered_for(session))
         tool_schemas = schemas_for(_shown) + mcp_schemas + plugin_bridge.schemas_for(_shown)
         allowed_tools = catalog_mode.allowed_with_catalog(local_tools) + [s["name"] for s in mcp_schemas]
         hint_tools: list[str] | None = [s["name"] for s in tool_schemas]

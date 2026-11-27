@@ -223,3 +223,17 @@ def test_pool_loeschen_mit_agent(made):
     tool_pools.set_agent_pool("admin", a["id"], ["file_read"])
     agent_config.delete(a["id"])
     assert tool_pools.agent_pool_items(a["id"]) == []
+
+
+
+def test_nutzer_loeschen_entfernt_besitzer_freigabe(client):
+    """Fängt (Buddy-Review #786): ein gleichnamig neu angelegter Nutzer erbte die alten Besitzer-Freigaben."""
+    from hydrahive.agents import tool_pools
+    from hydrahive.api.middleware import users
+    from hydrahive.db.connection import db
+    with db() as conn:
+        conn.execute("INSERT INTO owner_tool_grants(username, tool_or_category, granted_by, granted_at) "
+                     "VALUES ('weg_nutzer', 'send_mail', 'admin', 'x')")
+    assert tool_pools.owner_grants("weg_nutzer") == ["send_mail"]
+    users.delete("weg_nutzer")
+    assert tool_pools.owner_grants("weg_nutzer") == []

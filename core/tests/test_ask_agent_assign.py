@@ -193,3 +193,25 @@ def test_unteragent_mit_zugewiesenem_x_legt_spezialisten_ohne_x_an(client, monke
     finally:
         project_config.delete(proj["id"])
         w.cleanup()
+
+
+def test_zugewiesenes_tool_im_catalog_modus_direkt_sichtbar(client, monkeypatch):
+    """Fängt (Buddy-Review #786): im catalog-Modus war ein zugewiesenes Tool nur über run_tool erreichbar."""
+    from _catalog_mode_world import World
+    from hydrahive.agents import tool_pools
+    from hydrahive.db import sessions as sessions_db
+    from hydrahive.runner import runner as runner_mod
+    from hydrahive.runner._run_origin import handoff as handoff_origin
+    w = World(client, monkeypatch)
+    try:
+        aid = w.agent(tools=["file_read", "load_skill"], tool_mode="catalog")
+        tool_pools.set_agent_pool("admin", aid, ["web_search"])
+        s = sessions_db.create(agent_id=aid, user_id="admin", title="kat", metadata={"assigned_tools": ["web_search"]})
+
+        async def go():
+            async for _ in runner_mod.run(s.id, "los", origin=handoff_origin(1)):
+                pass
+        asyncio.run(go())
+        assert "web_search" in [t["name"] for t in w.calls[0]["tools"]]
+    finally:
+        w.cleanup()

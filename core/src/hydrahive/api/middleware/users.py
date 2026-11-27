@@ -153,6 +153,8 @@ def update_role(username: str, role: str) -> None:
 def delete(username: str) -> None:
     with _locked_users() as users:
         users.pop(username, None)
+    from hydrahive.agents import tool_pools       # lazy: keine Import-Zyklen
+    tool_pools.remove_user(username)
 
 
 def get_by_username(username: str) -> dict | None:

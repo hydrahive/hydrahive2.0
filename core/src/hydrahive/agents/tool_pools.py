@@ -210,3 +210,13 @@ def remove_project(project_id: str) -> None:
             conn.execute("DELETE FROM project_tool_pools WHERE project_id = ?", (project_id,))
     except Exception:  # noqa: BLE001
         logger.warning("Pool von Projekt %s nicht aufgeräumt", project_id, exc_info=True)
+
+
+def remove_user(username: str) -> None:
+    """Beim Löschen eines Nutzers: Besitzer-Freigabe entfernen (Buddy-Review #786) – sonst erbt ein später gleichnamig
+    angelegter Nutzer die alten Freigaben. Fehler dürfen das Löschen nie verhindern."""
+    try:
+        with db() as conn:
+            conn.execute("DELETE FROM owner_tool_grants WHERE username = ?", (username,))
+    except Exception:  # noqa: BLE001
+        logger.warning("Besitzer-Freigabe von %s nicht aufgeräumt", username, exc_info=True)
