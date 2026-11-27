@@ -85,6 +85,12 @@ SCHEMA = {
             "items": {"type": "string"},
             "description": "Optionale Skill-Liste die der Ziel-Agent haben muss.",
         },
+        "tools": {"type": "array", "items": {"type": "string"}, "maxItems": 40,
+                  "description": "Optional: Tools (oder kategorie:<name>), die der Ziel-Agent NUR für diesen Auftrag zusätzlich "
+                                 "bekommt. Nur aus seinem Freigabe-Pool; nie ask_agent/Authoring. Nicht für name@server."},
+        "skills": {"type": "array", "items": {"type": "string"}, "maxItems": 40,
+                   "description": "Optional: Skills, die für den Ziel-Agenten sichtbar sein müssen und für diesen Auftrag "
+                                  "angeheftet werden. Nicht für name@server."},
         "wait": _bg.WAIT_SCHEMA,
         "cancel": _bg.CANCEL_SCHEMA,
     },

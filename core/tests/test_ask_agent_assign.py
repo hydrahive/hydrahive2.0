@@ -92,7 +92,7 @@ def test_foederiertes_ziel_mit_tools_fehler(posted, tmp_path, monkeypatch):
     monkeypatch.setattr("hydrahive.tools._ask_agent_federated.execute_federated", boom)
     for extra in ({"tools": ["file_read"]}, {"skills": ["debugging"]}):
         res = _ask("geralt@werkstatt", tmp_path, **extra)
-        assert res.success is False and "förder" in (res.error or "").lower()
+        assert res.success is False and "föderiert" in (res.error or "").lower()
     assert posted == []
 
 

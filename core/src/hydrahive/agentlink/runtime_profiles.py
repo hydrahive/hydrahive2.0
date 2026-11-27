@@ -13,6 +13,7 @@ DEFAULT_RUNTIME_PROFILE = "standard"
 _RESUME_TOKEN = re.compile(r"^[A-Za-z0-9_-]{8,128}$")
 _THREAD = re.compile(r"^[0-9a-f]{24}$")
 _CHANNEL = re.compile(r"^[a-z][a-z0-9_-]{0,31}$")
+_ASSIGN_ITEM = re.compile(r"^[A-Za-z0-9_.-]{1,120}$")
 #: Kanal-Segment vorhanden, aber unlesbar → trotzdem extern (fail closed, Ziel vault-agenten §1.4).
 UNKNOWN_CHANNEL = "extern"
 #: Aufträge von fremden Servern (Federation): Herkunft dort nicht prüfbar → extern.
@@ -133,6 +134,8 @@ def reason_with_profile(
     thread: str | None = None,
     caller_depth: int | None = None,
     channel: str | None = None,
+    pool: list[str] | None = None,
+    skills: list[str] | None = None,
 ) -> str:
     """Build the backward-compatible, versioned internal reason envelope.
 
@@ -164,6 +167,12 @@ def reason_with_profile(
         # (agentlink/signing.py) – der Empfänger übernimmt den Kanal in die Sitzung des Auftragnehmers.
         value = channel.strip().lower()
         segments.append(f"hh-channel:v{RUNTIME_VERSION}:{value if _CHANNEL.fullmatch(value) else UNKNOWN_CHANNEL}")
+    for key, items in (("pool", pool), ("skills", skills)):
+        if items:
+            # Zuweisung dieses Auftrags (Katalog, Spec E1): vom Auftraggeber gegen den Pool geprüft; signiert wie der Rest.
+            if not all(isinstance(i, str) and _ASSIGN_ITEM.fullmatch(i) for i in items):
+                raise ValueError("Ungültiger Name in der Zuweisung")
+            segments.append(f"hh-{key}:v{RUNTIME_VERSION}:{','.join(items)}")
     # Keep the human-readable reason while preventing task text from injecting
     # additional pipe-delimited control segments.
     encoded_summary = quote(" ".join(task_summary.split()), safe=" -_.")
@@ -242,6 +251,29 @@ def channel_from_reason(reason: str | None) -> str | None:
             return parts[2]
         return UNKNOWN_CHANNEL
     return None
+
+
+def _assignment_from_reason(reason: str | None, key: str) -> list[str] | None:
+    """Zuweisung aus dem Reason: None = Segment fehlt; [] = vorhanden, aber unlesbar/andere Version (fail closed);
+    sonst die gültigen Namen. Nach ``hh-task:`` zählt nichts (kein Einschleusen über den Auftragstext)."""
+    for segment in (reason or "").split("|"):
+        if segment.startswith("hh-task:"):
+            break
+        if not segment.startswith(f"hh-{key}:"):
+            continue
+        parts = segment.split(":", 2)
+        if len(parts) != 3 or parts[1] != f"v{RUNTIME_VERSION}":
+            return []
+        return [i for i in parts[2].split(",") if _ASSIGN_ITEM.fullmatch(i)]
+    return None
+
+
+def pool_from_reason(reason: str | None) -> list[str] | None:
+    return _assignment_from_reason(reason, "pool")
+
+
+def skills_from_reason(reason: str | None) -> list[str] | None:
+    return _assignment_from_reason(reason, "skills")
 
 
 def depth_from_reason(reason: str | None) -> int:
