@@ -90,4 +90,6 @@ def get_area_never(_: Annotated[tuple[str, str], Depends(require_admin)]) -> dic
             return False
         except ValueError:
             return True
-    return {"areas": sorted(a["id"] for a in registry.all_areas("de") if a["tools"] and all(never(t) for t in a["tools"]))}
+    catalog = registry.all_areas("de")
+    return {"areas": sorted(a["id"] for a in catalog if a["tools"] and all(never(t) for t in a["tools"])),
+            "tools": sorted({t for a in catalog for t in a["tools"] if never(t)})}   # beim Einschalten eines Bereichs bleiben sie weg

@@ -156,6 +156,7 @@ def test_area_never_nimmt_check_item_als_massstab(client, admin_headers):
     r = client.get("/api/admin/area-never", headers=admin_headers)
     assert r.status_code == 200, r.text
     assert r.json()["areas"] == erwartet
+    assert r.json()["tools"] == sorted(t for a in registry.all_areas("de") for t in a["tools"] if abgelehnt(t))   # Einzel-Tools, die beim Einschalten wegbleiben
     assert "delegate" in erwartet                                    # ask_agent ist FORBIDDEN → der Bereich ist nie vergebbar
     gemischt = next(a for a in registry.all_areas("de") if any(abgelehnt(t) for t in a["tools"]) and not all(abgelehnt(t) for t in a["tools"]))
     assert gemischt["id"] not in r.json()["areas"]                   # teilweise abgelehnt → bleibt schaltbar
