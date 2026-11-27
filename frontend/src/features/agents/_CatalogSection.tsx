@@ -21,7 +21,6 @@ const box = "rounded-md border border-white/[8%] bg-white/[2%] px-3 py-2.5 space
  * Den Modus selbst schaltet der Bereichs-Schalter „Werkzeuge bei Bedarf suchen“ (areas/AreasView), nicht mehr ein Knopf hier.
  */
 export function CatalogSection({ draft, tools, onChange }: Props) {
-  const { t } = useTranslation("agents")
   const mode = draft.tool_mode ?? "classic"
   return (
     <div className="space-y-4" data-testid="catalog-section">
