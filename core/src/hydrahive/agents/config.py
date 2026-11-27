@@ -84,6 +84,8 @@ def create(
         "external": bool(external),
         **({"template": template} if template else {}),
     }
+    from hydrahive.agents.area_state import seen_snapshot
+    cfg["area_seen"] = seen_snapshot()          # Anlegen ist auch Speichern (Spec 4.3, Review #792): Stand der Bereiche merken
     runtime = {
         key: value for key, value in {
             "compact_model": compact_model,

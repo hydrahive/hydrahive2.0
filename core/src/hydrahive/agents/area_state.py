@@ -67,6 +67,8 @@ def area_states(agent: dict) -> list[dict]:
             state = "partial"             # auch wenn der Rest nur über kategorie:x kommt (Review-Fokus 4)
         else:
             state = "off"
+        if state != "on":
+            new = []                      # Hinweis „neu – übernehmen?“ nur in eingeschalteten Bereichen (Spec 4.3, Review #792)
         out.append({"id": area["id"], "state": state, "have": have, "missing": missing, "new": new,
                     "via_category": via_cat})
     return out

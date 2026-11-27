@@ -27,7 +27,7 @@ def get_areas(auth: Annotated[tuple[str, str], Depends(require_auth)],
 
 @agent_router.get("/{agent_id}/areas")
 def get_agent_areas(agent_id: str, auth: Annotated[tuple[str, str], Depends(require_auth)]) -> dict:
-    """Bereichs-Status eines Agenten (Besitzer oder Admin, fremd → 404 wie ``/tool-pool``). Nur lesend: gespeichert wird
+    """Bereichs-Status eines Agenten (Besitzer oder Admin, fremd → 403 ``agent_no_access`` wie ``/tool-pool``). Nur lesend: gespeichert wird
     über das bestehende ``PATCH /api/agents/{id}`` (Admin, Spec 4.8); ``editable`` sagt der Oberfläche, ob das geht."""
     from hydrahive.agents import config as agent_config
     from hydrahive.agents.area_state import area_states

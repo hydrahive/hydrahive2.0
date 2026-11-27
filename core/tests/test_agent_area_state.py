@@ -192,7 +192,7 @@ def test_new_ignoriert_kaputtes_area_seen():
 def test_update_tools_schreibt_area_seen(made):
     from hydrahive.agents.area_state import seen_snapshot
     a = made(tools=[])
-    assert "area_seen" not in agent_config.get(a["id"]) or agent_config.get(a["id"]).get("area_seen") in (None, {})
+    agent_config.update(a["id"], description="x")                          # ohne tools: area_seen bleibt, wie es ist
     updated = agent_config.update(a["id"], tools=FILES_READ)
     assert updated["area_seen"] == seen_snapshot()
     assert agent_config.get(a["id"])["area_seen"]["files_read"] == FILES_READ
@@ -206,17 +206,19 @@ def test_update_ohne_tools_laesst_area_seen_in_ruhe(made):
     assert agent_config.get(a["id"])["area_seen"] == vorher
 
 
-def test_create_setzt_kein_area_seen(made):
-    """Ein fehlender Wert heißt „alles gesehen“ (Spec): beim Anlegen und Laden kein Standardwert."""
+def test_create_merkt_area_seen(made):
+    """Review #792: Anlegen ist auch Speichern – der Stand der Bereiche wird gemerkt (sonst gälte alles als gesehen)."""
     a = made(tools=FILES_READ)
-    assert not agent_config.get(a["id"]).get("area_seen")
+    seen = agent_config.get(a["id"]).get("area_seen")
+    assert seen and set(seen.get("files_read", [])) >= set(FILES_READ)
 
 
 def test_area_seen_nicht_per_api_setzbar(client, admin_headers, made):
     a = made(tools=FILES_READ)
+    vorher = agent_config.get(a["id"]).get("area_seen")
     r = client.patch(f"/api/agents/{a['id']}", headers=admin_headers, json={"area_seen": {"files_read": ["x"]}})
     assert r.status_code in (200, 400, 422)
-    assert not agent_config.get(a["id"]).get("area_seen")                         # nichts übernommen
+    assert agent_config.get(a["id"]).get("area_seen") == vorher                   # nichts übernommen
     r2 = client.patch(f"/api/agents/{a['id']}", headers=admin_headers, json={"tools": FILES_READ + ["web_search"]})
     assert r2.status_code == 200
     gespeichert = agent_config.get(a["id"])["area_seen"]
@@ -278,3 +280,13 @@ def test_patch_bleibt_admin_only(client, auth_headers, made):
     a = made(tools=[], owner="testuser")
     assert client.patch(f"/api/agents/{a['id']}", headers=auth_headers, json={"tools": ["shell_exec"]}).status_code == 403
     assert agent_config.get(a["id"])["tools"] == []
+
+
+def test_new_nur_bei_eingeschaltetem_bereich(monkeypatch, made):
+    """Review #792: Der Hinweis „neu – übernehmen?“ gehört nur zu eingeschalteten Bereichen, nicht zu aus/teilweise."""
+    from hydrahive.agents import area_state
+    a = made(tools=[])
+    agent = agent_config.get(a["id"])
+    agent["area_seen"] = {"files_read": []}               # damals gab es nichts → beide Tools „neu“
+    st = {s["id"]: s for s in area_state.area_states(agent)}["files_read"]
+    assert st["state"] == "off" and st["new"] == []
