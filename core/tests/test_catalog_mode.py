@@ -286,3 +286,40 @@ def test_handoff_setup_nutzt_merge_metadata():
     from pathlib import Path
     src = (Path(__file__).resolve().parents[1] / "src/hydrahive/runner/_handoff_setup.py").read_text()
     assert "merge_metadata(" in src and "update(session.id, status=\"active\", metadata=" not in src
+
+
+# ── Bereiche Aufgabe 6 (AB6): automatisch angeheftet, einmal beim Laufstart ───────────────────────────────────────
+
+def _run_event(sid: str, tool: str) -> None:
+    from hydrahive.catalog import metrics
+    metrics.record_run(sid, tool)
+
+
+def test_auto_pin_wirkt_beim_laufstart(world):
+    from tests._own_rows import only_own_rows
+    with only_own_rows("catalog_events"):
+        aid = world.agent(tools=[*CLASSIC_TOOLS], tool_mode="catalog")
+        _run_event(world.session(aid), "web_search")
+        calls = world.run(world.session(aid))
+        assert "web_search" in _names(calls[0]) and "send_mail" not in _names(calls[0])
+
+
+def test_schema_liste_im_lauf_gleich_trotz_neuer_events(world):
+    """Ein Event entsteht MITTEN im Lauf (run_tool): die Liste des zweiten LLM-Aufrufs bleibt byte-gleich."""
+    from tests._own_rows import only_own_rows
+    with only_own_rows("catalog_events"):
+        aid = world.agent(tools=[*CLASSIC_TOOLS], tool_mode="catalog")
+        sid = world.session(aid)
+        world.script = [[_tu("c1", "run_tool", name="send_mail", args={"to": "a@b.de", "subject": "s", "body": "b"})],
+                        [{"type": "text", "text": "fertig"}]]
+
+        async def fake(*, tool_use, allowed_tools, ctx, parent_message_id, iteration=None):
+            from hydrahive.tools.base import ToolResult
+            _run_event(sid, "web_search")                 # neues Ereignis während des Laufs
+            return ToolResult.ok("ok"), None, 1
+        world.monkeypatch.setattr("hydrahive.runner._runner_tools.execute_tool", fake)
+        calls = world.run(sid)
+        assert len(calls) == 2
+        assert json.dumps(calls[0]["tools"], sort_keys=True) == json.dumps(calls[1]["tools"], sort_keys=True)
+        assert "web_search" not in _names(calls[1])
+        assert "web_search" in _names(world.run(world.session(aid))[0])     # erst der nächste Lauf

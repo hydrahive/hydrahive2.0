@@ -78,6 +78,7 @@ async def _execute(args: dict, ctx: ToolContext) -> ToolResult:
             reasoning_effort=reasoning_effort,
             fallback_models=fallback_models,
             project_id=pid,
+            tool_mode="catalog",      # E2/AB10: neue Spezialisten starten im Katalog-Modus
             **runtime,
         )
     except Exception as e:
