@@ -12,6 +12,7 @@ from typing import AsyncIterator
 from hydrahive.runner import tool_confirmation
 from hydrahive.runner.dispatcher import execute_tool, to_tool_result_block
 from hydrahive.runner.events import Event, ToolConfirmRequired, ToolUseResult, ToolUseStart
+from hydrahive.catalog.metrics import record_run as record_catalog_run
 from hydrahive.runner._catalog_mode import remember as remember_catalog_tool
 from hydrahive.runner._run_tool_unwrap import unwrap_run_tool
 from hydrahive.runner.integrity import IntegrityState
@@ -147,6 +148,7 @@ async def process_tool_uses(
         if tu.get("via") == "run_tool" and result.success:
             # Katalog-Modus: per run_tool benutztes Tool für den NÄCHSTEN Lauf vormerken (E4, nie im laufenden).
             remember_catalog_tool(ctx.session_id, tu_name)
+            record_catalog_run(ctx.session_id, tu_name)       # Messung (Spec V7), best effort, wirft nie
         # execute_tool hat Secrets bereits an der zentralen Engstelle geschwärzt.
         # Integrity erhält daher ausschließlich das redigierte Resultat.
         if integrity_state is not None:

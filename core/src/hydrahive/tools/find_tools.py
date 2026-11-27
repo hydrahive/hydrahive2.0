@@ -122,6 +122,8 @@ async def _execute(args: dict, ctx: ToolContext) -> ToolResult:
     results = [{"name": e.name, "description": e.title, "input_schema": e.schema or {"type": "object", "properties": {}},
                 **({"hint": h} if (h := _prompt_hint(e.name)) else {})}
                for e in found]
+    from hydrahive.catalog import metrics
+    metrics.record_search(ctx.session_id, "search_tools", query, [r["name"] for r in results])   # best effort, wirft nie
     return ToolResult.ok({"results": results, "hint": _HINT})
 
 
