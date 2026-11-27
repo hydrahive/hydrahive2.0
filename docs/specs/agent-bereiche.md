@@ -20,7 +20,7 @@ Im Reiter „Was darf der Agent?“ (ersetzt „Tools & MCP“ als Standardansic
    - eine Markierung: ohne Zeichen = **harmlos oder leicht rückgängig**, ⚠️ = **schwer rückgängig oder wirkt außerhalb von HydraHive**, 🔒 = **private Daten des Besitzers**, 💶 = **jede Nutzung kostet Geld**;
    - den Zustand an, aus oder „teilweise“ (siehe 4.3).
 3. **„Werkzeuge bei Bedarf suchen (spart Kosten)“**: ein Schalter. Er ersetzt den Auswahlknopf Klassisch/Katalog und ist bei neuen Agenten an.
-4. **„Darf Helfern einen Teil seiner Bereiche mitgeben“**: ein Schalter. Er ersetzt den Freigabe-Pool (siehe 4.4).
+4. **„Darf bei Aufträgen zusätzliche Bereiche bekommen“**: ein Schalter am **Helfer**. Er ersetzt den Freigabe-Pool (siehe 4.4).
 5. **„Expertenansicht“**, zugeklappt: die heutigen Listen (Tools, angeheftete Tools und Skills, Pool, MCP) für alle, die es genau steuern wollen.
 
 Angeheftete Tools muss niemand mehr pflegen. Das übernimmt die automatische Anheftung (4.5).
@@ -90,10 +90,17 @@ Warum nicht `bereich:x` speichern und erst im Lauf auflösen? Dann bekäme ein A
 
 ### 4.3 „Teilweise“ und neue Tools
 - **Teilweise:** Hat der Agent nur einen Teil der Tools eines Bereichs, steht der Schalter auf „teilweise“. Ein Klick schaltet den ganzen Bereich ein.
-- **Neue Tools:** Kommen nach einem Update Tools in einen eingeschalteten Bereich dazu, zeigt der Schalter „2 neue Werkzeuge – übernehmen?“. Ohne Klick passiert nichts.
+- **Neue Tools:** Kommen nach einem Update Tools in einen eingeschalteten Bereich dazu, zeigt der Schalter „an“ und dazu „2 neue Werkzeuge – übernehmen?“. Ohne Klick passiert nichts.
+- **Was „neu“ heißt (Review #789 M6):** Beim Speichern merkt sich der Agent je Bereich, welche Tools es zu dem Zeitpunkt gab (`area_seen: {bereich: [tools]}` in der Agenten-Config). „Neu“ sind nur Tools, die damals noch nicht existierten. Ein Tool, das jemand absichtlich entfernt hat, gilt nie als neu: Der Bereich steht dann auf „teilweise“, ohne Hinweis.
+- **Grundausstattung** (`BASE_TOOLS`) gehört zu keinem Schalter. Ein Schalter nimmt sie nie heraus, im Katalog-Modus kommen sie ohnehin dazu.
 
 ### 4.4 Helfer (Freigabe-Pool)
-Der Schalter „Darf Helfern einen Teil seiner Bereiche mitgeben“ setzt den Pool auf die **weitergebbaren** Bereiche des Agenten, also dieselben `kategorie:x`-Regeln wie heute. Nie weitergebbar bleiben Shell, Außen-Tools, Authoring, `ask_agent`, Plugin- und MCP-Tools (Spec Katalog S2). Die Ansicht dazu zeigt, welche Bereiche mitgegeben werden dürfen und welche nicht, mit Begründung. Feinsteuerung gibt es nur in der Expertenansicht.
+Korrigiert nach Review #789 (M4): Der Freigabe-Pool eines Agenten legt fest, was **ihm** ein Auftraggeber per `ask_agent` zusätzlich mitgeben darf (`tool_pool_for(Ziel)`, Katalog-Spec E1). Der Schalter sitzt deshalb am **Helfer**, nicht am Auftraggeber.
+
+- **Schalter „Darf bei Aufträgen zusätzliche Bereiche bekommen“** (nur bei Spezialisten und Projekt-Agenten). Ist er an, stellt man darunter mit denselben Bereichs-Schaltern ein, **welche** Bereiche ein Auftraggeber mitgeben darf. Ist er aus, ist der Pool leer.
+- Gespeichert werden die Tool-Namen der eingeschalteten Bereiche im Pool (`PUT /api/agents/{id}/tool-pool`), **keine** `kategorie:x`. Damit gilt E1 auch hier, und „Dateien lesen“ gibt kein ⚠️-Schreiben mit frei (`kategorie:files` enthält `file_write`, Bereiche und Kategorien passen nicht 1:1).
+- Nicht weitergebbare Tools lehnt `tool_pools.check_item` wie heute ab: Shell, Außen-Tools, Authoring, `ask_agent`, Plugin- und MCP-Tools (Katalog S2). Ihre Bereiche erscheinen hier ausgegraut mit dem Satz „wird nie per Auftrag vergeben“.
+- Es gibt keine neue Rechte-Logik, nur eine andere Ansicht auf den vorhandenen Pool.
 
 ### 4.5 Automatisch anheften
 Im Modus „Werkzeuge bei Bedarf suchen“ heftet das System beim **Start eines Laufs** die Tools an, die dieser Agent in den letzten 30 Tagen am häufigsten über `run_tool` benutzt hat. Die Daten kommen aus `catalog_events` (#787), höchstens 8 Tools, nur solche aus `effective_tool_names`.
@@ -102,15 +109,18 @@ Im Modus „Werkzeuge bei Bedarf suchen“ heftet das System beim **Start eines 
 
 ### 4.6 Vorschlag aus dem Zweck-Satz
 - **Route:** `POST /api/agents/{id}/area-suggestion` mit `{purpose}`. Die Antwort ist eine Liste `{area, reason}`.
-- **Modell:** das günstige Standardmodell des Besitzers. Eingabe sind nur der Satz und die Bereichsliste (id, Name, Satz), **keine** Agentendaten.
+- **Modell:** die günstige Systemrolle „lehren“ (Template-Kette, sonst das systemweite Standardmodell). Eingabe sind nur der Satz und die Bereichsliste (id, Name, Satz), **keine** Agentendaten.
 - **Ausgabe:** wird gegen die bekannten Bereich-IDs geprüft, Unbekanntes fliegt raus.
-- **Rechte:** nur Besitzer oder Admin, wie das Bearbeiten des Agenten. Der Vorschlag ändert nichts, erst „Übernehmen“ speichert.
+- **Rechte:** Wer den Agenten bearbeiten darf (heute: Admin, siehe 4.8). Der Vorschlag ändert nichts, erst „Übernehmen“ und dann Speichern ändert etwas.
 
 ### 4.7 Admin-Seiten (aus Task 92b06561) in derselben Sprache
 - **Besitzer-Freigabe je Nutzer:** Bereichs-Schalter statt Tool-Listen.
 - **Projekt-Pool:** dasselbe.
-- **„Neue Werkzeuge zuordnen“:** Tools ohne Bereich bekommen einen Bereich. Das ersetzt die Seite „Kategorie-Bestätigungen“: Technisch bleibt es `approve()`, für den Nutzer heißt es „Werkzeug X gehört zu Bereich Y“.
-- **Protokoll:** wer wann welchen Bereich für wen freigegeben oder entzogen hat (`access_audit`), in ganzen Sätzen.
+- **„Werkzeuge ohne Bereich“** (korrigiert nach Review #789 S2): nur eine **Liste** mit Modul, Beschreibung und dem Hinweis, dass das Modul seinen Bereich im Manifest melden muss (`agent_areas`). Eine Zuordnung per Klick gibt es nicht: `approve()` passt nur für Kern-Kategorien, Modul-Tools mit Capability sind dort bewusst ausgeschlossen. Die Kategorie-Bestätigungen (`/api/admin/tool-categories`) bleiben in der Expertenansicht dieser Seite.
+- **Protokoll:** wer wann welchen Bereich für wen freigegeben oder entzogen hat (`access_audit`, Aktionen `tool_pool_set`, `tool_grants_set`, `tool_category_approve`, `tool_category_revoke`), in ganzen Sätzen.
+
+### 4.8 Wer darf speichern (Review #789 M1)
+Heute ändert nur ein **Admin** die Tools eines Agenten (`PATCH /api/agents/{id}` mit `require_admin`). Daran ändert dieser Umbau **nichts** (Spec 5). Der Reiter ist für Nicht-Admins nur lesbar und sagt das auch („Nur Admins können die Rechte ändern“). Ob Besitzer ihre Agenten künftig im Rahmen ihrer Besitzer-Freigabe selbst einstellen dürfen, ist eine eigene Rechte-Änderung und kommt als eigene Idee mit Security-Review, nicht hier.
 
 ## 5. Was sich NICHT ändert
 - Rechteprüfung, Shell-Sperre für Projekt-Agenten und Spezialisten, Datamining-Bereich, Besitzer-Freigabe, Projekt-Deckel: alles wie bisher. Bereiche sind nur eine Sicht auf `agent.tools`.
@@ -121,16 +131,16 @@ Im Modus „Werkzeuge bei Bedarf suchen“ heftet das System beim **Start eines 
 - **E1 ✅ (Till 27.11.):** Gespeichert werden einzelne Tool-Namen, Bereiche sind nur die Sicht darauf. Neue Tools nur nach „übernehmen?“.
 - **E2 ✅ (Till 27.11.):** „Werkzeuge bei Bedarf suchen“ ist für neue Agenten standardmäßig an. Bestehende Agenten bleiben, wie sie sind.
 - **E3 ✅ (Till 27.11.: „keine Ahnung, was am logischsten ist“):** Der Buddy legt die Liste nach festen Schnittregeln fest (3.1). Änderungen später nur über diese Regeln.
-- **E4 ✅ (Till 27.11.):** Den Zweck-Vorschlag darf jeder nutzen, der den Agenten bearbeiten darf.
+- **E4 ✅ (Till 27.11.):** Den Zweck-Vorschlag darf jeder nutzen, der den Agenten bearbeiten darf. Das ist heute der Admin (4.8).
 
 ## 7. Abnahme
 - **AB1** `areas.py` mit den 28 Bereichen aus 3.2 und der Grundausstattung. Wächter-Test: jedes Kern-Tool liegt in genau einem Bereich oder in der Grundausstattung.
 - **AB2** Module können Bereiche oder Zuordnungen per `agent_areas` melden. Tools ohne Bereich stehen in `GET /api/agent-areas` unter `unassigned`.
 - **AB3** Editor: Reiter „Was darf der Agent?“ mit Schaltern (an, aus, teilweise), Markierungen, Gruppen, de/en, Expertenansicht zugeklappt. Ein Schalter ändert genau die Tools seines Bereichs, Test mit Gegenprobe.
-- **AB4** „Neue Werkzeuge übernehmen?“ erscheint, wenn ein eingeschalteter Bereich Tools hat, die der Agent nicht hat. Ohne Klick ändert sich nichts.
+- **AB4** „Neue Werkzeuge übernehmen?“ erscheint nur für Tools, die beim letzten Speichern noch nicht existierten (`area_seen`). Absichtlich entfernte Tools lösen den Hinweis nie aus. Ohne Klick ändert sich nichts.
 - **AB5** Zweck-Vorschlag: Route nur für Besitzer oder Admin, Ausgabe gefiltert auf bekannte Bereiche, ändert nichts ohne Übernehmen. Tests für fremden Nutzer, unbekannten Bereich in der Modellantwort und Fehler des Modells.
 - **AB6** Automatisch anheften beim Laufstart aus `catalog_events`, höchstens 8, nur wirksame Tools, im Lauf unverändert. Test: Schema-Liste ist innerhalb des Laufs gleich.
-- **AB7** Helfer-Schalter setzt den Pool auf die weitergebbaren Bereiche. Nicht Weitergebbares wird mit Begründung angezeigt.
-- **AB8** Admin-Seiten (Besitzer-Freigabe, Projekt-Pool, neue Werkzeuge zuordnen, Protokoll) in Bereichssprache.
+- **AB7** Am Helfer: Schalter „Darf bei Aufträgen zusätzliche Bereiche bekommen“ plus Bereichsauswahl. Gespeichert werden Tool-Namen im Pool, keine `kategorie:x`. Nicht Weitergebbares erscheint ausgegraut mit Begründung.
+- **AB8** Admin-Seiten in Bereichssprache: Besitzer-Freigabe, Projekt-Pool, Werkzeuge ohne Bereich (Liste), Protokoll (gefiltert nach `action`).
 - **AB9** Tests für alles Neue, Frontend-Build grün, CI 6/6.
 - **AB10** Neue Agenten starten mit „Werkzeuge bei Bedarf suchen“ an (`tool_mode: catalog`), bestehende bleiben unverändert (E2). Test.
