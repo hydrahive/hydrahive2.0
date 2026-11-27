@@ -11,7 +11,7 @@ Module melden eigene Bereiche und Zuordnungen im Manifest (``agent_areas``, sieh
 from __future__ import annotations
 
 import re
-from collections.abc import Iterable
+from collections.abc import Callable, Iterable
 from dataclasses import dataclass
 
 from hydrahive.catalog import CATALOG_TOOLS
@@ -157,7 +157,30 @@ def matches(pattern: str, name: str) -> bool:
     return name.startswith(pattern[:-1]) if pattern.endswith("*") else name == pattern
 
 
-def tools_of(area: Area, registered: Iterable[str]) -> list[str]:
-    """Die registrierten Tool-Namen dieses Bereichs (Muster aufgelöst), sortiert und ohne Doppelte."""
+#: Wem ein Präfix-Muster der Kern-Bereiche gehört (Review #790): ein Modul-Tool fällt nur unter ein Präfix, wenn es aus genau
+#: diesem Modul kommt – sonst könnte sich z. B. ``task_purge_all_remote`` aus einem fremden Modul unter „Aufgaben & Ideen“
+#: (ohne Zeichen) schmuggeln. ``""`` = nur Kern-Tools. Plugin-Präfixe (``plugin__<name>__*``) sind durch den Namen eindeutig.
+PREFIX_OWNER: dict[str, str] = {
+    "graph_*": "", "datamining_*": "", "generate_*": "",
+    "task_*": "tasks", "idea_*": "scratchpad", "ticket_*": "tickets", "github_project_*": "tickets",
+    "diagramm_*": "diagramme", "blueprint_*": "blueprint", "atelier_*": "atelier", "storyteller_*": "storyteller",
+    "mediacenter_*": "mediacenter", "query_crypto_*": "cryptoboard", "legal_*": "legal", "rom_*": "rom",
+    "opentor_*": "opentor", "reverse_*": "zerlegewerkstatt",
+}
+
+
+def prefix_allows(pattern: str, module_id: str) -> bool:
+    """Darf ein Tool aus ``module_id`` (``""`` = Kern/Plugin) über dieses Muster in den Bereich? Exakte Namen immer."""
+    if not pattern.endswith("*") or pattern.startswith("plugin__"):
+        return True
+    return PREFIX_OWNER.get(pattern, "") == (module_id or "")
+
+
+def tools_of(area: Area, registered: Iterable[str], module_of: Callable[[str], str] | None = None) -> list[str]:
+    """Die registrierten Tool-Namen dieses Bereichs (Muster aufgelöst), sortiert und ohne Doppelte.
+
+    Mit ``module_of`` (Tool → Modul-ID) gelten Präfix-Muster nur für Tools ihres Besitzer-Moduls (``PREFIX_OWNER``).
+    """
     names = list(registered)
-    return sorted({n for n in names if any(matches(p, n) for p in area.tools)})
+    return sorted({n for n in names
+                   if any(matches(p, n) and (module_of is None or prefix_allows(p, module_of(n))) for p in area.tools)})

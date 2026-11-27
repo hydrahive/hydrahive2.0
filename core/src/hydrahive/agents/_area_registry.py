@@ -22,6 +22,12 @@ def _registered() -> list[str]:
     return sorted(n for n in names if not n.startswith(_MCP_PREFIX))
 
 
+def _module_of(tool: str) -> str:
+    """Modul-ID eines registrierten Tools (``""`` für Kern- und Plugin-Tools)."""
+    from hydrahive.tools import REGISTRY
+    return getattr(REGISTRY.get(tool), "module_id", "") or ""
+
+
 def _sensitive(tool: str) -> bool:
     """Außen-Tool oder Tool mit Capability – darf ein Modul nicht in einen Kern-Bereich ohne ⚠️ hängen (Review #789 S3)."""
     from hydrahive.access.capabilities import catalog
@@ -53,7 +59,7 @@ def _resolve() -> tuple[list[dict], dict[str, str]]:
     owner: dict[str, str] = {}                      # Tool → Bereich
     areas: dict[str, dict] = {}
     for a in CORE_AREAS:
-        tools = tools_of(a, registered)
+        tools = tools_of(a, registered, _module_of)
         areas[a.id] = {"id": a.id, "group": a.group, "name": a.name, "sentence": a.sentence, "marks": list(a.marks),
                        "tools": tools, "source": "core"}
         for t in tools:

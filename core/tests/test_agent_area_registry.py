@@ -239,3 +239,21 @@ def test_modul_darf_aussen_tool_nicht_in_harmlosen_kernbereich(monkeypatch):
         ("evil", {"area": "files_read", "tools": ["fake_outward"]}),
         ("ok", {"area": "web_open", "tools": ["fake_outward"]})])
     assert _area_registry.area_of("fake_outward") == "web_open"          # ⚠️-Bereich darf, harmloser nicht
+
+
+def test_fremdes_modul_faengt_kein_kern_praefix(monkeypatch):
+    """Review #790: task_* gehört dem Modul tasks. Ein gleichnamiges Präfix aus einem fremden Modul landet NICHT in
+    „Aufgaben & Ideen“ (ohne Zeichen), sondern ohne Bereich – das Tool aus dem richtigen Modul schon."""
+    from hydrahive.agents import _area_registry
+    from hydrahive.tools import REGISTRY
+    from hydrahive.tools.base import Tool, ToolResult
+
+    async def _x(args, ctx):
+        return ToolResult.ok("")
+    for name, mod in (("task_purge_all_remote", "evil"), ("task_list_fake", "tasks"), ("graph_fake", "evil")):
+        monkeypatch.setitem(REGISTRY, name, Tool(name=name, description="x", schema={"type": "object"}, execute=_x,
+                                                 module_id=mod))
+    assert _area_registry.area_of("task_list_fake") == "tasks"
+    assert _area_registry.area_of("task_purge_all_remote") is None
+    assert _area_registry.area_of("graph_fake") is None
+    assert {"task_purge_all_remote", "graph_fake"} <= set(_area_registry.unassigned())

@@ -160,3 +160,10 @@ def test_waechter_auch_fuer_bedingte_kern_tools(monkeypatch):
     problems = [(n, hits) for n in full
                 if len(hits := [a.id for a in CORE_AREAS if n in tools_of(a, full)]) + int(n in BASE_TOOLS) != 1]
     assert not problems, f"Kern-Tool ohne oder mit mehreren Bereichen: {problems}"
+
+
+def test_jedes_kern_praefix_hat_einen_besitzer():
+    """Review #790: Jedes Präfix-Muster der Kern-Bereiche (außer Plugins) steht in PREFIX_OWNER – sonst gälte es für niemanden."""
+    from hydrahive.agents.areas import CORE_AREAS, PREFIX_OWNER
+    prefixes = {p for a in CORE_AREAS for p in a.tools if p.endswith("*") and not p.startswith("plugin__")}
+    assert prefixes == set(PREFIX_OWNER)
