@@ -39,7 +39,7 @@ def test_auto_pin_haeufigste_zuerst_max_8():
     for i, n in enumerate(namen):
         _run(sid, n, n=12 - i)                       # tool_00 am häufigsten
     out = auto_pin.auto_pinned(AGENT, namen)
-    assert out == namen[:8]
+    assert out == sorted(namen[:8])
     assert len(out) == auto_pin.AUTO_PIN_MAX == 8
 
 
@@ -94,3 +94,13 @@ def test_auto_pin_fehler_leer(monkeypatch, caplog):
 def test_auto_pin_ohne_agent_oder_tools_leer():
     assert auto_pin.auto_pinned("", ["x"]) == []
     assert auto_pin.auto_pinned(AGENT, []) == []
+
+
+def test_auto_pin_reihenfolge_stabil_bei_rangwechsel():
+    """Review #793: Gleiche Auswahl, anderer Rang → gleiche Liste (sonst bricht der Prompt-Cache beim nächsten Lauf)."""
+    sid = _sid()
+    _run(sid, "z_tool", 5)
+    _run(sid, "a_tool", 3)
+    vorher = auto_pin.auto_pinned(AGENT, ["a_tool", "z_tool"])
+    _run(sid, "a_tool", 5)                           # a_tool überholt z_tool
+    assert auto_pin.auto_pinned(AGENT, ["a_tool", "z_tool"]) == vorher == ["a_tool", "z_tool"]

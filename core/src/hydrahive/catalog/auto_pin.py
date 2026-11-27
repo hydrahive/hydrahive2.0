@@ -32,7 +32,11 @@ def _since_iso() -> str:
 
 
 def auto_pinned(agent_id: str, effective: list[str]) -> list[str]:
-    """Bis zu ``AUTO_PIN_MAX`` Tool-Namen, sortiert nach Häufigkeit (absteigend), dann nach Name. Wirft nie."""
+    """Die bis zu ``AUTO_PIN_MAX`` häufigsten Tools (Gleichstand: Name), **alphabetisch** zurückgegeben. Wirft nie.
+
+    Ausgewählt wird nach Häufigkeit, zurückgegeben nach Name: Die Schema-Liste übernimmt diese Reihenfolge, und ein
+    Rangwechsel ohne geänderte Auswahl darf den Prompt-Cache beim nächsten Lauf nicht brechen (Review #793).
+    """
     if not agent_id or not effective:
         return []
     try:
@@ -45,7 +49,7 @@ def auto_pinned(agent_id: str, effective: list[str]) -> list[str]:
         allowed = set(effective) - set(CORE_TOOLS) - CATALOG_TOOLS
         counts = Counter(r["tool"] for r in rows if r["tool"] in allowed)
         ranked = sorted(counts.items(), key=lambda kv: (-kv[1], kv[0]))
-        return [name for name, _ in ranked[:AUTO_PIN_MAX]]
+        return sorted(name for name, _ in ranked[:AUTO_PIN_MAX])
     except Exception:  # noqa: BLE001 — das Anheften darf nie einen Lauf stören
         logger.warning("Auto-Anheften fehlgeschlagen (Agent %s)", agent_id, exc_info=True)
         return []
