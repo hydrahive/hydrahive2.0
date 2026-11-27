@@ -3,7 +3,7 @@
 > Automatisch erzeugt aus Dateinamen, Git-Historie und Überschriften.
 > Neu erzeugen: `python3 scripts/gen_spec_index.py`
 
-154 Spezifikationen. Die Spalte **Status** zeigt nur, was die Spec
+156 Spezifikationen. Die Spalte **Status** zeigt nur, was die Spec
 selbst im Kopf angibt — leer heißt: nicht angegeben, nicht automatisch geraten.
 
 ## Mehrteilige Reihen
@@ -31,6 +31,7 @@ frühere Teile beschreiben bereits umgesetzte Etappen.
 | [`access-groups-plan.md`](access-groups-plan.md) | Plan: Freigaben und Gruppen — Etappe 1 (Funktions-Freigaben) |  | 2026-09-29 |
 | [`admin-cockpit-visual-system.md`](admin-cockpit-visual-system.md) | Admin-Cockpit Visual System |  | 2026-10-30 |
 | [`agent-background-delegation.md`](agent-background-delegation.md) | Spec + Plan: Spezialisten im Hintergrund beauftragen (ask_agent) |  | 2026-11-20 |
+| [`agent-bereiche.md`](agent-bereiche.md) | Agenten-Rechte als Bereiche – „Was darf dieser Agent?“ |  | ? |
 | [`agent-infrastructure-tools.md`](agent-infrastructure-tools.md) | Container und VMs als Agent-Werkzeuge |  | 2026-09-26 |
 | [`agent-integrity-layer.md`](agent-integrity-layer.md) | Agent Integrity Layer |  | 2026-09-24 |
 | [`agent-language.md`](agent-language.md) | Spec: Antwortsprache für alle Agenten aus der Buddy-Einstellung |  | 2026-10-11 |
@@ -162,6 +163,7 @@ frühere Teile beschreiben bereits umgesetzte Etappen.
 | [`theming-system.md`](theming-system.md) | Theme-System — installierbare Designs (WordPress-Prinzip) |  | 2026-10-29 |
 | [`theming-system-etappe3.md`](theming-system-etappe3.md) | Theme-System Etappe 3 — Hub-Installer (WordPress-Gefühl) |  | 2026-10-29 |
 | [`tool-gate-non-tool-models.md`](tool-gate-non-tool-models.md) | Tool-Gate für Modelle ohne Function-Calling |  | 2026-07-27 |
+| [`tool-skill-katalog.md`](tool-skill-katalog.md) | Tool- und Skill-Katalog – kleiner Kern, Rest bei Bedarf |  | 2026-11-26 |
 | [`ubuntu-2604-support.md`](ubuntu-2604-support.md) | Ubuntu 26.04 LTS Support | Installation auf 26.04 läuft fehlerfrei durch | 2026-08-19 |
 | [`ui-standard.md`](ui-standard.md) | HydraHive-UI-Standard (Barrierefreiheit und Bedienbarkeit) |  | 2026-10-20 |
 | [`update-git-sicher.md`](update-git-sicher.md) | Update: nichts mehr still verwerfen, nie auf einen fremden Branch springen |  | 2026-10-26 |
