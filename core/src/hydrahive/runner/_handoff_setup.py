@@ -9,6 +9,8 @@ from hydrahive.agentlink.protocol import State
 from hydrahive.agentlink.runtime_profiles import (
     RUNTIME_METADATA_KEY,
     channel_from_reason,
+    pool_from_reason,
+    skills_from_reason,
     effective_budget,
     profile_from_reason,
     resume_token_from_reason,
@@ -118,6 +120,7 @@ def prepare_handoff(state: State, target: dict, reason: str) -> PreparedHandoff:
             session = continued or _new_session(state, target, budget)
         # Kanal des Auftraggebers übernehmen (neu, fortgesetzt oder wiederaufgenommen; nie entfernen).
         sessions_db.adopt_channel(session.id, channel_from_reason(reason))
+        _store_assignment(session.id, reason, resumed=resumed)
         handoff_record = db_agent_handoffs.create(
             incoming_state_id=state.id or "",
             from_agent=state.agent_id,
@@ -142,6 +145,16 @@ def prepare_handoff(state: State, target: dict, reason: str) -> PreparedHandoff:
         if claim_acquired and resume_token:
             db_agent_handoffs.restore_paused_claim(resume_token)
         raise HandoffSetupError("Handoff konnte nicht sicher gestartet werden") from exc
+
+
+def _store_assignment(session_id: str, reason: str, *, resumed: bool) -> None:
+    """Zuweisung dieses Auftrags (hh-pool/hh-skills) in die Sitzung legen – ersetzt die des vorigen Auftrags, damit sie nur für
+    DIESEN Auftrag gilt. Ein Fortsetzen (resume_token) ohne neue Zuweisung behält die alte (derselbe Auftrag). Atomar nur
+    die eigenen Schlüssel (merge_metadata)."""
+    pool, skills = pool_from_reason(reason), skills_from_reason(reason)
+    if resumed and pool is None and skills is None:
+        return
+    sessions_db.merge_metadata(session_id, {"assigned_tools": pool or [], "assigned_skills": skills or []})
 
 
 def rollback_prepared(prepared: PreparedHandoff) -> None:

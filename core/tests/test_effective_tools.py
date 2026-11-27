@@ -103,12 +103,14 @@ def test_eingabe_wird_nicht_veraendert():
 
 
 def test_moegliche_tools_fuer_aussen_einstufung():
-    """D4: Gedächtnis-Einstufung nach möglicher Freigabe – ein Pool mit send_mail macht den Agenten zum Außen-Agenten."""
+    """D4: Gedächtnis-Einstufung nach möglicher Freigabe – ein Pool mit send_mail macht den Agenten zum Außen-Agenten.
+    Der Pool kommt aus der einen Quelle (agents/tool_pools.py, Aufgabe 6), nicht mehr aus einem Config-Feld."""
     from hydrahive.agents.effective_tools import possible_tool_names
     from hydrahive.db._mirror_groups import has_outward_tools
     agent = {"id": "a", "type": "project", "tools": ["file_read"]}
     assert has_outward_tools(sorted(possible_tool_names(agent))) is False
-    assert has_outward_tools(sorted(possible_tool_names({**agent, "tool_pool": ["send_mail"]}))) is True
+    with patch("hydrahive.agents.tool_pools.tool_pool_for", return_value=["send_mail"]):
+        assert has_outward_tools(sorted(possible_tool_names(agent))) is True
 
 
 def test_moegliche_tools_ohne_projekt_und_besitzerfilter():

@@ -32,6 +32,7 @@ from hydrahive.runner._runner_cancel import persist_on_cancel
 from hydrahive.runner._runner_helpers import close_open_tool_uses, refusal_error
 from hydrahive.runner._runner_lessons import recall_lessons, start_lessons
 from hydrahive.runner import _catalog_mode as catalog_mode
+from hydrahive.runner._assigned_tools import assigned_for_run, assigned_skills_for_run
 from hydrahive.runner._runner_iter import (
     IterationResult,
     prepare_history,
@@ -137,7 +138,15 @@ async def run(
                                   f"{project_layout_hint(workspace, _proj, agent=agent, username=session.user_id)}")
 
     # Wirksame Tools über die zentrale Stelle (Katalog Etappe 1, Spec S6); MCP bleibt wie bisher daneben.
-    local_tools = effective_tool_names(agent, username=session.user_id, project=_proj)
+    # Zuweisung aus einem ask_agent-Auftrag (Katalog Etappe 5): nur in diesem Handoff-Lauf, einmal beim Laufstart gelesen und
+    # gegen den Pool geprüft; kommt zu den eigenen Tools dazu (Spec D2/E4).
+    # Projekt-Deckel auch ohne Sitzungsprojekt: das Projekt des Agenten (Spezialist) – wie beim Auftraggeber (Review #786).
+    _assign_proj = _proj
+    if _assign_proj is None and agent.get("project_id"):
+        from hydrahive.projects import config as _project_config
+        _assign_proj = _project_config.get(agent["project_id"])
+    _assigned = assigned_for_run(session, agent, _assign_proj, origin)
+    local_tools = effective_tool_names(agent, username=session.user_id, project=_proj, pool=_assigned or None)
     _, mcp_servers = scope_tools(_proj, [], list(agent.get("mcp_servers", [])))
     mcp_schemas = await mcp_bridge.schemas_for_servers(mcp_servers)
     plugin_schemas = plugin_bridge.schemas_for(local_tools)
@@ -145,8 +154,11 @@ async def run(
         # Katalog-Modus (Spec V2/E4): ans Modell nur Kern ∩ Freigabe, angeheftete und vorgemerkte Tools; erlaubt bleibt die
         # volle Freigabe plus die Katalog-Werkzeuge (run_tool erreicht alles Freigegebene). Beides wird EINMAL beim Laufstart
         # berechnet; das Vormerken während des Laufs wirkt erst beim nächsten (Liste und Prompt bleiben byte-gleich).
+        # Zugewiesene Tools aus dem Auftrag gehören direkt in die gezeigte Liste – dafür hat der Auftraggeber sie gewählt
+        # (Buddy-Review #786); einmal je Lauf, also byte-gleich im Lauf (E4).
         _shown = catalog_mode.catalog_schema_names(
-            local_tools, list(agent.get("pinned_tools") or []), catalog_mode.remembered_for(session))
+            local_tools, list(agent.get("pinned_tools") or []) + list(_assigned or []),
+            catalog_mode.remembered_for(session))
         tool_schemas = schemas_for(_shown) + mcp_schemas + plugin_bridge.schemas_for(_shown)
         allowed_tools = catalog_mode.allowed_with_catalog(local_tools) + [s["name"] for s in mcp_schemas]
         hint_tools: list[str] | None = [s["name"] for s in tool_schemas]
@@ -189,7 +201,9 @@ async def run(
     agent_skills = load_agent_skills(agent["id"], agent["owner"], disabled=agent.get("disabled_skills") or [],
                                     project_id=skill_project_id(active_project_id, agent))
     if catalog_mode.is_catalog(agent):
-        catalog_block = catalog_mode.prompt_block(local_tools, agent_skills, list(agent.get("pinned_skills") or []))
+        catalog_block = catalog_mode.prompt_block(
+            local_tools, agent_skills,
+            list(agent.get("pinned_skills") or []) + assigned_skills_for_run(session, origin))
 
     # Lehren mit Beleg (L2): einmal je Eingabe, eigene Lehren im aktiven Projekt. Läuft parallel zum Erinnerungs-Abruf
     # und zum Verlauf; gewartet wird erst vor dem ersten Modell-Aufruf (Rückfrage dauert ~2 s).

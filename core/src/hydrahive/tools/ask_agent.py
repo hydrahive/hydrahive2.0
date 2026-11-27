@@ -28,6 +28,7 @@ from hydrahive.agentlink import (
 )
 from hydrahive.settings import settings
 from hydrahive.tools import _ask_agent_anchor as _anchor
+from hydrahive.tools import _ask_agent_assign as _assign
 from hydrahive.tools import _ask_agent_background as _bg
 from hydrahive.tools._ask_agent_prepare import (
     build_briefing,
@@ -66,6 +67,8 @@ async def _execute(args: dict, ctx: ToolContext) -> ToolResult:
 
     # Federation-Routing: "persona@workstation" → remote /remote/chat
     if "@" in target:
+        if _assign.wants_assignment(args):
+            return ToolResult.fail(_assign.FEDERATED_REFUSAL)
         return await _execute_federated(target, task, args, ctx)
 
     if not settings.agentlink_url:
@@ -101,6 +104,10 @@ async def _execute(args: dict, ctx: ToolContext) -> ToolResult:
     if refused:
         return ToolResult.fail(refused)
     refused, on_demand_reason = on_demand_refusal(target_agent, args)
+    if refused:
+        return ToolResult.fail(refused)
+    # Zuweisung (Katalog Etappe 5): Anfrage ∩ Freigabe-Pool des Ziels, nur für diesen Auftrag; Rest → Fehler mit Grund.
+    refused, assigned_tools, assigned_skills = _assign.resolve_assignment(args, target_agent, ctx.user_id)
     if refused:
         return ToolResult.fail(refused)
     task_description, files, errors = map_context(task, raw_context)
@@ -140,6 +147,7 @@ async def _execute(args: dict, ctx: ToolContext) -> ToolResult:
             # Kanal des eigenen Laufs weitergeben: ein Spezialist für eine WhatsApp-Nachricht
             # bekommt ebenfalls keine Vault-Daten (Ziel vault-agenten §1.4).
             channel=ctx.channel,
+            pool=assigned_tools, skills=assigned_skills,
         )
     except ValueError as exc:
         return ToolResult.fail(str(exc))

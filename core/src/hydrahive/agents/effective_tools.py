@@ -43,7 +43,7 @@ def possible_tool_names(agent: dict) -> set[str]:
     Für die Gedächtnis-Einstufung (D4): Der Agent wird nach dem beurteilt, was er bekommen KÖNNTE, nicht nach dem,
     was in diesem Lauf gerade durch den Filter kommt. Das ist die strengere Richtung.
     """
-    # ``tool_pool`` gibt es erst ab Plan-Aufgabe 6. Gesetzt werden darf es NUR über agents/tool_pools.py (Besitzer-Prüfung
-    # E5/S5); die Agenten-API lehnt das Feld ab (AgentUpdate kennt es nicht). effective_tool_names liest es bewusst NICHT –
-    # der Pool kommt dort nur als geprüfter Parameter herein.
-    return set(resolve_categories(_union(agent.get("tools"), agent.get("tool_pool"))))
+    # EINE Quelle für den Pool: agents/tool_pools.py (Tabellen aus Migration 068). Das Config-Feld ``tool_pool`` gibt es nicht
+    # mehr, die Agenten-API lehnt es ab. Ohne Schnitte (capped=False): beurteilt wird, was der Agent bekommen KÖNNTE.
+    from hydrahive.agents.tool_pools import tool_pool_for
+    return set(resolve_categories(_union(agent.get("tools"), tool_pool_for(agent, None, capped=False))))

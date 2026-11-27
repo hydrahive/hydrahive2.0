@@ -137,6 +137,9 @@ def update(agent_id: str, *, _managed_by: str | None = None, **changes: Any) -> 
     for protected in ("id", "type", "created_at", "created_by", _managed.FIELD):
         changes.pop(protected, None)
 
+    if "tool_pool" in changes:
+        raise _validation.AgentValidationError(
+            "tool_pool lässt sich nicht über die Agenten-Konfiguration setzen (Pool: /api/agents/{id}/tool-pool)")
     if "tools" in changes:
         _validation.validate_tools(changes["tools"])
     if "tool_mode" in changes:
