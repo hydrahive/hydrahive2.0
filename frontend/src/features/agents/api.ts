@@ -37,3 +37,16 @@ export interface McpServerBrief {
 export const mcpInfoApi = {
   list: () => api.get<McpServerBrief[]>("/mcp/servers"),
 }
+
+/** Freigabe-Pool eines Agenten (Katalog): was ihm per ask_agent zugewiesen werden darf. */
+export interface AgentToolPool {
+  items: string[]
+  effective?: string[]
+  categories?: string[]
+  forbidden?: string[]
+}
+
+export const toolPoolApi = {
+  get: (agentId: string) => api.get<AgentToolPool>(`/agents/${agentId}/tool-pool`),
+  put: (agentId: string, items: string[]) => api.put<{ items: string[] }>(`/agents/${agentId}/tool-pool`, { items }),
+}

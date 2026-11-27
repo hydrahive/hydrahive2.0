@@ -1,4 +1,4 @@
-import { Check } from "lucide-react"
+import { Check, X } from "lucide-react"
 import { useMemo, useState } from "react"
 import { useTranslation } from "react-i18next"
 import type { ToolMeta } from "./types"
@@ -12,11 +12,14 @@ interface Props {
 }
 
 const ALL = "__all__"
+const CATEGORY_PREFIX = "kategorie:"
 
 export function ToolsSelector({ available, selected, onChange, blocked }: Props) {
   const { t } = useTranslation("agents")
   const [filter, setFilter] = useState<string>(ALL)
   const set = new Set(selected)
+  // kategorie:x-Einträge (Katalog) stehen nicht in der Tool-Liste – sichtbar und entfernbar machen, sonst bleiben sie unsichtbar kleben.
+  const categoryEntries = selected.filter((name) => name.startsWith(CATEGORY_PREFIX))
 
   const categories = useMemo(() => {
     const counts = new Map<string, number>()
@@ -49,6 +52,26 @@ export function ToolsSelector({ available, selected, onChange, blocked }: Props)
 
   return (
     <div className="space-y-1.5">
+      {categoryEntries.length > 0 && (
+        <div className="flex flex-wrap items-center gap-1" data-testid="category-entries">
+          <span className="text-[10px] text-zinc-500">{t("category_entries.label")}</span>
+          {categoryEntries.map((entry) => {
+            const cat = entry.slice(CATEGORY_PREFIX.length)
+            return (
+              <button
+                key={entry}
+                type="button"
+                onClick={() => toggle(entry)}
+                title={t("category_entries.remove", { name: cat })}
+                className="flex items-center gap-1 px-2 py-0.5 rounded-md border border-violet-500/40 bg-violet-500/[8%] text-[11px] font-mono text-zinc-200 hover:bg-violet-500/[15%]"
+              >
+                {entry}
+                <X size={10} className="text-zinc-400" />
+              </button>
+            )
+          })}
+        </div>
+      )}
       <select
         value={filter}
         onChange={(e) => setFilter(e.target.value)}

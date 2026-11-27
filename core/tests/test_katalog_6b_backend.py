@@ -167,3 +167,9 @@ def projekt_6b(client):
         project_config.delete(p["id"])
     except Exception:                                   # noqa: BLE001 — Aufräumen
         pass
+
+
+def test_pool_get_liefert_kategorien_und_verbotenes_fuer_die_oberflaeche(client, auth_headers, made):
+    a = made("Oberflaeche-6b")
+    body = client.get(f"/api/agents/{a['id']}/tool-pool", headers=auth_headers).json()
+    assert "files" in body["categories"] and "run_tool" in body["forbidden"] and "ask_agent" in body["forbidden"]
