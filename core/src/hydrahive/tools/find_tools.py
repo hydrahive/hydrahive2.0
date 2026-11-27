@@ -73,6 +73,13 @@ async def _query_vector(query: str, store) -> list[float] | None:
         return None
 
 
+def _prompt_hint(name: str) -> str:
+    """Hinweis des Tools (sonst im System-Prompt) – im catalog-Modus steht er erst hier (Review #785)."""
+    from hydrahive.tools import REGISTRY
+    tool = REGISTRY.get(name)
+    return (getattr(tool, "prompt_hint", "") or "").strip() if tool else ""
+
+
 _BG_TASKS: set = set()
 
 
@@ -112,7 +119,8 @@ async def _execute(args: dict, ctx: ToolContext) -> ToolResult:
     allowed = _allowed_for(ctx)
     vector = await _query_vector(query, store)
     found = search(query, allowed=allowed, kind="tool", limit=limit, query_vector=vector)
-    results = [{"name": e.name, "description": e.title, "input_schema": e.schema or {"type": "object", "properties": {}}}
+    results = [{"name": e.name, "description": e.title, "input_schema": e.schema or {"type": "object", "properties": {}},
+                **({"hint": h} if (h := _prompt_hint(e.name)) else {})}
                for e in found]
     return ToolResult.ok({"results": results, "hint": _HINT})
 

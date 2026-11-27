@@ -55,11 +55,10 @@ def _resume_session(state: State, target: dict, reason: str, budget):
     )
     if not claimed:
         raise HandoffSetupError("Resume-Token wurde bereits gleichzeitig verwendet")
-    metadata = dict(session.metadata or {})
-    metadata[RUNTIME_METADATA_KEY] = budget.as_metadata()
-    metadata["incoming_state_id"] = state.id
+    changes = {RUNTIME_METADATA_KEY: budget.as_metadata(), "incoming_state_id": state.id}
     try:
-        sessions_db.update(session.id, status="active", metadata=metadata)
+        # nur die eigenen Schlüssel, atomar (Review #785: sonst ging parallel Vorgemerktes verloren)
+        sessions_db.merge_metadata(session.id, changes, status="active")
     except Exception as exc:
         db_agent_handoffs.restore_paused_claim(token)
         raise HandoffSetupError("Handoff konnte nicht sicher gestartet werden") from exc
@@ -82,10 +81,8 @@ def _continue_session(state: State, target: dict, thread: str, budget):
     session = sessions_db.get(prev["session_id"])
     if not session or session.agent_id != target["id"]:
         return None
-    metadata = dict(session.metadata or {})
-    metadata[RUNTIME_METADATA_KEY] = budget.as_metadata()
-    metadata["incoming_state_id"] = state.id
-    sessions_db.update(session.id, status="active", metadata=metadata)
+    sessions_db.merge_metadata(session.id, {RUNTIME_METADATA_KEY: budget.as_metadata(), "incoming_state_id": state.id},
+                               status="active")
     return sessions_db.get(session.id)
 
 

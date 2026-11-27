@@ -30,6 +30,16 @@ def validate_status(status: str) -> None:
         )
 
 
+def validate_tool_mode(mode) -> None:
+    if mode not in ("classic", "catalog"):
+        raise AgentValidationError(f"Ungültiger tool_mode: '{mode}' (erlaubt: classic, catalog)")
+
+
+def validate_name_list(field: str, value) -> None:
+    if not isinstance(value, list) or not all(isinstance(v, str) for v in value):
+        raise AgentValidationError(f"{field} muss eine Liste von Namen sein")
+
+
 def validate_tools(tools: list[str]) -> list[str]:
     """Prüft die Tool-Liste. Gibt eine Liste unbekannter Tool-Namen zurück (Warnung, kein Fehler).
 

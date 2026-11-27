@@ -103,10 +103,10 @@ def test_resume_reuses_caller_bound_specialist_session(monkeypatch):
     )
     monkeypatch.setattr(hr.db_agent_handoffs, "claim_resumable", _claim)
     monkeypatch.setattr(hs.sessions_db, "get", lambda _sid: _Sess())
-    monkeypatch.setattr(
-        hs.sessions_db, "update",
-        lambda sid, **changes: captured.update({"updated_session": sid, **changes}),
-    )
+    # Handoff setzt nur die eigenen Schlüssel (merge_metadata, Review #785); bestehende Metadaten bleiben erhalten.
+    def _merge(sid, changes, *, status=None):
+        captured.update({"updated_session": sid, "status": status, "metadata": {**_Sess.metadata, **changes}})
+    monkeypatch.setattr(hs.sessions_db, "merge_metadata", _merge)
     monkeypatch.setattr(
         hs.sessions_db, "create", lambda **_kwargs: (_ for _ in ()).throw(
             AssertionError("Resume darf keine neue Session erzeugen")
@@ -173,7 +173,7 @@ def test_resume_claim_is_restored_when_setup_fails(monkeypatch):
     )
     monkeypatch.setattr(hs.sessions_db, "get", lambda _sid: _Sess())
     monkeypatch.setattr(
-        hs.sessions_db, "update",
+        hs.sessions_db, "merge_metadata",
         lambda *args, **kwargs: (_ for _ in ()).throw(RuntimeError("disk full")),
     )
     monkeypatch.setattr(hr, "_post_error_reply", _error)

@@ -139,6 +139,11 @@ def update(agent_id: str, *, _managed_by: str | None = None, **changes: Any) -> 
 
     if "tools" in changes:
         _validation.validate_tools(changes["tools"])
+    if "tool_mode" in changes:
+        _validation.validate_tool_mode(changes["tool_mode"])
+    for _list_field in ("pinned_tools", "pinned_skills"):
+        if _list_field in changes:
+            _validation.validate_name_list(_list_field, changes[_list_field])
     if "llm_model" in changes:
         _validation.validate_model(changes["llm_model"])
     if "fallback_models" in changes:

@@ -132,6 +132,30 @@ def update(
         mirror.schedule_session(s)
 
 
+def merge_metadata(session_id: str, changes: dict, *, status: str | None = None) -> None:
+    """Nur die genannten Schlüssel setzen (Read-Modify-Write unter BEGIN IMMEDIATE) – statt ``update(metadata=…)`` mit
+    einem vorher gelesenen Stand, der parallel geschriebene Schlüssel (z. B. ``catalog_remembered``) überschreibt
+    (Review #785)."""
+    with db(immediate=True) as conn:
+        row = conn.execute("SELECT metadata FROM sessions WHERE id = ?", (session_id,)).fetchone()
+        if not row:
+            return
+        try:
+            md = json.loads(row["metadata"]) if row["metadata"] else {}
+        except (json.JSONDecodeError, TypeError):
+            md = {}
+        md.update(changes)
+        if status is not None:
+            conn.execute("UPDATE sessions SET metadata = ?, status = ?, updated_at = ? WHERE id = ?",
+                         (json.dumps(md), status, now_iso(), session_id))
+        else:
+            conn.execute("UPDATE sessions SET metadata = ?, updated_at = ? WHERE id = ?",
+                         (json.dumps(md), now_iso(), session_id))
+    s = get(session_id)
+    if s:
+        mirror.schedule_session(s)
+
+
 def _set_metadata_key(session_id: str, key: str, value: str | None) -> None:
     """Setzt oder entfernt (bei leerem Wert) einen Schlüssel in session.metadata.
     BEGIN IMMEDIATE hält den Write-Lock während des gesamten Read-Modify-Write."""
@@ -151,6 +175,26 @@ def _set_metadata_key(session_id: str, key: str, value: str | None) -> None:
             "UPDATE sessions SET metadata = ?, updated_at = ? WHERE id = ?",
             (json.dumps(md), now_iso(), session_id),
         )
+    s = get(session_id)
+    if s:
+        mirror.schedule_session(s)
+
+
+def remember_catalog_tool(session_id: str, tool_name: str, max_n: int) -> None:
+    """Hängt ``tool_name`` an ``metadata["catalog_remembered"]`` an (Katalog-Modus, Spec E4): ohne Dublette (erneut benutztes
+    rückt ans Ende), höchstens ``max_n`` Einträge, die ältesten fallen raus. Read-Modify-Write unter BEGIN IMMEDIATE."""
+    with db(immediate=True) as conn:
+        row = conn.execute("SELECT metadata FROM sessions WHERE id = ?", (session_id,)).fetchone()
+        if not row:
+            return
+        try:
+            md = json.loads(row["metadata"]) if row["metadata"] else {}
+        except (json.JSONDecodeError, TypeError):
+            md = {}
+        current = [n for n in (md.get("catalog_remembered") or []) if isinstance(n, str) and n != tool_name]
+        md["catalog_remembered"] = (current + [tool_name])[-max_n:]
+        conn.execute("UPDATE sessions SET metadata = ?, updated_at = ? WHERE id = ?",
+                     (json.dumps(md), now_iso(), session_id))
     s = get(session_id)
     if s:
         mirror.schedule_session(s)

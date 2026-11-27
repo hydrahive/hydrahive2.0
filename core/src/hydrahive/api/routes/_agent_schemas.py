@@ -70,6 +70,10 @@ class AgentUpdate(BaseModel):
     require_tool_confirm: bool | None = None
     longterm_memory: bool | None = None
     disabled_skills: list[str] | None = None
+    # Katalog (docs/specs/tool-skill-katalog.md): classic | catalog; angeheftete Tools/Skills bleiben im catalog-Modus im Schema.
+    tool_mode: str | None = None
+    pinned_tools: list[str] | None = None
+    pinned_skills: list[str] | None = None
     tool_config: dict | None = None
     # Datamining-Zugriff (docs/specs/datamining-access.md). Route ist admin-only; {} = Standard je Typ.
     knowledge_access: dict | None = None
