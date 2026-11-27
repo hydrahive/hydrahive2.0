@@ -87,7 +87,9 @@ def test_bekannte_zuordnungen():
     assert tools_of(by_id["files_read"], reg) == ["file_read", "read_document"]
     assert tools_of(by_id["files_write"], reg) == ["file_patch", "file_write"]
     assert tools_of(by_id["shell"], reg) == ["shell_exec"]
-    assert "ask_agent" in tools_of(by_id["delegate"], reg)
+    # ask_agent steht nur mit konfiguriertem AgentLink in REGISTRY: der Bereich kennt ihn trotzdem (Zuordnung, nicht Bestand)
+    assert by_id["delegate"].tools == ("ask_agent",)
+    assert tools_of(by_id["delegate"], [*reg, "ask_agent"]) == ["ask_agent"]
     assert "create_specialist" in tools_of(by_id["helpers"], reg) and "list_projects" in tools_of(by_id["helpers"], reg)
     assert set(tools_of(by_id["code"], reg)) >= {"graph_query", "graph_refresh"}
     assert set(tools_of(by_id["memory"], reg)) >= {"read_memory", "write_memory", "datamining_search"}
@@ -96,7 +98,7 @@ def test_bekannte_zuordnungen():
 
 def test_muster_nur_praefix():
     from hydrahive.agents.areas import Area, tools_of
-    a = Area(id="t", group="files_code", name={"de": "x", "en": "x"}, sentence={"de": "x", "en": "x"}, marks=(),
+    a = Area(id="tt", group="files_code", name={"de": "x", "en": "x"}, sentence={"de": "x", "en": "x"}, marks=(),
              tools=("graph_*", "exakt"))
     assert tools_of(a, ["graph_b", "graph_a", "graphviz", "exakt", "exakt2", "andere"]) == ["exakt", "graph_a", "graph_b"]
     assert tools_of(a, []) == []                                              # nicht registriert → nicht dabei
@@ -110,7 +112,7 @@ def test_stern_mitten_im_namen_ist_verboten():
     check_pattern("graph_*")
     check_pattern("exakt_name")
     with pytest.raises(ValueError):
-        Area(id="t", group="files_code", name={"de": "x", "en": "x"}, sentence={"de": "x", "en": "x"}, marks=(),
+        Area(id="tt", group="files_code", name={"de": "x", "en": "x"}, sentence={"de": "x", "en": "x"}, marks=(),
              tools=("gr*ph",))
 
 
@@ -118,9 +120,9 @@ def test_marken_und_gruppen_werden_geprueft():
     from hydrahive.agents.areas import Area
     base = dict(name={"de": "x", "en": "x"}, sentence={"de": "x", "en": "x"})
     with pytest.raises(ValueError):
-        Area(id="t", group="gibt-es-nicht", marks=(), tools=(), **base)
+        Area(id="tt", group="gibt-es-nicht", marks=(), tools=(), **base)
     with pytest.raises(ValueError):
-        Area(id="t", group="internet", marks=("gefaehrlich",), tools=(), **base)
+        Area(id="tt", group="internet", marks=("gefaehrlich",), tools=(), **base)
     with pytest.raises(ValueError):
         Area(id="T-x", group="internet", marks=(), tools=(), **base)          # id nur a-z_
 
