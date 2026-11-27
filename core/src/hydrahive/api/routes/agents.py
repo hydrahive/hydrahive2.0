@@ -145,6 +145,8 @@ def create_agent(
             tool_result_max_chars=req.tool_result_max_chars,
             cache_ttl=req.cache_ttl,
             handoff_timeout_seconds=req.handoff_timeout_seconds,
+            # E2/AB10: neue Agenten aus dem Editor starten mit „Werkzeuge bei Bedarf suchen“; Bestand bleibt classic.
+            tool_mode=req.tool_mode or "catalog",
         ))
     except AgentValidationError as e:
         raise _validation_error(e)

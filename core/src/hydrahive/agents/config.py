@@ -53,8 +53,11 @@ def create(
     cache_ttl: str | None = None,
     handoff_timeout_seconds: int | None = None,
     template: str | None = None,
+    tool_mode: str | None = None,
 ) -> dict:
     _validation.validate_type(agent_type)
+    if tool_mode is not None:
+        _validation.validate_tool_mode(tool_mode)      # ohne Angabe bleibt der Standard classic (normalize)
     if template:
         # Gebunden (Spec agent-templates.md Kap. 5): Modell/Fallback/Budget kommen aus dem Template.
         bound = _binding.create_defaults(template)
@@ -83,6 +86,7 @@ def create(
         "status": "active", "created_at": now_iso(), "updated_at": now_iso(),
         "external": bool(external),
         **({"template": template} if template else {}),
+        **({"tool_mode": tool_mode} if tool_mode else {}),
     }
     runtime = {
         key: value for key, value in {
