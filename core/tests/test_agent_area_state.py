@@ -129,7 +129,9 @@ def test_status_teilweise_durch_kategorie():
     assert nach == ["kategorie:files"]
     assert _state({"tools": nach}, "files_read")["state"] == "partial"
     gemischt = _state({"tools": ["kategorie:files", "file_read"]}, "files_read")
-    assert gemischt["have"] == ["file_read"] and gemischt["via_category"] == ["read_document"] or gemischt["state"] == "on"
+    assert gemischt["have"] == ["file_read"] and gemischt["via_category"] == ["read_document"]
+    # Es fehlt nichts (der Rest kommt über die Kategorie), also gilt der Bereich als „an“; via_category sagt ehrlich woher
+    assert gemischt["state"] == "on" and gemischt["missing"] == []
 
 
 def test_status_kategorie_deckt_fremde_bereiche_nicht():
