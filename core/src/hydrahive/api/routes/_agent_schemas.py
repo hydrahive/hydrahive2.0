@@ -71,6 +71,9 @@ class AgentUpdate(BaseModel):
     longterm_memory: bool | None = None
     disabled_skills: list[str] | None = None
     # Katalog (docs/specs/tool-skill-katalog.md): classic | catalog; angeheftete Tools/Skills bleiben im catalog-Modus im Schema.
+    # Nur damit ein Versuch sichtbar mit 400 scheitert statt still verworfen zu werden: der Pool gehört nach
+    # agents/tool_pools.py (eigene Routen mit Besitzer-Prüfung), nie in die Agenten-Konfiguration.
+    tool_pool: list[str] | None = None
     tool_mode: str | None = None
     pinned_tools: list[str] | None = None
     pinned_skills: list[str] | None = None

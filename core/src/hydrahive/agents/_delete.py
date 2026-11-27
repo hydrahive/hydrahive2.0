@@ -31,6 +31,8 @@ def delete(agent_id: str) -> bool:
         remove_tree(workspace_for(cfg))
     shutil.rmtree(d)
     _revoke_allowance(agent_id)
+    from hydrahive.agents import tool_pools
+    tool_pools.remove_agent(agent_id)
     logger.info("Agent gelöscht: %s", agent_id)
     return True
 

@@ -267,4 +267,9 @@ def depth_from_reason(reason: str | None) -> int:
 def can_delegate(agent: dict | None) -> bool:
     """Kann der Agent selbst per ask_agent beauftragen? Dann wartet sein
     Auftraggeber bis zur Ketten-Gesamtfrist, nicht nur sein Lauf-Budget."""
-    return bool(agent) and "ask_agent" in (agent.get("tools") or [])
+    if not agent:
+        return False
+    # Eine Quelle (Katalog Etappe 5, KP5): Config-Tools ∪ Pool. ask_agent steht nie im Pool (S3), kommt also nur aus der
+    # Config; so zählt der Aufruf wie alle anderen Prüfer über possible_tool_names (inkl. Kategorien).
+    from hydrahive.agents.effective_tools import possible_tool_names
+    return "ask_agent" in possible_tool_names(agent)
