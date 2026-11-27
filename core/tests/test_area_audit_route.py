@@ -132,3 +132,18 @@ def test_echter_pfad_schreibt_ins_protokoll(client, admin_headers):
     got = _get(client, admin_headers).json()["entries"]
     mine = [e for e in got if e["action"] == "tool_grants_set" and e["target"] == "user:testuser"]
     assert mine and mine[0]["areas"] == ["Dateien lesen"] and mine[0]["actor"] == "admin"
+
+
+# ── Nie vergebbare Tools (für ausgegraute Bereiche im Frontend; eine Quelle: tool_pools.FORBIDDEN) ───────────────────
+
+def test_area_never_nur_admin(client, auth_headers):
+    assert client.get("/api/admin/area-never").status_code == 401
+    assert client.get("/api/admin/area-never", headers=auth_headers).status_code == 403
+
+
+def test_area_never_liefert_die_forbidden_liste(client, admin_headers):
+    from hydrahive.agents import tool_pools
+    r = client.get("/api/admin/area-never", headers=admin_headers)
+    assert r.status_code == 200, r.text
+    assert r.json()["tools"] == sorted(tool_pools.FORBIDDEN)
+    assert "ask_agent" in r.json()["tools"] and "run_tool" in r.json()["tools"]
