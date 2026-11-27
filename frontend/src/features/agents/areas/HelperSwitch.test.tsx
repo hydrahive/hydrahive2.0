@@ -1,6 +1,6 @@
 import { renderToStaticMarkup } from "react-dom/server"
 import { describe, expect, it, vi } from "vitest"
-import { HelperView } from "./HelperSwitch"
+import { HelperView } from "./HelperView"
 import type { Area } from "./types"
 
 vi.mock("react-i18next", () => ({ useTranslation: () => ({ t: (k: string) => k }) }))
@@ -29,6 +29,6 @@ describe("HelperView – AB7", () => {
   it("ohne Recht: gesperrt, kein Speichern-Knopf", () => {
     const html = renderToStaticMarkup(<HelperView {...props} enabled selected={["files_read"]} mayEdit={false} />)
     expect(html).not.toContain("areas.helper_save")
-    expect(html).toMatch(/role="switch"[^>]*disabled/)
+    expect(html).toMatch(/role="switch"[^>]*\sdisabled=""/)
   })
 })

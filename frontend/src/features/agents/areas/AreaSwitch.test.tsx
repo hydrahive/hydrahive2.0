@@ -46,7 +46,7 @@ describe("AreaSwitch", () => {
     expect(render(area(), st({ state: "off" }))).not.toContain("areas.via_category")
   })
   it("gesperrt: Schalter disabled", () => {
-    expect(render(area(), st(), { disabled: true })).toMatch(/<button[^>]*role="switch"[^>]*disabled/)
-    expect(render(area(), st(), { disabled: false })).not.toMatch(/role="switch"[^>]*disabled/)
+    expect(render(area(), st(), { disabled: true })).toMatch(/<button[^>]*role="switch"[^>]*\sdisabled=""/)
+    expect(render(area(), st(), { disabled: false })).not.toMatch(/role="switch"[^>]*\sdisabled=""/)
   })
 })

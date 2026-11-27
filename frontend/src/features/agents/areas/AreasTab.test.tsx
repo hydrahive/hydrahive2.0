@@ -1,6 +1,6 @@
 import { renderToStaticMarkup } from "react-dom/server"
 import { describe, expect, it, vi } from "vitest"
-import { AreasView } from "./AreasTab"
+import { AreasView } from "./AreasView"
 import type { AreaCatalog, AreaStatus } from "./types"
 
 vi.mock("react-i18next", () => ({ useTranslation: () => ({ t: (k: string, o?: { count?: number }) => (o?.count !== undefined ? `${k}:${o.count}` : k) }) }))
@@ -32,12 +32,12 @@ describe("AreasView – AB3", () => {
   it("editable=false: Schalter gesperrt und Hinweis „Nur Admins“ sichtbar", () => {
     const html = renderToStaticMarkup(<AreasView {...base} status={status(false)} />)
     expect(html).toContain("areas.readonly")
-    expect(html).toMatch(/role="switch"[^>]*disabled/)
+    expect(html).toMatch(/role="switch"[^>]*\sdisabled=""/)
   })
   it("editable=true: kein Hinweis, Schalter bedienbar", () => {
     const html = renderToStaticMarkup(<AreasView {...base} status={status(true)} />)
     expect(html).not.toContain("areas.readonly")
-    expect(html).not.toMatch(/role="switch"[^>]*disabled/)
+    expect(html).not.toMatch(/role="switch"[^>]*\sdisabled=""/)
   })
   it("zeigt den Schalter „Werkzeuge bei Bedarf suchen“ und seinen Zustand", () => {
     const off = renderToStaticMarkup(<AreasView {...base} status={status(true)} />)
@@ -48,6 +48,6 @@ describe("AreasView – AB3", () => {
   })
   it("zeigt keine Tool-Namen in der Bereichsansicht", () => {
     const html = renderToStaticMarkup(<AreasView {...base} status={status(true)} />)
-    expect(html).not.toContain("file_read"); expect(html).not.toContain("web_search\"")
+    expect(html).not.toContain("file_read"); expect(html).not.toMatch(/>web_search</); expect(html).not.toContain("find_tools")
   })
 })
