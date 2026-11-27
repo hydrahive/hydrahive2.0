@@ -259,3 +259,19 @@ def test_route_identitaet_nur_aus_dem_token(client, auth_headers, sitzung):
     fremd = sitzung("admin")
     r = client.get(f"/api/catalog/metrics?session_id={fremd}&username=admin&user_id=admin&role=admin", headers=auth_headers)
     assert r.status_code in (403, 404)
+
+
+def test_sitzung_loeschen_raeumt_messung_mit_auf(sitzung):
+    """Review #787: Suchtexte dürfen das Löschen der Sitzung nicht überleben; fremde Sitzungen bleiben unberührt."""
+    from hydrahive.catalog import metrics
+    from hydrahive.db import sessions as sessions_db
+    from hydrahive.db.connection import db
+    weg, bleibt = sitzung(), sitzung()
+    metrics.record_search(weg, "search_tools", "geheime anfrage", ["web_search"])
+    metrics.record_run(weg, "web_search")
+    metrics.record_search(bleibt, "search_tools", "andere", [])
+    sessions_db.delete(weg)
+    with db() as conn:
+        rest = {r["session_id"] for r in conn.execute(
+            "SELECT session_id FROM catalog_events WHERE session_id IN (?, ?)", (weg, bleibt))}
+    assert rest == {bleibt}

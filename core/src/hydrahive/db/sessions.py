@@ -249,3 +249,9 @@ def touch(session_id: str) -> None:
 def delete(session_id: str) -> None:
     with db() as conn:
         conn.execute("DELETE FROM sessions WHERE id = ?", (session_id,))
+        # catalog_events hat bewusst keinen Fremdschlüssel (Messung blockiert nie) – Suchtexte trotzdem mitlöschen,
+        # sonst bleiben sie nach dem Löschen der Sitzung liegen (Review #787, Datenschutz).
+        try:
+            conn.execute("DELETE FROM catalog_events WHERE session_id = ?", (session_id,))
+        except sqlite3.OperationalError:
+            pass

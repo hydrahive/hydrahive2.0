@@ -32,7 +32,7 @@ def _insert(session_id: str, kind: str, query: str, results: list[str], tool: st
 
 def record_search(session_id: str | None, kind: str, query: str, results: list[str]) -> None:
     """Eine Suche festhalten (kind: search_tools | search_skills). Wirft nie."""
-    if not session_id or kind not in ("search_tools", "search_skills"):
+    if not session_id or kind not in KINDS[:2]:
         return
     try:
         _insert(session_id, kind, (query or "")[:MAX_QUERY], [str(r) for r in results][:MAX_RESULTS], "")
