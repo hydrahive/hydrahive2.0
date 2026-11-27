@@ -224,3 +224,65 @@ def test_catalog_prompt_stabil_ueber_mehrere_laeufe(world):
     aid = world.agent(tool_mode="catalog")
     sid = world.session(aid)
     assert world.run(sid, "eins")[0]["stable"] == world.run(sid, "zwei")[0]["stable"]
+
+
+
+# ── Review #785 ──────────────────────────────────────────────────────────────────────────────────────────────────
+
+def test_catalog_prompt_hint_nur_fuer_gezeigte_tools(world, monkeypatch):
+    """Fängt (Review #785, sollte): Hinweise kamen für ALLE freigegebenen Tools in den Prompt, auch nicht gezeigte."""
+    from hydrahive.tools import REGISTRY
+    import dataclasses
+    monkeypatch.setitem(REGISTRY, "send_mail", dataclasses.replace(REGISTRY["send_mail"], prompt_hint="HINWEIS-MAIL"))
+    monkeypatch.setitem(REGISTRY, "file_read", dataclasses.replace(REGISTRY["file_read"], prompt_hint="HINWEIS-DATEI"))
+    aid = world.agent(tool_mode="catalog")                       # send_mail freigegeben, aber nicht im Kern
+    call = world.run(world.session(aid))[0]
+    assert "HINWEIS-DATEI" in call["stable"]                     # gezeigt → Hinweis da
+    assert "HINWEIS-MAIL" not in call["stable"]                  # nicht gezeigt → kein Hinweis
+    cid = world.agent()                                          # classic: wie bisher alle
+    assert "HINWEIS-MAIL" in world.run(world.session(cid))[0]["stable"]
+
+
+def test_find_tools_liefert_prompt_hint_mit():
+    import asyncio
+    import dataclasses
+    from unittest.mock import patch
+    from hydrahive.tools import REGISTRY
+    from hydrahive.tools import find_tools as ft
+    t = dataclasses.replace(REGISTRY["send_mail"], prompt_hint="HINWEIS-MAIL")
+    with patch.dict(REGISTRY, {"send_mail": t}):
+        assert ft._prompt_hint("send_mail") == "HINWEIS-MAIL"
+        assert ft._prompt_hint("gibt_es_nicht") == ""
+    assert asyncio.iscoroutinefunction(ft._execute)
+
+
+def test_catalog_mit_longterm_memory_ueber_mehrere_iterationen_stabil(world):
+    """Review #785 (kann): _inject_longterm_memory hängt in-place an – im catalog-Modus darf nichts wachsen."""
+    aid = world.agent(tool_mode="catalog", longterm_memory=True)
+    sid = world.session(aid)
+    world.script = [[_tu("c1", "find_tools", query="Mail schicken")], [_tu("c2", "find_tools", query="Bild")],
+                    [{"type": "text", "text": "fertig"}]]
+    world.monkeypatch.setattr("hydrahive.runner._runner_tools.execute_tool", _fake_exec(world))
+    calls = world.run(sid)
+    assert len(calls) == 3
+    namen = [[t["name"] for t in c["tools"]] for c in calls]
+    assert namen[0] == namen[1] == namen[2] and len(namen[0]) == len(set(namen[0]))
+    assert calls[0]["stable"] == calls[1]["stable"] == calls[2]["stable"]
+
+
+def test_handoff_ueberschreibt_vorgemerktes_nicht(world):
+    """Fängt (Review #785, sollte): Handoff schrieb metadata komplett aus altem Stand – catalog_remembered ging verloren."""
+    from hydrahive.db import sessions as sessions_db
+    sid = world.session(world.agent(tool_mode="catalog"))
+    alt = sessions_db.get(sid)                                    # Stand, den der Handoff früher gelesen hätte
+    sessions_db.remember_catalog_tool(sid, "send_mail", 15)       # parallel vorgemerkt
+    sessions_db.merge_metadata(sid, {"incoming_state_id": "st-1"}, status="active")
+    md = sessions_db.get(sid).metadata
+    assert md["catalog_remembered"] == ["send_mail"] and md["incoming_state_id"] == "st-1"
+    assert alt.metadata.get("catalog_remembered") is None
+
+
+def test_handoff_setup_nutzt_merge_metadata():
+    from pathlib import Path
+    src = (Path(__file__).resolve().parents[1] / "src/hydrahive/runner/_handoff_setup.py").read_text()
+    assert "merge_metadata(" in src and "update(session.id, status=\"active\", metadata=" not in src

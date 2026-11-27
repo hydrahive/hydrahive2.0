@@ -32,6 +32,7 @@ def compose(
     lessons: list[dict] | None = None,
     agent: dict | None = None,
     catalog_block: str | None = None,
+    hint_tools: list[str] | None = None,
 ) -> tuple[str, str, str | None]:
     """Setzt stable-, volatile- und summary-System-Prompts zusammen.
 
@@ -46,7 +47,9 @@ def compose(
         stable += f"\n\n{catalog_block}"
     if longterm_memory:
         stable = _inject_longterm_memory(stable, tool_schemas, allowed_tools)
-    stable += _tool_prompt_hints(allowed_tools)
+    # catalog-Modus: Hinweise nur für die GEZEIGTEN Tools (Review #785) – sonst nennt der Prompt Tools, die nicht im Schema
+    # stehen, und frisst die Ersparnis (Buddy: 29 Hinweise ≈ 2.300 Tokens). classic: hint_tools=None → wie bisher.
+    stable += _tool_prompt_hints(hint_tools if hint_tools is not None else allowed_tools)
     style = working_style(agent)          # Plan E6 T3: je Rolle fest, daher im stabilen Teil
     if style:
         stable += f"\n\n{style}"

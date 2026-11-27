@@ -149,9 +149,11 @@ async def run(
             local_tools, list(agent.get("pinned_tools") or []), catalog_mode.remembered_for(session))
         tool_schemas = schemas_for(_shown) + mcp_schemas + plugin_bridge.schemas_for(_shown)
         allowed_tools = catalog_mode.allowed_with_catalog(local_tools) + [s["name"] for s in mcp_schemas]
+        hint_tools: list[str] | None = [s["name"] for s in tool_schemas]
     else:
         tool_schemas = schemas_for(local_tools) + mcp_schemas + plugin_schemas
         allowed_tools = local_tools + [s["name"] for s in mcp_schemas]
+        hint_tools = None
 
     from hydrahive.handover import prompt_for_new_session
     handover_system = prompt_for_new_session(session_id)
@@ -248,6 +250,7 @@ async def run(
             summary=messages_db.get_latest_summary(session_id) or handover_system,
             skills=None if catalog_block else agent_skills,
             catalog_block=catalog_block,
+            hint_tools=hint_tools,
             longterm_memory=bool(agent.get("longterm_memory")),
             tool_schemas=tool_schemas,
             allowed_tools=allowed_tools,
