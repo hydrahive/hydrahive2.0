@@ -134,16 +134,28 @@ def test_echter_pfad_schreibt_ins_protokoll(client, admin_headers):
     assert mine and mine[0]["areas"] == ["Dateien lesen"] and mine[0]["actor"] == "admin"
 
 
-# ── Nie vergebbare Tools (für ausgegraute Bereiche im Frontend; eine Quelle: tool_pools.FORBIDDEN) ───────────────────
+# ── Nie vergebbare Bereiche (ausgegraut im Frontend; Quelle ist check_item, nicht eine zweite Liste) ───────────────────
 
 def test_area_never_nur_admin(client, auth_headers):
     assert client.get("/api/admin/area-never").status_code == 401
     assert client.get("/api/admin/area-never", headers=auth_headers).status_code == 403
 
 
-def test_area_never_liefert_die_forbidden_liste(client, admin_headers):
+def test_area_never_nimmt_check_item_als_massstab(client, admin_headers):
+    """Ein Bereich ist „nie“, wenn check_item JEDES seiner Tools ablehnt – nicht schon, wenn eines abgelehnt wird."""
+    from hydrahive.agents import _area_registry as registry
     from hydrahive.agents import tool_pools
+
+    def abgelehnt(tool: str) -> bool:
+        try:
+            tool_pools.check_item(tool)
+            return False
+        except ValueError:
+            return True
+    erwartet = sorted(a["id"] for a in registry.all_areas("de") if a["tools"] and all(abgelehnt(t) for t in a["tools"]))
     r = client.get("/api/admin/area-never", headers=admin_headers)
     assert r.status_code == 200, r.text
-    assert r.json()["tools"] == sorted(tool_pools.FORBIDDEN)
-    assert "ask_agent" in r.json()["tools"] and "run_tool" in r.json()["tools"]
+    assert r.json()["areas"] == erwartet
+    assert "delegate" in erwartet                                    # ask_agent ist FORBIDDEN → der Bereich ist nie vergebbar
+    gemischt = next(a for a in registry.all_areas("de") if any(abgelehnt(t) for t in a["tools"]) and not all(abgelehnt(t) for t in a["tools"]))
+    assert gemischt["id"] not in r.json()["areas"]                   # teilweise abgelehnt → bleibt schaltbar
