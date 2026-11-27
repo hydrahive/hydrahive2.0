@@ -29,6 +29,23 @@ def get_areas(auth: Annotated[tuple[str, str], Depends(require_auth)],
             "unassigned": registry.unassigned() if role == "admin" else []}
 
 
+@router.get("/never")
+def get_area_never(_: Annotated[tuple[str, str], Depends(require_auth)]) -> dict:
+    """Bereiche, deren Tools ``tool_pools.check_item`` ALLE ablehnt (nie per Auftrag vergebbar). Die Oberfläche graut sie aus;
+    entschieden wird hier, mit demselben Maßstab wie beim Speichern, nicht mit einer zweiten Liste im Frontend."""
+    from hydrahive.agents import tool_pools
+
+    def never(tool: str) -> bool:
+        try:
+            tool_pools.check_item(tool)
+            return False
+        except ValueError:
+            return True
+    catalog = registry.all_areas("de")
+    return {"areas": sorted(a["id"] for a in catalog if a["tools"] and all(never(t) for t in a["tools"])),
+            "tools": sorted({t for a in catalog for t in a["tools"] if never(t)})}   # beim Einschalten eines Bereichs bleiben sie weg
+
+
 @agent_router.get("/{agent_id}/areas")
 def get_agent_areas(agent_id: str, auth: Annotated[tuple[str, str], Depends(require_auth)]) -> dict:
     """Bereichs-Status eines Agenten (Besitzer oder Admin, fremd → 403 ``agent_no_access`` wie ``/tool-pool``). Nur lesend: gespeichert wird
@@ -76,20 +93,3 @@ def get_area_audit(_: Annotated[tuple[str, str], Depends(require_admin)], lang: 
     entzogen hat. Gefiltert nach Aktion (nicht nach Ziel), Tool-Namen auf Bereichsnamen abgebildet."""
     from hydrahive.agents import area_audit
     return {"entries": area_audit.entries(lang if lang in ("de", "en") else "de", limit)}
-
-
-@audit_router.get("/area-never")
-def get_area_never(_: Annotated[tuple[str, str], Depends(require_admin)]) -> dict:
-    """Bereiche, deren Tools ``tool_pools.check_item`` ALLE ablehnt (nie per Auftrag vergebbar). Die Oberfläche graut sie aus;
-    entschieden wird hier, mit demselben Maßstab wie beim Speichern, nicht mit einer zweiten Liste im Frontend."""
-    from hydrahive.agents import tool_pools
-
-    def never(tool: str) -> bool:
-        try:
-            tool_pools.check_item(tool)
-            return False
-        except ValueError:
-            return True
-    catalog = registry.all_areas("de")
-    return {"areas": sorted(a["id"] for a in catalog if a["tools"] and all(never(t) for t in a["tools"])),
-            "tools": sorted({t for a in catalog for t in a["tools"] if never(t)})}   # beim Einschalten eines Bereichs bleiben sie weg

@@ -136,9 +136,10 @@ def test_echter_pfad_schreibt_ins_protokoll(client, admin_headers):
 
 # ── Nie vergebbare Bereiche (ausgegraut im Frontend; Quelle ist check_item, nicht eine zweite Liste) ───────────────────
 
-def test_area_never_nur_admin(client, auth_headers):
-    assert client.get("/api/admin/area-never").status_code == 401
-    assert client.get("/api/admin/area-never", headers=auth_headers).status_code == 403
+def test_area_never_braucht_anmeldung_nicht_admin(client, auth_headers):
+    """Auch Projekt-Admins ohne Admin-Rolle sehen im Projekt-Pool ausgegraute Bereiche; die Liste enthält nichts Geheimes."""
+    assert client.get("/api/agent-areas/never").status_code == 401
+    assert client.get("/api/agent-areas/never", headers=auth_headers).status_code == 200
 
 
 def test_area_never_nimmt_check_item_als_massstab(client, admin_headers, monkeypatch):
@@ -160,7 +161,7 @@ def test_area_never_nimmt_check_item_als_massstab(client, admin_headers, monkeyp
         except ValueError:
             return True
     erwartet = sorted(a["id"] for a in registry.all_areas("de") if a["tools"] and all(abgelehnt(t) for t in a["tools"]))
-    r = client.get("/api/admin/area-never", headers=admin_headers)
+    r = client.get("/api/agent-areas/never", headers=admin_headers)
     assert r.status_code == 200, r.text
     assert r.json()["areas"] == erwartet
     assert r.json()["tools"] == sorted(t for a in registry.all_areas("de") for t in a["tools"] if abgelehnt(t))   # Einzel-Tools, die beim Einschalten wegbleiben
