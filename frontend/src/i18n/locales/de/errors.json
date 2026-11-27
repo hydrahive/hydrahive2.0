@@ -178,5 +178,6 @@
   "samba_failed": "Die Freigabe ließ sich nicht einrichten.",
   "samba_bad_project": "Ungültige Projekt-ID für die Freigabe.",
   "project_preview_login_required": "Testseite nicht angemeldet – öffne sie über „Testseite öffnen“ im Projekt.",
-  "preview_port_exhausted": "Alle Ports für Testseiten sind vergeben – ein Admin kann den Bereich erweitern (HH_PREVIEW_PORT_MIN/MAX)."
+  "preview_port_exhausted": "Alle Ports für Testseiten sind vergeben – ein Admin kann den Bereich erweitern (HH_PREVIEW_PORT_MIN/MAX).",
+  "tool_pool_forbidden": "Diese Tool-Freigabe ist nicht erlaubt: {{message}}"
 }

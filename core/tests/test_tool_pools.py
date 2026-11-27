@@ -237,3 +237,22 @@ def test_nutzer_loeschen_entfernt_besitzer_freigabe(client):
     assert tool_pools.owner_grants("weg_nutzer") == ["send_mail"]
     users.delete("weg_nutzer")
     assert tool_pools.owner_grants("weg_nutzer") == []
+
+
+
+def test_by_admin_wirkt_nicht_mehr_nach_degradierung(client, monkeypatch):
+    """Fängt (Security-Review #786, sollte): by_admin=1 war ein Snapshot – nach Degradierung des Admins umging seine Zeile
+    den Besitzer-Deckel dauerhaft."""
+    from hydrahive.agents import tool_pools
+    rollen = {"chef": "admin", "anna": "user"}
+    monkeypatch.setattr(tool_pools, "_is_admin", lambda u: rollen.get(u) == "admin")
+    aid = agent_config.create(agent_type="master", name="deg", llm_model="x", owner="anna", created_by="anna",
+                              temperature=0.7, max_tokens=100, thinking_budget=0, tools=["file_read"])["id"]
+    try:
+        tool_pools.set_agent_pool("chef", aid, ["web_search"])            # vom Admin gesetzt, anna hat keine Freigabe
+        agent = agent_config.get(aid)
+        assert tool_pools.tool_pool_for(agent) == ["web_search"]
+        rollen["chef"] = "user"                                           # Admin wird degradiert
+        assert tool_pools.tool_pool_for(agent) == []
+    finally:
+        agent_config.delete(aid)

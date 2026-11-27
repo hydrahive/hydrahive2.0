@@ -107,16 +107,23 @@ def tool_pool_for(agent: dict, project: dict | None = None, *, capped: bool = Tr
     agent_id = agent.get("id")
     if not agent_id:
         return []
-    rows = _rows("SELECT tool_or_category, by_admin FROM agent_tool_pools WHERE agent_id = ? ORDER BY rowid", (agent_id,))
+    rows = _rows("SELECT tool_or_category, by_admin, set_by FROM agent_tool_pools WHERE agent_id = ? ORDER BY rowid",
+                 (agent_id,))
     if not rows:
         return []
     owner = agent.get("owner") or ""
     cap_needed = capped and not _is_admin(owner)
     grants = owner_grants(owner) if cap_needed else []
     names: list[str] = []
+    admin_now: dict[str, bool] = {}
     for row in rows:
         item = row["tool_or_category"]
-        if cap_needed and not row["by_admin"] and not _covered(item, grants):
+        # by_admin gilt nur, solange der Setzende HEUTE noch Admin ist (Review #786: sonst umginge eine Zeile eines
+        # später degradierten Admins den Besitzer-Deckel dauerhaft).
+        setter = row["set_by"] or ""
+        if setter not in admin_now:
+            admin_now[setter] = bool(row["by_admin"]) and _is_admin(setter)
+        if cap_needed and not admin_now[setter] and not _covered(item, grants):
             continue
         names.extend(resolve_categories([item]))
     names = [n for n in dict.fromkeys(names) if n not in FORBIDDEN and not n.startswith("mcp__")]

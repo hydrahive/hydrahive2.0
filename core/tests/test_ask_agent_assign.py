@@ -215,3 +215,13 @@ def test_zugewiesenes_tool_im_catalog_modus_direkt_sichtbar(client, monkeypatch)
         assert "web_search" in [t["name"] for t in w.calls[0]["tools"]]
     finally:
         w.cleanup()
+
+
+
+def test_projekt_deckel_auch_ohne_sitzungsprojekt():
+    """Fängt (Review #786, sollte): Spezialist ohne Sitzungsprojekt bekam den Pool ohne Projekt-Schnitt."""
+    from pathlib import Path
+    src = (Path(__file__).resolve().parents[1] / "src/hydrahive/runner/runner.py").read_text()
+    i = src.index("_assigned = assigned_for_run(")
+    vor = src[max(0, i - 600):i]
+    assert 'agent.get("project_id")' in vor and "_assign_proj" in src[i:i + 80]

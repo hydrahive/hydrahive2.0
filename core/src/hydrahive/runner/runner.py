@@ -140,7 +140,12 @@ async def run(
     # Wirksame Tools über die zentrale Stelle (Katalog Etappe 1, Spec S6); MCP bleibt wie bisher daneben.
     # Zuweisung aus einem ask_agent-Auftrag (Katalog Etappe 5): nur in diesem Handoff-Lauf, einmal beim Laufstart gelesen und
     # gegen den Pool geprüft; kommt zu den eigenen Tools dazu (Spec D2/E4).
-    _assigned = assigned_for_run(session, agent, _proj, origin)
+    # Projekt-Deckel auch ohne Sitzungsprojekt: das Projekt des Agenten (Spezialist) – wie beim Auftraggeber (Review #786).
+    _assign_proj = _proj
+    if _assign_proj is None and agent.get("project_id"):
+        from hydrahive.projects import config as _project_config
+        _assign_proj = _project_config.get(agent["project_id"])
+    _assigned = assigned_for_run(session, agent, _assign_proj, origin)
     local_tools = effective_tool_names(agent, username=session.user_id, project=_proj, pool=_assigned or None)
     _, mcp_servers = scope_tools(_proj, [], list(agent.get("mcp_servers", [])))
     mcp_schemas = await mcp_bridge.schemas_for_servers(mcp_servers)
