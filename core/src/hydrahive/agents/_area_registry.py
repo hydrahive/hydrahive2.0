@@ -15,8 +15,22 @@ _MCP_PREFIX = "mcp__"
 
 
 def _registered() -> list[str]:
+    """Kern- und Modul-Tools (``tools.REGISTRY``) plus Plugin-Tools (eigene Registry, Name ``plugin__<p>__<t>``), ohne MCP."""
+    from hydrahive.plugins import tool_bridge
     from hydrahive.tools import REGISTRY
-    return sorted(n for n in REGISTRY if not n.startswith(_MCP_PREFIX))
+    names = set(REGISTRY) | {m["name"] for m in tool_bridge.all_tool_meta()}
+    return sorted(n for n in names if not n.startswith(_MCP_PREFIX))
+
+
+def _sensitive(tool: str) -> bool:
+    """Außen-Tool oder Tool mit Capability – darf ein Modul nicht in einen Kern-Bereich ohne ⚠️ hängen (Review #789 S3)."""
+    from hydrahive.access.capabilities import catalog
+    from hydrahive.db._mirror_groups import OUTWARD_TOOLS
+    from hydrahive.tools import REGISTRY
+    if tool in OUTWARD_TOOLS:
+        return True
+    reg = REGISTRY.get(tool)
+    return catalog().capability_for_tool(tool, module_id=getattr(reg, "module_id", "") or "") is not None
 
 
 def _module_entries() -> list[tuple[str, dict]]:
@@ -66,7 +80,12 @@ def _resolve() -> tuple[list[dict], dict[str, str]]:
                              "marks": list(entry["marks"]), "tools": [], "source": module_id}
             target = new_id
             tools = sorted({n for n in registered if any(matches(p, n) for p in entry["tools"])})
+        risky_target = "risky" in areas[target]["marks"]
         for t in tools:
+            if areas[target]["source"] == "core" and not risky_target and _sensitive(t):
+                logger.warning("Modul %s: Tool %r wirkt nach außen oder braucht eine Freigabe – nicht in den Bereich %r "
+                               "ohne ⚠️ (bleibt ohne Bereich)", module_id, t, target)
+                continue
             if t in owner and owner[t] != target:
                 logger.warning("Modul %s: Tool %r liegt schon im Bereich %r – bleibt dort (Kern gewinnt)",
                                module_id, t, owner[t])

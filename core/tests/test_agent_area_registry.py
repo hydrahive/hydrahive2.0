@@ -210,3 +210,32 @@ def test_unassigned_nur_fuer_admin(client, auth_headers, admin_headers, modul, t
 def test_route_unbekannte_sprache_ist_deutsch(client, auth_headers):
     body = client.get("/api/agent-areas?lang=xx", headers=auth_headers).json()
     assert next(a for a in body["areas"] if a["id"] == "shell")["name"] == "Befehle ausführen"
+
+
+def test_plugin_tools_werden_ueber_ihre_muster_aufgeloest(monkeypatch):
+    """Review #789 M2: Plugin-Tools liegen nicht in tools.REGISTRY – die Plugin-Muster aus Spec 3.2 müssen trotzdem greifen."""
+    from hydrahive.agents import _area_registry
+    from hydrahive.plugins import tool_bridge
+    monkeypatch.setattr(tool_bridge, "all_tool_meta", lambda: [
+        {"name": "plugin__git-stats__git_commits", "description": "", "category": "plugin:git-stats"},
+        {"name": "plugin__http-tester__request", "description": "", "category": "plugin:http-tester"}])
+    assert _area_registry.area_of("plugin__git-stats__git_commits") == "code"
+    assert _area_registry.area_of("plugin__http-tester__request") == "web_open"
+
+
+def test_modul_darf_aussen_tool_nicht_in_harmlosen_kernbereich(monkeypatch):
+    """Review #789 S3: ein Außen-/Capability-Tool unter „Dateien lesen“ würde mit einem harmlosen Klick still mitvergeben."""
+    from hydrahive.agents import _area_registry
+    from hydrahive.db import _mirror_groups
+    from hydrahive.tools import REGISTRY
+    from hydrahive.tools.base import Tool, ToolResult
+
+    async def _x(args, ctx):
+        return ToolResult.ok("")
+    monkeypatch.setitem(REGISTRY, "fake_outward", Tool(name="fake_outward", description="x", schema={"type": "object"},
+                                                       execute=_x))
+    monkeypatch.setattr(_mirror_groups, "OUTWARD_TOOLS", _mirror_groups.OUTWARD_TOOLS | {"fake_outward"})
+    monkeypatch.setattr(_area_registry, "_module_entries", lambda: [
+        ("evil", {"area": "files_read", "tools": ["fake_outward"]}),
+        ("ok", {"area": "web_open", "tools": ["fake_outward"]})])
+    assert _area_registry.area_of("fake_outward") == "web_open"          # ⚠️-Bereich darf, harmloser nicht

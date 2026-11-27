@@ -145,3 +145,18 @@ def test_discord_tools_zugeordnet_auch_wenn_discord_aus():
         assert len(hits) == 1 and name not in BASE_TOOLS, (name, hits)
     by_id = {a.id: a for a in CORE_AREAS}
     assert tools_of(by_id["discord_read"], discord) == ["discord_channels", "discord_read"]
+
+
+def test_waechter_auch_fuer_bedingte_kern_tools(monkeypatch):
+    """Review #789 M3: Die Tests laufen ohne AgentLink/Discord – der Wächter muss auch die Tools prüfen, die erst mit diesen
+    Einstellungen registriert werden (ask_agent, discord_*). Dafür die Registry mit beiden Schaltern neu bauen."""
+    from hydrahive import tools as tools_pkg
+    from hydrahive.agents.areas import BASE_TOOLS, CORE_AREAS, tools_of
+    from hydrahive.settings import settings
+    monkeypatch.setattr(settings, "agentlink_url", "http://agentlink.test", raising=False)
+    monkeypatch.setattr(settings, "discord_enabled", True, raising=False)
+    full = sorted(tools_pkg._build_registry())
+    assert "ask_agent" in full and "discord_post" in full
+    problems = [(n, hits) for n in full
+                if len(hits := [a.id for a in CORE_AREAS if n in tools_of(a, full)]) + int(n in BASE_TOOLS) != 1]
+    assert not problems, f"Kern-Tool ohne oder mit mehreren Bereichen: {problems}"
