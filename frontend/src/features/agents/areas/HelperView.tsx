@@ -15,12 +15,13 @@ interface ViewProps {
   onSave: () => void
   error?: string | null
   done?: boolean
+  extraCount?: number
 }
 
 const box = "rounded-md border border-white/[8%] bg-white/[2%] px-3 py-2.5 space-y-2"
 
 /** Die Ansicht des Helfer-Bereichs (ohne Laden/Speichern): Schalter, darunter Bereiche an/aus, Nicht-Vergebbares ausgegraut. */
-export function HelperView({ areas, forbidden, enabled, selected, mayEdit, busy, dirty, onToggleEnabled, onToggleArea, onSave, error, done }: ViewProps) {
+export function HelperView({ areas, forbidden, enabled, selected, mayEdit, busy, dirty, onToggleEnabled, onToggleArea, onSave, error, done, extraCount = 0 }: ViewProps) {
   const { t } = useTranslation("agents")
   return (
     <div className={box} data-testid="helper-switch">
@@ -58,6 +59,7 @@ export function HelperView({ areas, forbidden, enabled, selected, mayEdit, busy,
           })}
         </div>
       )}
+      {extraCount > 0 && <p className="text-[10px] text-amber-300" data-testid="helper-extra">{t("areas.helper_extra", { count: extraCount })}</p>}
       {error && <p className="text-[11px] text-red-400" role="alert">{error}</p>}
       {done && <p className="text-[11px] text-emerald-400">{t("areas.helper_saved")}</p>}
       {mayEdit && (

@@ -9,6 +9,7 @@ import { AreasView } from "./AreasView"
 import { HelperSwitch } from "./HelperSwitch"
 import { mayEditPool } from "./mayEditPool"
 import { PurposeSuggest } from "./PurposeSuggest"
+import { applyMany, overlay } from "./overlay"
 import { toggle } from "./toggle"
 import type { AreaCatalog, AreaStatus } from "./types"
 
@@ -34,7 +35,8 @@ export function AreasTab({ draft, tools, mcpServers, onChange }: Props) {
   const [error, setError] = useState(false)
 
   useEffect(() => { areasApi.catalog(lang).then(setCatalog).catch(() => setError(true)) }, [lang])
-  useEffect(() => { areasApi.status(draft.id).then(setStatus).catch(() => setError(true)) }, [draft.id])
+  // Nach dem Speichern neu holen (updated_at ändert sich): der Server merkt dann den neuen Stand (area_seen), „neu“ verschwindet
+  useEffect(() => { areasApi.status(draft.id).then(setStatus).catch(() => setError(true)) }, [draft.id, draft.updated_at])
 
   const live = useMemo(() => (catalog && status ? overlay(catalog, status, draft.tools) : null), [catalog, status, draft.tools])
   const helper = draft.type === "specialist" || draft.type === "project"
@@ -49,7 +51,7 @@ export function AreasTab({ draft, tools, mcpServers, onChange }: Props) {
       {error && <p className="text-[11px] text-rose-300" role="alert">{t("areas.load_failed")}</p>}
       {catalog && status && live && (
         <>
-          {status.editable && <PurposeSuggest agentId={draft.id} catalog={catalog} lang={lang} onApply={(ids) => ids.forEach((id) => apply(id, true))} />}
+          {status.editable && <PurposeSuggest agentId={draft.id} catalog={catalog} lang={lang} onApply={(ids) => onChange({ tools: applyMany(draft.tools, catalog, ids) })} />}
           <AreasView
             catalog={catalog} status={live} mode={draft.tool_mode ?? "classic"} onMode={(m) => onChange({ tool_mode: m })}
             onToggle={apply} onAdopt={(id) => apply(id, true)}
@@ -66,21 +68,4 @@ export function AreasTab({ draft, tools, mcpServers, onChange }: Props) {
       </details>
     </div>
   )
-}
-
-/** Legt den Entwurf (draft.tools) über den gespeicherten Server-Status: ``on`` = alle Tools des Bereichs im Entwurf. */
-function overlay(catalog: AreaCatalog, status: AreaStatus, tools: string[]): AreaStatus {
-  const have = new Set(tools)
-  return {
-    editable: status.editable,
-    areas: status.areas.map((s) => {
-      const area = catalog.areas.find((a) => a.id === s.id)
-      if (!area || area.tools.length === 0) return s
-      const mine = area.tools.filter((t) => have.has(t))
-      const missing = area.tools.filter((t) => !have.has(t) && !s.via_category.includes(t))
-      const keep = s.new.filter((t) => missing.includes(t))
-      const state = mine.length > 0 && missing.every((t) => keep.includes(t)) ? "on" : mine.length > 0 || s.via_category.length > 0 ? "partial" : "off"
-      return { ...s, state, have: mine, missing, new: state === "on" ? keep : [] }
-    }),
-  }
 }

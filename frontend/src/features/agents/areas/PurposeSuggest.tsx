@@ -1,4 +1,4 @@
-import { useState } from "react"
+import { useRef, useState } from "react"
 import { useTranslation } from "react-i18next"
 import { areasApi } from "./api"
 import { MAX_PURPOSE, PurposeView, resolveSuggestions, type Resolved } from "./PurposeView"
@@ -12,12 +12,14 @@ export function PurposeSuggest({ agentId, catalog, lang, onApply }: Props) {
   const { t: tErr } = useTranslation("errors")
   const [purpose, setPurpose] = useState("")
   const [busy, setBusy] = useState(false)
+  const inFlight = useRef(false)              // Doppelklick im selben Tick (Review #794)
   const [suggestions, setSuggestions] = useState<Resolved[]>([])
   const [picked, setPicked] = useState<string[]>([])
   const [error, setError] = useState<string | null>(null)
 
   async function suggest() {
-    if (busy) return
+    if (busy || inFlight.current) return
+    inFlight.current = true
     setBusy(true); setError(null); setSuggestions([]); setPicked([])
     try {
       const res = await areasApi.suggest(agentId, purpose.trim().slice(0, MAX_PURPOSE), lang)
@@ -28,7 +30,7 @@ export function PurposeSuggest({ agentId, catalog, lang, onApply }: Props) {
     } catch (e) {
       const status = (e as { status?: number } | null)?.status
       setError(status === 403 ? t("areas.purpose_forbidden") : tErr("llm_failed"))   // defensiv, nie Rohtext des Servers
-    } finally { setBusy(false) }
+    } finally { setBusy(false); inFlight.current = false }
   }
 
   return (

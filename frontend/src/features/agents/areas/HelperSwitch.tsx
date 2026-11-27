@@ -2,7 +2,7 @@ import { useEffect, useState } from "react"
 import { useTranslation } from "react-i18next"
 import { toolPoolApi, type AgentToolPool } from "../api"
 import type { Agent } from "../types"
-import { enabledFromPool, helperPoolItems } from "./helperPool"
+import { enabledFromPool, extraPoolItems, helperPoolItems } from "./helperPool"
 import { HelperView } from "./HelperView"
 import type { AreaCatalog } from "./types"
 
@@ -30,7 +30,9 @@ export function HelperSwitch({ agent, catalog, mayEdit }: Props) {
   }, [agent.id, catalog.areas, t])
 
   const forbidden = pool?.forbidden ?? []
-  const items = enabled ? helperPoolItems(catalog.areas, selected, forbidden) : []
+  // Einträge, die keinem ganzen Bereich entsprechen (Expertenansicht), bleiben beim Speichern erhalten (Review #794)
+  const extra = pool ? extraPoolItems(catalog.areas, pool.items, forbidden) : []
+  const items = enabled ? [...helperPoolItems(catalog.areas, selected, forbidden), ...extra] : []
   const dirty = JSON.stringify(items) !== saved
 
   async function save() {
@@ -39,7 +41,9 @@ export function HelperSwitch({ agent, catalog, mayEdit }: Props) {
       const res = await toolPoolApi.put(agent.id, items)       // Tool-Namen, nie kategorie:x
       setSaved(JSON.stringify(res.items)); setDone(true)
     } catch (e) {
-      setError(e instanceof Error ? e.message : t("catalog.pool_save_failed"))
+      // nie Rohtext des Servers (Tool-Namen, nur Deutsch) – Review #794
+      const status = (e as { status?: number } | null)?.status
+      setError(status === 403 ? t("areas.helper_forbidden") : t("catalog.pool_save_failed"))
     } finally { setBusy(false) }
   }
 
@@ -49,7 +53,7 @@ export function HelperSwitch({ agent, catalog, mayEdit }: Props) {
       areas={catalog.areas} forbidden={forbidden} enabled={enabled} selected={selected} mayEdit={mayEdit} busy={busy} dirty={dirty}
       onToggleEnabled={() => { setDone(false); setEnabled((v) => !v) }}
       onToggleArea={(id) => { setDone(false); setSelected((cur) => (cur.includes(id) ? cur.filter((x) => x !== id) : [...cur, id])) }}
-      onSave={save} error={error} done={done}
+      onSave={save} error={error} done={done} extraCount={extra.length}
     />
   )
 }

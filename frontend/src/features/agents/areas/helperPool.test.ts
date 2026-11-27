@@ -43,3 +43,14 @@ describe("neverGiven – ausgegraut", () => {
     expect(neverGiven(a("mixed", ["file_read", "ask_agent"]), FORBIDDEN)).toBe(false)
   })
 })
+
+describe("extraPoolItems – fremde Pool-Einträge bleiben erhalten (Review #794)", () => {
+  it("liefert kategorie:x und Einzel-Tools, die keinen ganzen Bereich abdecken", async () => {
+    const { extraPoolItems } = await import("./helperPool")
+    const areas = [
+      { id: "files_read", group: "g", name: "", sentence: "", marks: [], tools: ["file_read", "read_document"], source: "core" },
+      { id: "web_search", group: "g", name: "", sentence: "", marks: [], tools: ["web_search"], source: "core" },
+    ]
+    expect(extraPoolItems(areas, ["web_search", "file_read", "kategorie:files"], [])).toEqual(["file_read", "kategorie:files"])
+  })
+})

@@ -230,7 +230,6 @@
     "mark_costly": "Jede Nutzung kostet Geld",
     "partial_hint": "Teilweise: nur ein Teil dieses Bereichs ist eingeschaltet. Ein Klick schaltet alles ein.",
     "via_category": "Ein Teil kommt über eine Kategorie (Expertenansicht).",
-    "new_tools": "{{count}} neue Werkzeuge",
     "adopt": "Übernehmen?",
     "expert": "Expertenansicht",
     "expert_hint": "Alle Einzelheiten für Fortgeschrittene: einzelne Werkzeuge, angeheftete Werkzeuge, Freigabe-Pool und MCP.",
@@ -247,6 +246,11 @@
     "purpose_none": "Dazu habe ich keinen Vorschlag.",
     "purpose_apply": "Übernehmen",
     "purpose_hint": "Der Vorschlag schaltet erst etwas ein, wenn du übernimmst und danach speicherst.",
-    "purpose_forbidden": "Dafür fehlt die Berechtigung."
+    "purpose_forbidden": "Dafür fehlt die Berechtigung.",
+    "new_tools_one": "{{count}} neues Werkzeug",
+    "new_tools_other": "{{count}} neue Werkzeuge",
+    "helper_extra_one": "Der Pool enthält {{count}} Eintrag, der keinem Bereich entspricht (Expertenansicht). Er bleibt erhalten.",
+    "helper_extra_other": "Der Pool enthält {{count}} Einträge, die keinem Bereich entsprechen (Expertenansicht). Sie bleiben erhalten.",
+    "helper_forbidden": "Das darfst du nicht freigeben – nur im Rahmen der Besitzer-Freigabe."
   }
 }

@@ -14,7 +14,7 @@ export interface Area {
 export interface AreaGroup { id: string; name: string }
 
 /** GET /api/agent-areas?lang= */
-export interface AreaCatalog { groups: AreaGroup[]; areas: Area[]; base: string[]; unassigned: string[] }
+export interface AreaCatalog { groups: AreaGroup[]; areas: Area[]; base: string[]; unassigned: string[]; categories?: Record<string, string[]> }
 
 export type AreaStateName = "on" | "off" | "partial"
 

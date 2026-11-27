@@ -31,3 +31,10 @@ export function enabledFromPool(areas: Area[], items: string[], forbidden: strin
     return giveable.length > 0 && giveable.every((t) => have.has(t))
   }).map((a) => a.id)
 }
+
+/** Pool-Einträge, die keinem ganz eingeschalteten Bereich angehören (kategorie:x, einzelne Tools) – bleiben beim Speichern. */
+export function extraPoolItems(areas: Area[], items: string[], forbidden: string[]): string[] {
+  const covered = new Set<string>()
+  for (const id of enabledFromPool(areas, items, forbidden)) for (const t of areas.find((a) => a.id === id)?.tools ?? []) covered.add(t)
+  return items.filter((i) => !covered.has(i))
+}

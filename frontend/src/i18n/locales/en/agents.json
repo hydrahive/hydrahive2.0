@@ -230,7 +230,6 @@
     "mark_costly": "Every use costs money",
     "partial_hint": "Partly on: only part of this area is switched on. One click switches all on.",
     "via_category": "Part of it comes through a category (expert view).",
-    "new_tools": "{{count}} new tools",
     "adopt": "Adopt?",
     "expert": "Expert view",
     "expert_hint": "All details for advanced users: single tools, pinned tools, release pool and MCP.",
@@ -247,6 +246,11 @@
     "purpose_none": "I have no suggestion for that.",
     "purpose_apply": "Adopt",
     "purpose_hint": "The suggestion only switches something on once you adopt it and then save.",
-    "purpose_forbidden": "You do not have permission for this."
+    "purpose_forbidden": "You do not have permission for this.",
+    "new_tools_one": "{{count}} new tool",
+    "new_tools_other": "{{count}} new tools",
+    "helper_extra_one": "The pool contains {{count}} entry that matches no area (expert view). It is kept.",
+    "helper_extra_other": "The pool contains {{count}} entries that match no area (expert view). They are kept.",
+    "helper_forbidden": "You may not grant this – only within the owner release."
   }
 }
