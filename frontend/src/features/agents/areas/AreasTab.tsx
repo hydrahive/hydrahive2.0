@@ -1,11 +1,13 @@
 import { useEffect, useMemo, useState } from "react"
 import { useTranslation } from "react-i18next"
+import { useAuthStore } from "@/features/auth/useAuthStore"
 import { ToolsTab } from "../_ToolsTab"
 import type { McpServerBrief } from "../api"
 import type { Agent, ToolMeta } from "../types"
 import { areasApi } from "./api"
 import { AreasView } from "./AreasView"
 import { HelperSwitch } from "./HelperSwitch"
+import { mayEditPool } from "./mayEditPool"
 import { PurposeSuggest } from "./PurposeSuggest"
 import { toggle } from "./toggle"
 import type { AreaCatalog, AreaStatus } from "./types"
@@ -25,6 +27,7 @@ interface Props {
  */
 export function AreasTab({ draft, tools, mcpServers, onChange }: Props) {
   const { t, i18n } = useTranslation("agents")
+  const { username, role } = useAuthStore()
   const lang = (i18n.language || "de").split("-")[0]
   const [catalog, setCatalog] = useState<AreaCatalog | null>(null)
   const [status, setStatus] = useState<AreaStatus | null>(null)
@@ -51,7 +54,7 @@ export function AreasTab({ draft, tools, mcpServers, onChange }: Props) {
             catalog={catalog} status={live} mode={draft.tool_mode ?? "classic"} onMode={(m) => onChange({ tool_mode: m })}
             onToggle={apply} onAdopt={(id) => apply(id, true)}
           />
-          {helper && <HelperSwitch agent={draft} catalog={catalog} mayEdit />}
+          {helper && <HelperSwitch agent={draft} catalog={catalog} mayEdit={mayEditPool(draft.owner, username, role)} />}
         </>
       )}
       <details className="rounded-md border border-white/[8%] bg-white/[2%]" data-testid="expert-view">
