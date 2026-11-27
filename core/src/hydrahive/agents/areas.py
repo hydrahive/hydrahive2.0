@@ -14,6 +14,8 @@ import re
 from collections.abc import Iterable
 from dataclasses import dataclass
 
+from hydrahive.catalog import CATALOG_TOOLS
+
 GROUPS: tuple[str, ...] = ("files_code", "internet", "organize", "creative", "team", "post", "home", "private", "server")
 GROUP_NAMES: dict[str, dict[str, str]] = {
     "files_code": {"de": "Dateien & Code", "en": "Files & code"},
@@ -140,8 +142,8 @@ CORE_AREAS: tuple[Area, ...] = (
 #: Grundausstattung: harmlos und für jeden Agenten nötig – kein Schalter (Regel 5).
 BASE_TOOLS: frozenset[str] = frozenset({
     "list_skills", "load_skill", "help_search", "help_read", "error_report_prepare", "list_prompts", "get_prompt",
-    "save_prompt", "todo_write", "find_tools", "find_skills", "run_tool",
-})
+    "save_prompt", "todo_write",
+}) | CATALOG_TOOLS                                   # find_tools, find_skills, run_tool: Namen nur in catalog/
 
 
 def matches(pattern: str, name: str) -> bool:
