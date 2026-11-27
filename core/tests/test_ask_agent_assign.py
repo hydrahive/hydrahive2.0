@@ -6,11 +6,12 @@ from __future__ import annotations
 
 import asyncio
 import json
-import sqlite3
 import sys
 from pathlib import Path
 
 import pytest
+
+from tests._own_rows import only_own_rows
 
 from hydrahive.agentlink.protocol import State, TaskBlock
 from hydrahive.agents import config as agent_config
@@ -21,23 +22,13 @@ sys.path.insert(0, str(Path(__file__).parent))
 MODEL = "claude-sonnet-4-6"
 
 
-def _clear() -> None:
-    from hydrahive.db.connection import db
-    with db() as conn:
-        for t in ("owner_tool_grants", "agent_tool_pools", "project_tool_pools"):
-            try:
-                conn.execute(f"DELETE FROM {t}")
-            except sqlite3.OperationalError:
-                pass
-
-
 @pytest.fixture(autouse=True)
 def _sauber(setup_test_env):
+    # Nur eigene Zeilen aufräumen (tests/_own_rows.py, Regel test_no_broad_deletes) – nie ganze Tabellen leeren.
     from hydrahive.db import init_db
     init_db()
-    _clear()
-    yield
-    _clear()
+    with only_own_rows(*("owner_tool_grants", "agent_tool_pools", "project_tool_pools")):
+        yield
 
 
 @pytest.fixture

@@ -5,32 +5,23 @@ Der Pool eines Agenten sagt, welche Tools ihm (per ask_agent) pro Auftrag zugewi
 """
 from __future__ import annotations
 
-import sqlite3
 
 import pytest
+
+from tests._own_rows import only_own_rows
 
 from hydrahive.agents import config as agent_config
 
 TABLES = ("owner_tool_grants", "agent_tool_pools", "project_tool_pools")
 
 
-def _clear() -> None:
-    from hydrahive.db.connection import db
-    with db() as conn:
-        for t in TABLES:
-            try:
-                conn.execute(f"DELETE FROM {t}")
-            except sqlite3.OperationalError:
-                pass
-
-
 @pytest.fixture(autouse=True)
 def _sauber(setup_test_env):
+    # Nur eigene Zeilen aufräumen (tests/_own_rows.py, Regel test_no_broad_deletes) – nie ganze Tabellen leeren.
     from hydrahive.db import init_db
     init_db()
-    _clear()
-    yield
-    _clear()
+    with only_own_rows(*TABLES):
+        yield
 
 
 @pytest.fixture
