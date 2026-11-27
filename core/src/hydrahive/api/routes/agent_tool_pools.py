@@ -40,7 +40,10 @@ def get_agent_pool(agent_id: str, auth: Auth) -> dict:
     if not agent:
         raise coded(status.HTTP_404_NOT_FOUND, "agent_not_found")
     check_agent_access(agent, *auth)
-    return {"items": tool_pools.agent_pool_items(agent_id), "effective": tool_pools.tool_pool_for(agent, None)}
+    from hydrahive.catalog.categories import CATEGORY_MAP
+    # categories/forbidden: damit die Oberfläche nur anbietet, was der Pool überhaupt annimmt (E3/S3).
+    return {"items": tool_pools.agent_pool_items(agent_id), "effective": tool_pools.tool_pool_for(agent, None),
+            "categories": sorted(CATEGORY_MAP), "forbidden": sorted(tool_pools.FORBIDDEN)}
 
 
 @router.put("/api/agents/{agent_id}/tool-pool")
@@ -81,6 +84,9 @@ def put_project_pool(project_id: str, body: PoolBody, auth: Auth) -> dict:
 
 @router.get("/api/admin/tool-grants/{username}")
 def get_owner_grants(username: str, _: Annotated[tuple[str, str], Depends(require_admin)]) -> dict:
+    from hydrahive.api.middleware.users import get_by_username
+    if not get_by_username(username):
+        raise coded(status.HTTP_404_NOT_FOUND, "user_not_found")
     return {"items": tool_pools.owner_grants(username)}
 
 

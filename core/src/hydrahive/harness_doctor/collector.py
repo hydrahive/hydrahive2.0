@@ -7,6 +7,7 @@ from pathlib import Path
 from typing import Any
 
 from hydrahive.agents import config as agent_config
+from hydrahive.agents.effective_tools import effective_tool_names
 from hydrahive.db.connection import db
 from hydrahive.plugins import tool_bridge as plugin_tools
 from hydrahive.projects import config as project_config
@@ -30,7 +31,9 @@ def _p90(values: list[int]) -> int:
 def _agent_metrics(agent: dict, projects: dict[str, dict]) -> dict[str, Any]:
     project_id = agent.get("project_id")
     project = projects.get(project_id) if project_id else None
-    local_tools, mcp_servers = scope_tools(project, list(agent.get("tools") or []), list(agent.get("mcp_servers") or []))
+    # Wirksame Tools wie im Lauf (Kategorien aufgelöst, Projekt- und Besitzer-Filter); MCP-Server laufen daneben.
+    local_tools = effective_tool_names(agent, username=agent.get("owner") or "", project=project)
+    _, mcp_servers = scope_tools(project, [], list(agent.get("mcp_servers") or []))
     schemas = schemas_for(local_tools) + plugin_tools.schemas_for(local_tools)
     skills = list_for_agent(
         agent["id"], agent.get("owner"), disabled=agent.get("disabled_skills") or [], project_id=project_id,

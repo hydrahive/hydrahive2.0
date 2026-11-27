@@ -151,3 +151,43 @@ def approve(category: str, tool: str, by_admin: str) -> None:
     with db() as conn:
         conn.execute("INSERT OR REPLACE INTO tool_category_approvals(category, tool, approved_by, approved_at) "
                      "VALUES (?, ?, ?, ?)", (category, tool, by_admin, now_iso()))
+        _audit(conn, by_admin, "tool_category_approve", category, tool)
+
+
+def _audit(conn, username: str, action: str, category: str, tool: str) -> None:
+    """Audit-Eintrag im selben Log wie die übrigen Admin-Aktionen (``access_audit``), in der Transaktion der Änderung."""
+    from hydrahive.agents._tool_pool_audit import log
+    log(conn, username, action, f"tool_category:{category}", [tool])
+
+
+def list_approvals() -> list[dict]:
+    """Alle Bestätigungen (Kategorie, Tool, wer, wann); ``active`` = wirkt heute (Tool liegt noch dort und ist nicht ausgeschlossen)."""
+    from hydrahive.db.connection import db
+    from hydrahive.tools import REGISTRY
+    with db() as conn:
+        rows = conn.execute("SELECT category, tool, approved_by, approved_at FROM tool_category_approvals "
+                            "ORDER BY category, tool").fetchall()
+    out = []
+    for r in rows:
+        reg = REGISTRY.get(r["tool"])
+        active = (r["category"] in CATEGORY_MAP and reg is not None and (reg.category or "other") == r["category"]
+                  and not _excluded(r["tool"]))
+        out.append({**dict(r), "active": active})
+    return out
+
+
+def revoke(category: str, tool: str, by_admin: str) -> bool:
+    """Admin widerruft eine Bestätigung. Nicht-Admin → PermissionError; ``False``, wenn es keine solche Bestätigung gab.
+
+    Das feste Mapping (``CATEGORY_MAP``) lässt sich so nicht widerrufen – nur Bestätigungen aus der Tabelle.
+    """
+    from hydrahive.api.middleware.users import get_by_username
+    from hydrahive.db.connection import db
+    user = get_by_username(by_admin)
+    if not user or user.get("role") != "admin":
+        raise PermissionError("Nur ein Admin darf Kategorie-Bestätigungen widerrufen.")
+    with db() as conn:
+        cur = conn.execute("DELETE FROM tool_category_approvals WHERE category = ? AND tool = ?", (category, tool))
+        if cur.rowcount:
+            _audit(conn, by_admin, "tool_category_revoke", category, tool)
+    return bool(cur.rowcount)

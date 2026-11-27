@@ -196,5 +196,27 @@
   "team": {
     "disabled_badge": "deaktiviert",
     "disabled_group": "Deaktiviert ({{count}})"
+  },
+  "category_entries": {
+    "label": "Kategorien:",
+    "remove": "Kategorie {{name}} entfernen"
+  },
+  "catalog": {
+    "mode_title": "Tool-Modus",
+    "mode_classic": "Klassisch",
+    "mode_catalog": "Katalog",
+    "mode_classic_hint": "Alle freigegebenen Tools gehen in jedem Lauf ans Modell (wie bisher).",
+    "mode_catalog_hint": "Nur ein kleiner Kern, angeheftete und vorgemerkte Tools gehen ans Modell; der Rest wird bei Bedarf über find_tools gesucht und mit run_tool aufgerufen. Rechte ändern sich dadurch nicht.",
+    "pinned_tools": "Angeheftete Tools ({{count}})",
+    "pinned_tools_hint": "Diese Tools sind im Katalog-Modus immer im Schema. Angeboten wird nur, was der Agent selbst freigegeben hat.",
+    "pinned_skills": "Angeheftete Skills ({{count}})",
+    "no_skills": "Keine Skills sichtbar",
+    "pool_title": "Freigabe-Pool",
+    "pool_hint": "Was diesem Agenten per ask_agent pro Auftrag zugewiesen werden darf. Nur Besitzer oder Admin; Nicht-Admins nur im Rahmen der Besitzer-Freigabe.",
+    "pool_readonly": "Den Pool ändern nur der Besitzer des Agenten oder ein Admin.",
+    "pool_empty": "(leer)",
+    "pool_save": "Pool speichern",
+    "pool_saved": "Pool gespeichert.",
+    "pool_save_failed": "Pool konnte nicht gespeichert werden"
   }
 }

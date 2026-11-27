@@ -37,6 +37,10 @@ export interface Agent {
   disabled_skills?: string[]
   require_tool_confirm?: boolean
   longterm_memory?: boolean
+  // Katalog (docs/specs/tool-skill-katalog.md): classic = alle Tools wie bisher; catalog = kleiner Kern + find_tools/run_tool
+  tool_mode?: "classic" | "catalog"
+  pinned_tools?: string[]
+  pinned_skills?: string[]
   // Datamining-Zugriff (Wissensräume, knowledge-spaces.md) – nur Admin änderbar
   knowledge_access?: KnowledgeAccess
   // Per-Agent Postfach (Schicht 2). Leer = globale Mail-Settings. Passwort wird
@@ -72,6 +76,9 @@ export type AgentUpdate = Partial<Pick<Agent,
   | "disabled_skills"
   | "require_tool_confirm"
   | "longterm_memory"
+  | "tool_mode"
+  | "pinned_tools"
+  | "pinned_skills"
   | "tool_config"
   | "knowledge_access"
 >>

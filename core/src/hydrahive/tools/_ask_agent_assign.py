@@ -75,7 +75,8 @@ def resolve_assignment(args: dict, target_agent: dict, run_user: str) -> tuple[s
             if outside:
                 parts.append(f"nicht im Freigabe-Pool von '{target_agent.get('name') or target_agent.get('id')}': "
                              f"{', '.join(dict.fromkeys(outside))}")
-            return ("Zuweisung abgelehnt – " + "; ".join(parts) + f". Im Freigabe-Pool: {', '.join(pool) or '(leer)'}. "
+            # Nur die abgelehnten Namen (Review #786): der Pool des Ziels gehört dem Besitzer, nicht dem Auftraggeber.
+            return ("Zuweisung abgelehnt – " + "; ".join(parts) + ". "
                     "Den Pool legt der Besitzer des Agenten fest."), [], []
         accepted_tools = list(dict.fromkeys(accepted_tools))
 

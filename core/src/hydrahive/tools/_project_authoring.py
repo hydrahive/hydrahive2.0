@@ -65,5 +65,6 @@ def specialist_runtime_changes(args: dict) -> dict:
 def bounded_tools(requested: list[str], creator_tools: list[str]) -> list[str]:
     """Schnittmenge der angefragten Tools mit denen des Erzeugers, ohne die
     Authoring-Tools selbst (kein Spezialist erbt Authoring-Macht)."""
-    creator = set(creator_tools)
+    from hydrahive.catalog.categories import resolve_categories
+    creator = set(resolve_categories(list(creator_tools)))      # kategorie:x des Erzeugers zählt mit (Review #784)
     return [t for t in requested if t in creator and t not in AUTHORING_TOOLS]

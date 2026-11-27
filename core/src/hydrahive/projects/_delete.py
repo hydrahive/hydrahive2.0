@@ -73,8 +73,8 @@ def remove_rest(project_id: str, cfg: dict) -> list[str]:
     affected_users = set(_members_model.usernames(cfg))
     if cfg.get("created_by"):
         affected_users.add(cfg["created_by"])
-    from hydrahive.agents import tool_pools
-    tool_pools.remove_project(project_id)
+    from hydrahive.agents import _tool_pool_cleanup
+    _tool_pool_cleanup.remove_project(project_id)
     vms_db.clear_project_assignments(project_id)          # VMs/Container bleiben, project_id wird NULL
     containers_db.clear_project_assignments(project_id)
     mounts_db.clear_project_assignments(project_id)
