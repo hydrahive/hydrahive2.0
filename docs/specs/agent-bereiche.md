@@ -15,7 +15,7 @@ Till (27.11., beim Blick auf den Reiter „Tools & MCP“ seines Buddys): „Das
 Im Reiter „Was darf der Agent?“ (ersetzt „Tools & MCP“ als Standardansicht) steht von oben nach unten:
 
 1. **Zweck in einem Satz** (optional): „Wofür ist dieser Agent da?“ → Knopf „Vorschlagen“. Die KI schlägt passende Bereiche vor, jeweils mit einer kurzen Begründung. Der Nutzer übernimmt sie oder hakt sie einzeln an. **Es wird nie ohne Bestätigung etwas eingeschaltet.**
-2. **Bereichs-Schalter** (26), gruppiert nach Lebensbereichen (9 Überschriften, je 2–4 Schalter, siehe 3.). Jeder Schalter zeigt:
+2. **Bereichs-Schalter** (28), gruppiert nach Lebensbereichen (9 Überschriften, je 2–4 Schalter, siehe 3.). Jeder Schalter zeigt:
    - einen Namen und einen Satz, was der Agent damit tun kann;
    - eine Markierung: ohne Zeichen = **harmlos oder leicht rückgängig**, ⚠️ = **schwer rückgängig oder wirkt außerhalb von HydraHive**, 🔒 = **private Daten des Besitzers**, 💶 = **jede Nutzung kostet Geld**;
    - den Zustand an, aus oder „teilweise“ (siehe 4.3).
@@ -25,7 +25,7 @@ Im Reiter „Was darf der Agent?“ (ersetzt „Tools & MCP“ als Standardansic
 
 Angeheftete Tools muss niemand mehr pflegen. Das übernimmt die automatische Anheftung (4.5).
 
-## 3. Die Bereiche (26 Schalter)
+## 3. Die Bereiche (28 Schalter)
 
 Till (27.11.): „keine Ahnung, was am besten und vor allem logischsten ist“. Darum ist die Liste nach **festen Regeln** geschnitten. Damit lässt sie sich nachvollziehen und mit denselben Regeln erweitern, wenn neue Module kommen.
 
@@ -54,8 +54,10 @@ Till (27.11.): „keine Ahnung, was am besten und vor allem logischsten ist“. 
 | | Bücher schreiben | Im Storyteller lesen und Vorschläge ablegen | – | storyteller_* |
 | **Team** | Andere Agenten beauftragen | Aufgaben an Helfer-Agenten abgeben | 💶 | ask_agent |
 | | Helfer anlegen | Neue Spezialisten und Skills im Projekt anlegen und einstellen | ⚠️ | create_specialist, configure_specialist, list_specialists, write_skill, delete_skill, list_projects |
-| **Post** | E-Mails lesen | Postfächer durchsuchen und Mails mit Anhängen lesen | 🔒 | read_mail, mailbox_accounts, mailbox_search, mailbox_read, mailbox_attachment |
+| **Nachrichten** | E-Mails lesen | Postfächer durchsuchen und Mails mit Anhängen lesen | 🔒 | read_mail, mailbox_accounts, mailbox_search, mailbox_read, mailbox_attachment |
 | | E-Mails schreiben | Entwürfe anlegen, Mails markieren, verschieben und senden | ⚠️ 🔒 | send_mail, mailbox_draft, mailbox_flag, mailbox_move |
+| | Discord lesen | Kanäle und Beiträge auf dem Discord-Server lesen | – | discord_read, discord_channels |
+| | Discord schreiben | Auf Discord posten, antworten, Beiträge und den Server verwalten | ⚠️ | discord_post, discord_reply, discord_edit, discord_delete, discord_message_pin, discord_forum_tags, discord_thread_manage, discord_server_manage, discord_member_manage |
 | **Zuhause** | Haus ansehen | Zustand von Lampen, Sensoren und Geräten lesen | – | ha_list_entities, ha_get_state, ha_render_template |
 | | Haus steuern | Geräte im Haus schalten | ⚠️ | ha_call_service |
 | | Filme & Musik laden | Medien suchen und herunterladen | ⚠️ | mediacenter_* |
@@ -122,7 +124,7 @@ Im Modus „Werkzeuge bei Bedarf suchen“ heftet das System beim **Start eines 
 - **E4 ✅ (Till 27.11.):** Den Zweck-Vorschlag darf jeder nutzen, der den Agenten bearbeiten darf.
 
 ## 7. Abnahme
-- **AB1** `areas.py` mit den 26 Bereichen aus 3.2 und der Grundausstattung. Wächter-Test: jedes Kern-Tool liegt in genau einem Bereich oder in der Grundausstattung.
+- **AB1** `areas.py` mit den 28 Bereichen aus 3.2 und der Grundausstattung. Wächter-Test: jedes Kern-Tool liegt in genau einem Bereich oder in der Grundausstattung.
 - **AB2** Module können Bereiche oder Zuordnungen per `agent_areas` melden. Tools ohne Bereich stehen in `GET /api/agent-areas` unter `unassigned`.
 - **AB3** Editor: Reiter „Was darf der Agent?“ mit Schaltern (an, aus, teilweise), Markierungen, Gruppen, de/en, Expertenansicht zugeklappt. Ein Schalter ändert genau die Tools seines Bereichs, Test mit Gegenprobe.
 - **AB4** „Neue Werkzeuge übernehmen?“ erscheint, wenn ein eingeschalteter Bereich Tools hat, die der Agent nicht hat. Ohne Klick ändert sich nichts.

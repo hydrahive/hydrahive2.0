@@ -1,6 +1,6 @@
 # Umsetzungsplan: Agenten-Rechte als Bereiche
 
-**Ziel:** Statt Tool-Listen sieht der Mensch im Agenten-Editor und in den Admin-Seiten 26 Bereichs-Schalter in Alltagssprache. Die Einzel-Tools liegen in einer zugeklappten Expertenansicht.
+**Ziel:** Statt Tool-Listen sieht der Mensch im Agenten-Editor und in den Admin-Seiten 28 Bereichs-Schalter in Alltagssprache. Die Einzel-Tools liegen in einer zugeklappten Expertenansicht.
 **Ansatz:** Ein festes Bereichs-Verzeichnis im Kern (`agents/areas.py`), das Module ergänzen können. Die Bereiche sind nur eine **Sicht** auf `agent.tools` (E1): Ein Schalter fügt die Tool-Namen seines Bereichs ein oder nimmt sie heraus. Dazu kommen ein Zweck-Vorschlag per LLM, automatisches Anheften aus `catalog_events` beim Laufstart und ein Helfer-Schalter, der auf den vorhandenen Pool abbildet.
 **Technik:** Python/FastAPI (Kern), React/TypeScript + i18n de/en, vitest, pytest.
 **Spec:** `docs/specs/agent-bereiche.md` (E1–E4 entschieden) · **Zieldokument:** `hydrahive2-modules/ziele/agent-bereiche.md`
@@ -33,26 +33,26 @@
 @dataclass(frozen=True)
 class Area:
     id: str                 # z. B. "files_read", "home_control" (a-z_)
-    group: str              # "files_code" | "internet" | "organize" | "creative" | "team" | "post" | "home" | "private" | "server"
+    group: str              # "files_code" | "internet" | "organize" | "creative" | "team" | "post" (Nachrichten) | "home" | "private" | "server"
     name: dict[str, str]    # {"de": "Dateien lesen", "en": "Read files"}
     sentence: dict[str, str]
     marks: tuple[str, ...]  # Teilmenge von ("risky", "private", "costly")  (⚠️ 🔒 💶)
     tools: tuple[str, ...]  # exakte Namen; Muster nur als Präfix mit "*" am Ende, z. B. "graph_*"
 GROUPS: tuple[str, ...]                     # Reihenfolge wie Spec 3.2
-CORE_AREAS: tuple[Area, ...]               # 26 Einträge, Werte wörtlich aus Spec 3.2
+CORE_AREAS: tuple[Area, ...]               # 28 Einträge, Werte wörtlich aus Spec 3.2
 BASE_TOOLS: frozenset[str]                  # list_skills, load_skill, help_search, help_read, error_report_prepare,
                                             # list_prompts, get_prompt, save_prompt, todo_write, find_tools, find_skills, run_tool
 def tools_of(area: Area, registered: Iterable[str]) -> list[str]   # Muster gegen registrierte Namen auflösen, sortiert
 ```
 
 - [ ] **Schritt 1: Tests schreiben**
-  - `test_26_bereiche_9_gruppen`: `len(CORE_AREAS) == 26`, `{a.group for a in CORE_AREAS} == set(GROUPS)`, `len(GROUPS) == 9`, höchstens 4 je Gruppe.
+  - `test_26_bereiche_9_gruppen`: `len(CORE_AREAS) == 28`, `{a.group for a in CORE_AREAS} == set(GROUPS)`, `len(GROUPS) == 9`, höchstens 4 je Gruppe.
   - `test_jedes_kern_tool_genau_einmal`: Für jedes Tool in `hydrahive.tools.REGISTRY` gilt: genau **ein** Bereich (über `tools_of`) **oder** `BASE_TOOLS`, nie beides, nie keins.
   - `test_ids_eindeutig_und_texte_de_en`: IDs eindeutig, `name`/`sentence` haben genau die Schlüssel `de` und `en`, nicht leer.
   - `test_markierungen_wie_spec`: `home_control`, `shell`, `files_write`, `mail_write`, `web_open` enthalten `"risky"`. `health`, `memory`, `mail_read` enthalten `"private"`. `web_search`, `media`, `delegate` enthalten `"costly"`.
   - `test_muster_nur_praefix`: `tools_of` mit `"graph_*"` liefert genau die `graph_`-Tools. Ein `*` mitten im Namen ist verboten (ValueError beim Import-Check).
 - [ ] **Schritt 2:** rot laufen lassen: `cd core && PYTHONPATH=src pytest tests/test_agent_areas.py -q`
-- [ ] **Schritt 3:** `areas.py` umsetzen. IDs: `files_read, files_write, code, web_search, web_open, memory, tasks, tickets, diagrams, media, atelier, books, delegate, helpers, mail_read, mail_write, home_view, home_control, downloads, health, finance, legal, shell, server_admin, game_server, security_research`.
+- [ ] **Schritt 3:** `areas.py` umsetzen. IDs: `files_read, files_write, code, web_search, web_open, memory, tasks, tickets, diagrams, media, atelier, books, delegate, helpers, mail_read, mail_write, home_view, home_control, downloads, health, finance, legal, shell, server_admin, game_server, security_research, discord_read, discord_write`.
 - [ ] **Schritt 4:** grün. **Schritt 5:** Commit und Push.
 
 ## Aufgabe 2: Module melden Bereiche, Route liefert das Verzeichnis (AB2)
