@@ -99,7 +99,7 @@ Korrigiert nach Review #789 (M4): Der Freigabe-Pool eines Agenten legt fest, was
 
 - **Schalter „Darf bei Aufträgen zusätzliche Bereiche bekommen“** (nur bei Spezialisten und Projekt-Agenten). Ist er an, stellt man darunter mit denselben Bereichs-Schaltern ein, **welche** Bereiche ein Auftraggeber mitgeben darf. Ist er aus, ist der Pool leer.
 - Gespeichert werden die Tool-Namen der eingeschalteten Bereiche im Pool (`PUT /api/agents/{id}/tool-pool`), **keine** `kategorie:x`. Damit gilt E1 auch hier, und „Dateien lesen“ gibt kein ⚠️-Schreiben mit frei (`kategorie:files` enthält `file_write`, Bereiche und Kategorien passen nicht 1:1).
-- Nicht weitergebbare Tools lehnt `tool_pools.check_item` wie heute ab: Shell, Außen-Tools, Authoring, `ask_agent`, Plugin- und MCP-Tools (Katalog S2). Ihre Bereiche erscheinen hier ausgegraut mit dem Satz „wird nie per Auftrag vergeben“.
+- Nicht weitergebbare Tools lehnt `tool_pools.check_item` ab. **Korrigiert nach Review #794:** Das sind heute nur `FORBIDDEN` (Authoring, `ask_agent`, Katalog-Werkzeuge) und MCP-Tools, **nicht** Shell, Außen-Tools oder Plugins (die frühere Fassung hier war falsch). Bereiche, deren Tools alle so abgelehnt werden, erscheinen ausgegraut mit „wird nie per Auftrag vergeben“. Ob Shell und Außen-Tools ebenfalls nie per Pool vergeben werden sollen, ist eine offene Sicherheitsentscheidung (Task, siehe 92b06561). Zur Laufzeit gilt unverändert: Besitzer-Freigabe, Projekt-Deckel und die typbasierte Shell-Sperre für Projekt-Agenten und Spezialisten.
 - Es gibt keine neue Rechte-Logik, nur eine andere Ansicht auf den vorhandenen Pool.
 
 ### 4.5 Automatisch anheften

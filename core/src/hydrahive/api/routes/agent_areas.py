@@ -24,9 +24,12 @@ agent_router = APIRouter(prefix="/api/agents", tags=["agent-areas"])
 @router.get("")
 def get_areas(auth: Annotated[tuple[str, str], Depends(require_auth)],
               lang: Annotated[str, Query(max_length=8)] = "de") -> dict:
+    from hydrahive.catalog.categories import CATEGORY_MAP, PREFIX, resolve_categories
     _, role = auth
+    # categories: was hinter kategorie:x steckt – damit der Editor „teilweise über Kategorie“ auch im Entwurf zeigen kann
+    categories = {name: resolve_categories([PREFIX + name]) for name in sorted(CATEGORY_MAP)}
     return {"groups": registry.groups(lang), "areas": registry.all_areas(lang), "base": sorted(BASE_TOOLS),
-            "unassigned": registry.unassigned() if role == "admin" else []}
+            "categories": categories, "unassigned": registry.unassigned() if role == "admin" else []}
 
 
 @router.get("/never")

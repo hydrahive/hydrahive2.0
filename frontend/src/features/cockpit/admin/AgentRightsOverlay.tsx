@@ -19,7 +19,7 @@ export function AgentRightsOverlay({ onClose }: { onClose: () => void }) {
     <AdminOverlay theme={ADMIN_OVERLAY_THEME["agent-rights"]} eyebrow="Admin" title={t("areas.page_title")} onClose={onClose} maxWidthClass="max-w-3xl">
       <div className="space-y-6">
         <p className="text-sm text-[#9aa7bc]">{t("areas.page_subtitle")}</p>
-        <AdminToggle checked={expert} onChange={(e) => setExpert(e.target.checked)} label={t("areas.expert")} />
+        <AdminToggle checked={expert} onChange={(e) => setExpert(e.target.checked)} label={t("areas.expert_names")} />
         <section className="space-y-2">
           <h3 className="text-sm font-bold text-[#e8eef8]">{t("areas.audit_title")}</h3>
           <AreaAuditLog lang={lang} expert={expert} />

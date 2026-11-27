@@ -16,32 +16,14 @@ interface Props {
 
 const box = "rounded-md border border-white/[8%] bg-white/[2%] px-3 py-2.5 space-y-2"
 
-/** Katalog-Modus: Schalter, angeheftete Tools/Skills und Freigabe-Pool (Spec tool-skill-katalog, Auftrag 6b). */
+/**
+ * Expertenansicht des Katalog-Modus: angeheftete Tools/Skills und Freigabe-Pool (Spec tool-skill-katalog, Auftrag 6b).
+ * Den Modus selbst schaltet der Bereichs-Schalter „Werkzeuge bei Bedarf suchen“ (areas/AreasView), nicht mehr ein Knopf hier.
+ */
 export function CatalogSection({ draft, tools, onChange }: Props) {
-  const { t } = useTranslation("agents")
   const mode = draft.tool_mode ?? "classic"
   return (
     <div className="space-y-4" data-testid="catalog-section">
-      <div className={box}>
-        <p className="text-xs font-medium text-zinc-200">{t("catalog.mode_title")}</p>
-        <div className="flex gap-1.5" role="radiogroup">
-          {(["classic", "catalog"] as const).map((m) => (
-            <button
-              key={m}
-              type="button"
-              role="radio"
-              aria-checked={mode === m}
-              onClick={() => onChange({ tool_mode: m })}
-              className={`px-2.5 py-1 rounded-md border text-[11px] transition-all ${
-                mode === m ? "border-violet-500/40 bg-violet-500/[10%] text-zinc-100" : "border-white/[6%] text-zinc-400 hover:bg-white/[4%]"
-              }`}
-            >
-              {t(`catalog.mode_${m}`)}
-            </button>
-          ))}
-        </div>
-        <p className="text-[10px] text-zinc-500">{t(`catalog.mode_${mode}_hint`)}</p>
-      </div>
       {mode === "catalog" && <PinnedSection draft={draft} tools={tools} onChange={onChange} />}
       <PoolSection agent={draft} tools={tools} />
     </div>
