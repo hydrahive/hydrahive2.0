@@ -18,7 +18,7 @@ ACTIONS = ("tool_pool_set", "tool_grants_set", "tool_category_approve", "tool_ca
 def _sauber(setup_test_env):
     from hydrahive.db import init_db
     init_db()
-    with only_own_rows("access_audit"):
+    with only_own_rows("access_audit", "owner_tool_grants"):      # der echte Pfad unten setzt auch eine Besitzer-Freigabe
         yield
 
 

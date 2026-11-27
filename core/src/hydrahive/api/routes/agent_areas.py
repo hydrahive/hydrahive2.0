@@ -64,3 +64,15 @@ async def suggest_areas(agent_id: str, body: SuggestBody, _: Annotated[tuple[str
         return {"suggestions": await area_suggest.suggest(body.purpose, body.lang)}
     except area_suggest.SuggestFailed:
         return {"suggestions": [], "error": "llm_failed"}
+
+
+audit_router = APIRouter(prefix="/api/admin", tags=["agent-areas"])
+
+
+@audit_router.get("/area-audit")
+def get_area_audit(_: Annotated[tuple[str, str], Depends(require_admin)], lang: Annotated[str, Query(max_length=8)] = "de",
+                   limit: Annotated[int, Query(ge=1, le=500)] = 100) -> dict:
+    """Protokoll in Bereichssprache (Spec 4.7), nur Admin, nur lesend: wer wann welchen Bereich für wen freigegeben oder
+    entzogen hat. Gefiltert nach Aktion (nicht nach Ziel), Tool-Namen auf Bereichsnamen abgebildet."""
+    from hydrahive.agents import area_audit
+    return {"entries": area_audit.entries(lang if lang in ("de", "en") else "de", limit)}

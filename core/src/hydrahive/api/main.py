@@ -13,6 +13,7 @@ from hydrahive.api.routes._agentlink_dashboard import router as agentlink_dashbo
 from hydrahive.api.routes.agentlink import router as agentlink_router
 from hydrahive.api.routes.agents import router as agents_router
 from hydrahive.api.routes.agent_areas import agent_router as agent_areas_agent_router
+from hydrahive.api.routes.agent_areas import audit_router as agent_areas_audit_router
 from hydrahive.api.routes.agent_areas import router as agent_areas_router
 from hydrahive.api.routes.agent_tool_pools import router as agent_tool_pools_router
 from hydrahive.api.routes.admin_tool_categories import router as admin_tool_categories_router
@@ -166,6 +167,7 @@ app.include_router(agents_router)
 app.include_router(agent_tool_pools_router)
 app.include_router(agent_areas_router)
 app.include_router(agent_areas_agent_router)
+app.include_router(agent_areas_audit_router)
 app.include_router(admin_tool_categories_router)
 app.include_router(catalog_metrics_router)
 app.include_router(agent_activity_router)
