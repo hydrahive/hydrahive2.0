@@ -27,13 +27,20 @@ def _eintrag(action: str, target: str, detail: str = "", actor: str = "u-test") 
         audit(conn, actor, action, target, detail)
 
 
+MINE = "agent:mine-"            # alle Ziele dieser Datei beginnen so; andere Tests schreiben ebenfalls in access_audit
+
+
+def _mine(entries: list[dict]) -> list[dict]:
+    return [e for e in entries if e["target"].startswith(MINE)]
+
+
 def _get(client, headers, **q):
     qs = "&".join(f"{k}={v}" for k, v in q.items())
     return client.get(f"/api/admin/area-audit{'?' + qs if qs else ''}", headers=headers)
 
 
 def test_area_audit_nur_admin(client, auth_headers, admin_headers):
-    _eintrag("tool_pool_set", "agent:a1", "file_read")
+    _eintrag("tool_pool_set", "agent:mine-a1", "file_read")
     assert client.get("/api/admin/area-audit").status_code == 401
     assert _get(client, auth_headers).status_code == 403
     r = _get(client, admin_headers)
@@ -43,10 +50,10 @@ def test_area_audit_nur_admin(client, auth_headers, admin_headers):
 def test_area_audit_filtert_nach_action(client, admin_headers):
     """Ein user_purge-Eintrag (und andere Aktionen) erscheint nicht – auch wenn das target nach Pool aussieht."""
     _eintrag("user_purge", "user:geheim", "alles weg")
-    _eintrag("user_purge", "agent:a1", "file_read")                               # target wie ein Pool-Eintrag
+    _eintrag("user_purge", "agent:mine-a1", "file_read")                               # target wie ein Pool-Eintrag
     _eintrag("group_create", "group:g1", "Gruppe")
     for a in ACTIONS:
-        _eintrag(a, "agent:a1", "file_read")
+        _eintrag(a, "agent:mine-a1", "file_read")
     got = _get(client, admin_headers).json()["entries"]
     actions = {e["action"] for e in got}
     assert actions == set(ACTIONS)
@@ -55,19 +62,19 @@ def test_area_audit_filtert_nach_action(client, admin_headers):
 
 
 def test_area_audit_uebersetzt_bereiche(client, admin_headers):
-    _eintrag("tool_pool_set", "agent:a1", "file_read, read_document, web_search, shell_exec")
-    e = _get(client, admin_headers).json()["entries"][0]
+    _eintrag("tool_pool_set", "agent:mine-a1", "file_read, read_document, web_search, shell_exec")
+    e = _mine(_get(client, admin_headers, limit=500).json()["entries"])[0]
     assert e["areas"] == ["Dateien lesen", "Im Internet suchen", "Befehle ausführen"]      # Bereichsnamen, je einmal, stabil
     assert e["tools"] == ["file_read", "read_document", "web_search", "shell_exec"]         # Tool-Namen nur hier (Expertenansicht)
-    assert e["action"] == "tool_pool_set" and e["target"] == "agent:a1"
-    en = _get(client, admin_headers, lang="en").json()["entries"][0]
+    assert e["action"] == "tool_pool_set" and e["target"] == "agent:mine-a1"
+    en = _mine(_get(client, admin_headers, lang="en", limit=500).json()["entries"])[0]
     assert en["areas"] == ["Read files", "Search the internet", "Run commands"]
 
 
 def test_area_audit_unbekanntes_tool_ohne_bereich(client, admin_headers):
     _eintrag("tool_grants_set", "user:anna", "gibt_es_nicht, file_read")
     e = _get(client, admin_headers).json()["entries"][0]
-    assert e["areas"] == ["Dateien lesen"] and e["unknown"] == ["gibt_es_nicht"]
+    assert e["target"] == "user:anna" and e["areas"] == ["Dateien lesen"] and e["unknown"] == ["gibt_es_nicht"]
 
 
 def test_area_audit_kategorie_wird_als_bereichsnamen_der_tools_gezeigt(client, admin_headers):
@@ -77,19 +84,21 @@ def test_area_audit_kategorie_wird_als_bereichsnamen_der_tools_gezeigt(client, a
 
 
 def test_area_audit_leer_und_kaputtes_detail(client, admin_headers):
-    _eintrag("tool_pool_set", "agent:a1", "(leer)")
-    _eintrag("tool_pool_set", "agent:a2", "")
-    _eintrag("tool_pool_set", "agent:a3", " , ,, ")
-    got = _get(client, admin_headers).json()["entries"]
+    _eintrag("tool_pool_set", "agent:mine-a1", "(leer)")
+    _eintrag("tool_pool_set", "agent:mine-a2", "")
+    _eintrag("tool_pool_set", "agent:mine-a3", " , ,, ")
+    got = _mine(_get(client, admin_headers, limit=500).json()["entries"])
     assert len(got) == 3 and all(e["areas"] == [] and e["tools"] == [] for e in got)
 
 
 def test_area_audit_neueste_zuerst_und_limit(client, admin_headers):
     for i in range(7):
-        _eintrag("tool_pool_set", f"agent:a{i}", "file_read")
+        _eintrag("tool_pool_set", f"agent:mine-a{i}", "file_read")
+    # limit begrenzt die Antwort; die eigenen Einträge sind die neuesten, also stehen sie vorn
     got = _get(client, admin_headers, limit=3).json()["entries"]
-    assert [e["target"] for e in got] == ["agent:a6", "agent:a5", "agent:a4"]
-    assert len(_get(client, admin_headers).json()["entries"]) == 7
+    assert len(got) == 3
+    assert [e["target"] for e in got] == ["agent:mine-a6", "agent:mine-a5", "agent:mine-a4"]
+    assert len(_mine(_get(client, admin_headers, limit=500).json()["entries"])) == 7
 
 
 def test_area_audit_limit_begrenzt(client, admin_headers):
@@ -102,18 +111,18 @@ def test_area_audit_limit_begrenzt(client, admin_headers):
 def test_area_audit_zeigt_den_akteur_als_namen(client, admin_headers):
     from hydrahive.api.middleware.users import get_by_username
     uid = get_by_username("admin")["user_id"]
-    _eintrag("tool_pool_set", "agent:a1", "file_read", actor=uid)
-    _eintrag("tool_pool_set", "agent:a2", "file_read", actor="u-weg")
-    by_target = {e["target"]: e for e in _get(client, admin_headers).json()["entries"]}
-    assert by_target["agent:a1"]["actor"] == "admin"
-    assert by_target["agent:a2"]["actor"] == ""                                           # unbekannte ID wird nicht durchgereicht
+    _eintrag("tool_pool_set", "agent:mine-a1", "file_read", actor=uid)
+    _eintrag("tool_pool_set", "agent:mine-a2", "file_read", actor="u-weg")
+    by_target = {e["target"]: e for e in _mine(_get(client, admin_headers, limit=500).json()["entries"])}
+    assert by_target["agent:mine-a1"]["actor"] == "admin"
+    assert by_target["agent:mine-a2"]["actor"] == ""                                           # unbekannte ID wird nicht durchgereicht
 
 
 def test_area_audit_ist_nur_lesend(client, admin_headers):
-    _eintrag("tool_pool_set", "agent:a1", "file_read")
+    _eintrag("tool_pool_set", "agent:mine-a1", "file_read")
     for method in (client.post, client.put, client.patch, client.delete):
         assert method("/api/admin/area-audit", headers=admin_headers).status_code in (404, 405)
-    assert len(_get(client, admin_headers).json()["entries"]) == 1
+    assert len(_mine(_get(client, admin_headers, limit=500).json()["entries"])) == 1
 
 
 def test_echter_pfad_schreibt_ins_protokoll(client, admin_headers):
