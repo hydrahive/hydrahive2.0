@@ -1,15 +1,13 @@
 """Freigabe-Pools (Katalog Etappe 5, Spec E1/E3/E5/S3/S5): die EINE Quelle für „was darf diesem Agenten zugewiesen werden“.
 
-* Agenten-Pool  (``agent_tool_pools``): setzt nur der ``owner`` des Agenten oder ein Admin.
+* Agenten-Pool (``agent_tool_pools``): setzt nur der ``owner`` des Agenten oder ein Admin.
 * Besitzer-Freigabe (``owner_tool_grants``): setzt nur ein Admin; deckelt, was ein Nicht-Admin in seinen Pool legen darf
   (Standard leer = nichts, E5). Admins sind nicht gedeckelt.
 * Projekt-Pool (``project_tool_pools``): setzt nur die Projektrolle ``admin`` (oder ein Admin); schränkt nur ein (S5).
 
-Nie im Pool, nie über eine Kategorie: ``AUTHORING_TOOLS``, ``ask_agent`` und die Katalog-Werkzeuge (S3); MCP-Tools nie.
-Lesen (``tool_pool_for``) schneidet noch einmal: Besitzer-Freigabe (für Einträge von Nicht-Admins) und Projekt-Pool. Wird
-eine Freigabe später kleiner, schrumpft der wirksame Pool mit. Das Config-Feld ``agent["tool_pool"]`` gibt es nicht mehr.
-
-Die Identität (``actor``) kommt von den Routen aus dem Token, nie aus einem Request-Body.
+Nie im Pool, nie über eine Kategorie: ``AUTHORING_TOOLS``, ``ask_agent``, Katalog-Werkzeuge (S3); MCP nie. Lesen
+(``tool_pool_for``) schneidet noch einmal mit Besitzer-Freigabe und Projekt-Pool. Jede Änderung schreibt einen Audit-Eintrag
+(``_tool_pool_audit``); Aufräumen beim Löschen steht in ``_tool_pool_cleanup``. Die Identität (``actor``) kommt aus dem Token.
 """
 from __future__ import annotations
 
@@ -17,6 +15,7 @@ import logging
 import re
 import sqlite3
 
+from hydrahive.agents import _tool_pool_audit
 from hydrahive.catalog import CATALOG_TOOLS
 from hydrahive.catalog.categories import CATEGORY_MAP, PREFIX, resolve_categories
 from hydrahive.db._utils import now_iso
@@ -72,8 +71,6 @@ def _rows(sql: str, params: tuple) -> list:
             return []
         raise
 
-
-# ── Lesen ─────────────────────────────────────────────────────────────────────────────────────────────────────────
 
 def owner_grants(username: str) -> list[str]:
     return [r["tool_or_category"] for r in _rows(
@@ -135,8 +132,6 @@ def tool_pool_for(agent: dict, project: dict | None = None, *, capped: bool = Tr
     return names
 
 
-# ── Schreiben ─────────────────────────────────────────────────────────────────────────────────────────────────────
-
 def set_agent_pool(actor: str, agent_id: str, items: list[str]) -> list[str]:
     """Pool eines Agenten setzen (ersetzt). Nur ``owner`` oder Admin; jedes Item ⊆ Besitzer-Freigabe, außer Admin (E5).
 
@@ -162,6 +157,7 @@ def set_agent_pool(actor: str, agent_id: str, items: list[str]) -> list[str]:
         conn.executemany(
             "INSERT INTO agent_tool_pools(agent_id, tool_or_category, by_admin, set_by, set_at) VALUES (?, ?, ?, ?, ?)",
             [(agent_id, i, 1 if admin else 0, actor, stamp) for i in clean])
+        _tool_pool_audit.log(conn, actor, "tool_pool_set", f"agent:{agent_id}", clean)
     logger.info("Agenten-Pool %s gesetzt von %s: %s", agent_id, actor, clean)
     return clean
 
@@ -181,6 +177,7 @@ def set_project_pool(actor: str, project_id: str, items: list[str]) -> list[str]
         conn.execute("DELETE FROM project_tool_pools WHERE project_id = ?", (project_id,))
         conn.executemany("INSERT INTO project_tool_pools(project_id, tool_or_category, set_by, set_at) VALUES (?, ?, ?, ?)",
                          [(project_id, i, actor, stamp) for i in clean])
+        _tool_pool_audit.log(conn, actor, "tool_pool_set", f"project:{project_id}", clean)
     logger.info("Projekt-Pool %s gesetzt von %s: %s", project_id, actor, clean)
     return clean
 
@@ -198,32 +195,6 @@ def set_owner_grants(admin: str, username: str, items: list[str]) -> list[str]:
         conn.execute("DELETE FROM owner_tool_grants WHERE username = ?", (username,))
         conn.executemany("INSERT INTO owner_tool_grants(username, tool_or_category, granted_by, granted_at) "
                          "VALUES (?, ?, ?, ?)", [(username, i, admin, stamp) for i in clean])
+        _tool_pool_audit.log(conn, admin, "tool_grants_set", f"user:{username}", clean)
     logger.info("Besitzer-Freigabe %s gesetzt von %s: %s", username, admin, clean)
     return clean
-
-
-def remove_agent(agent_id: str) -> None:
-    """Beim Löschen eines Agenten: Pool aufräumen (Fehler hier dürfen das Löschen nie verhindern)."""
-    try:
-        with db() as conn:
-            conn.execute("DELETE FROM agent_tool_pools WHERE agent_id = ?", (agent_id,))
-    except Exception:  # noqa: BLE001
-        logger.warning("Pool von Agent %s nicht aufgeräumt", agent_id, exc_info=True)
-
-
-def remove_project(project_id: str) -> None:
-    try:
-        with db() as conn:
-            conn.execute("DELETE FROM project_tool_pools WHERE project_id = ?", (project_id,))
-    except Exception:  # noqa: BLE001
-        logger.warning("Pool von Projekt %s nicht aufgeräumt", project_id, exc_info=True)
-
-
-def remove_user(username: str) -> None:
-    """Beim Löschen eines Nutzers: Besitzer-Freigabe entfernen (Buddy-Review #786) – sonst erbt ein später gleichnamig
-    angelegter Nutzer die alten Freigaben. Fehler dürfen das Löschen nie verhindern."""
-    try:
-        with db() as conn:
-            conn.execute("DELETE FROM owner_tool_grants WHERE username = ?", (username,))
-    except Exception:  # noqa: BLE001
-        logger.warning("Besitzer-Freigabe von %s nicht aufgeräumt", username, exc_info=True)

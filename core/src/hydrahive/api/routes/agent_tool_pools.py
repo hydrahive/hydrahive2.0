@@ -81,6 +81,9 @@ def put_project_pool(project_id: str, body: PoolBody, auth: Auth) -> dict:
 
 @router.get("/api/admin/tool-grants/{username}")
 def get_owner_grants(username: str, _: Annotated[tuple[str, str], Depends(require_admin)]) -> dict:
+    from hydrahive.api.middleware.users import get_by_username
+    if not get_by_username(username):
+        raise coded(status.HTTP_404_NOT_FOUND, "user_not_found")
     return {"items": tool_pools.owner_grants(username)}
 
 
