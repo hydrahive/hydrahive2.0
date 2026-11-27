@@ -208,7 +208,7 @@
     "mode_classic_hint": "All permitted tools go to the model in every run (as before).",
     "mode_catalog_hint": "Only a small core plus pinned and queued tools go to the model; the rest is found on demand with find_tools and called with run_tool. Permissions do not change.",
     "pinned_tools": "Pinned tools ({{count}})",
-    "pinned_tools_hint": "In catalog mode these tools are always in the schema (at most 15 in total).",
+    "pinned_tools_hint": "In catalog mode these tools are always in the schema. Only tools the agent already has are offered.",
     "pinned_skills": "Pinned skills ({{count}})",
     "no_skills": "No skills visible",
     "pool_title": "Permission pool",

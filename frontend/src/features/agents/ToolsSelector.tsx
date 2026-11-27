@@ -9,17 +9,19 @@ interface Props {
   onChange: (next: string[]) => void
   /** Werkzeuge, die der Besitzer nicht freigegeben hat (nur Anzeige). */
   blocked?: Set<string>
+  /** kategorie:x-Chips ausblenden, wenn die Umgebung sie selbst als Schalter zeigt (Pool). */
+  hideCategoryEntries?: boolean
 }
 
 const ALL = "__all__"
 const CATEGORY_PREFIX = "kategorie:"
 
-export function ToolsSelector({ available, selected, onChange, blocked }: Props) {
+export function ToolsSelector({ available, selected, onChange, blocked, hideCategoryEntries }: Props) {
   const { t } = useTranslation("agents")
   const [filter, setFilter] = useState<string>(ALL)
   const set = new Set(selected)
   // kategorie:x-Einträge (Katalog) stehen nicht in der Tool-Liste – sichtbar und entfernbar machen, sonst bleiben sie unsichtbar kleben.
-  const categoryEntries = selected.filter((name) => name.startsWith(CATEGORY_PREFIX))
+  const categoryEntries = hideCategoryEntries ? [] : selected.filter((name) => name.startsWith(CATEGORY_PREFIX))
 
   const categories = useMemo(() => {
     const counts = new Map<string, number>()

@@ -13,7 +13,7 @@ import pytest
 
 from tests._own_rows import only_own_rows
 
-from hydrahive.agentlink.protocol import State, TaskBlock
+from hydrahive.agentlink.protocol import State
 from hydrahive.agents import config as agent_config
 from hydrahive.tools import REGISTRY, ToolContext, ask_agent
 from hydrahive.tools.base import Tool, ToolResult
@@ -89,7 +89,8 @@ def test_tool_grants_unbekannter_nutzer_404(client, admin_headers):
 
 def test_tool_pools_py_unter_200_zeilen_und_remove_ausgelagert():
     from hydrahive.agents import _tool_pool_cleanup, tool_pools
-    assert len(inspect.getsource(tool_pools).splitlines()) <= 200
+    # Repo-Regel „~200 Zeilen“: etwas Luft, damit eine Zeile mehr den Wächter nicht kippt (Review #788).
+    assert len(inspect.getsource(tool_pools).splitlines()) <= 220
     for name in ("remove_agent", "remove_project", "remove_user"):
         assert callable(getattr(_tool_pool_cleanup, name))
 

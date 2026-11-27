@@ -5,6 +5,7 @@ import { skillsApi } from "@/features/skills/api"
 import type { Skill } from "@/features/skills/types"
 import { toolPoolApi, type AgentToolPool } from "./api"
 import { ToolsSelector } from "./ToolsSelector"
+import { pinnable } from "./_pinnable"
 import type { Agent, ToolMeta } from "./types"
 
 interface Props {
@@ -63,7 +64,7 @@ function PinnedSection({ draft, tools, onChange }: Props) {
     <div className={box}>
       <p className="text-[10px] font-medium text-zinc-500">{t("catalog.pinned_tools", { count: (draft.pinned_tools ?? []).length })}</p>
       <p className="text-[10px] text-zinc-500">{t("catalog.pinned_tools_hint")}</p>
-      <ToolsSelector available={tools} selected={draft.pinned_tools ?? []} onChange={(v) => onChange({ pinned_tools: v })} />
+      <ToolsSelector available={pinnable(draft, tools)} selected={draft.pinned_tools ?? []} onChange={(v) => onChange({ pinned_tools: v })} />
       <p className="text-[10px] font-medium text-zinc-500 pt-1">{t("catalog.pinned_skills", { count: pinnedSkills.size })}</p>
       <div className="flex flex-wrap gap-1">
         {names.length === 0 && <span className="text-[10px] text-zinc-600">{t("catalog.no_skills")}</span>}
@@ -148,7 +149,7 @@ function PoolSection({ agent, tools }: { agent: Agent; tools: ToolMeta[] }) {
             })}
           </div>
           {mayEdit ? (
-            <ToolsSelector available={offered} selected={items} onChange={(v) => { setDone(false); setItems(v) }} />
+            <ToolsSelector available={offered} selected={items} hideCategoryEntries onChange={(v) => { setDone(false); setItems(v) }} />
           ) : (
             <p className="text-[11px] font-mono text-zinc-300 break-words">{items.join(", ") || t("catalog.pool_empty")}</p>
           )}

@@ -208,7 +208,7 @@
     "mode_classic_hint": "Alle freigegebenen Tools gehen in jedem Lauf ans Modell (wie bisher).",
     "mode_catalog_hint": "Nur ein kleiner Kern, angeheftete und vorgemerkte Tools gehen ans Modell; der Rest wird bei Bedarf über find_tools gesucht und mit run_tool aufgerufen. Rechte ändern sich dadurch nicht.",
     "pinned_tools": "Angeheftete Tools ({{count}})",
-    "pinned_tools_hint": "Diese Tools sind im Katalog-Modus immer im Schema (höchstens 15 insgesamt).",
+    "pinned_tools_hint": "Diese Tools sind im Katalog-Modus immer im Schema. Angeboten wird nur, was der Agent selbst freigegeben hat.",
     "pinned_skills": "Angeheftete Skills ({{count}})",
     "no_skills": "Keine Skills sichtbar",
     "pool_title": "Freigabe-Pool",

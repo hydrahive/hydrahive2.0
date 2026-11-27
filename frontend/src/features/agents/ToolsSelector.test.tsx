@@ -19,3 +19,12 @@ describe("ToolsSelector – kategorie:x (Katalog 6b)", () => {
     expect(html).not.toContain("category-entries")
   })
 })
+
+describe("ToolsSelector – Pool ohne doppelte Kategorien (Review #788)", () => {
+  it("hideCategoryEntries blendet den Chip-Bereich aus", () => {
+    const html = renderToStaticMarkup(
+      <ToolsSelector available={tools} selected={["kategorie:files"]} hideCategoryEntries onChange={() => {}} />,
+    )
+    expect(html).not.toContain("category-entries")
+  })
+})

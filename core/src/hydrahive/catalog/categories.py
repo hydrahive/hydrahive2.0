@@ -156,10 +156,8 @@ def approve(category: str, tool: str, by_admin: str) -> None:
 
 def _audit(conn, username: str, action: str, category: str, tool: str) -> None:
     """Audit-Eintrag im selben Log wie die übrigen Admin-Aktionen (``access_audit``), in der Transaktion der Änderung."""
-    from hydrahive.access.store import audit
-    from hydrahive.api.middleware.users import get_by_username
-    user = get_by_username(username) or {}
-    audit(conn, user.get("user_id") or username, action, f"tool_category:{category}", tool)
+    from hydrahive.agents._tool_pool_audit import log
+    log(conn, username, action, f"tool_category:{category}", [tool])
 
 
 def list_approvals() -> list[dict]:
