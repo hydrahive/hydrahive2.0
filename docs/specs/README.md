@@ -31,7 +31,7 @@ frühere Teile beschreiben bereits umgesetzte Etappen.
 | [`access-groups-plan.md`](access-groups-plan.md) | Plan: Freigaben und Gruppen — Etappe 1 (Funktions-Freigaben) |  | 2026-09-29 |
 | [`admin-cockpit-visual-system.md`](admin-cockpit-visual-system.md) | Admin-Cockpit Visual System |  | 2026-10-30 |
 | [`agent-background-delegation.md`](agent-background-delegation.md) | Spec + Plan: Spezialisten im Hintergrund beauftragen (ask_agent) |  | 2026-11-20 |
-| [`agent-bereiche.md`](agent-bereiche.md) | Agenten-Rechte als Bereiche – „Was darf dieser Agent?“ |  | ? |
+| [`agent-bereiche.md`](agent-bereiche.md) | Agenten-Rechte als Bereiche – „Was darf dieser Agent?“ |  | 2026-11-27 |
 | [`agent-infrastructure-tools.md`](agent-infrastructure-tools.md) | Container und VMs als Agent-Werkzeuge |  | 2026-09-26 |
 | [`agent-integrity-layer.md`](agent-integrity-layer.md) | Agent Integrity Layer |  | 2026-09-24 |
 | [`agent-language.md`](agent-language.md) | Spec: Antwortsprache für alle Agenten aus der Buddy-Einstellung |  | 2026-10-11 |
