@@ -1,4 +1,4 @@
-"""Agenten-Bereiche (docs/specs/agent-bereiche.md 3.1/3.2): 26 Schalter in 9 Gruppen statt Tool-Listen.
+"""Agenten-Bereiche (docs/specs/agent-bereiche.md 3.1/3.2): 28 Schalter in 9 Gruppen statt Tool-Listen.
 
 Ein Bereich ist nur eine SICHT auf ``agent.tools`` (E1): Er ordnet Tool-Namen einem Schalter in Alltagssprache zu. Gespeichert
 wird nie ``bereich:x``, Rechteprüfungen ändern sich nicht. Schnittregeln: ein Bereich ist eine Sache aus dem Alltag; Lesen und
@@ -23,7 +23,7 @@ GROUP_NAMES: dict[str, dict[str, str]] = {
     "organize": {"de": "Organisieren", "en": "Organize"},
     "creative": {"de": "Kreativ", "en": "Creative"},
     "team": {"de": "Team", "en": "Team"},
-    "post": {"de": "Post", "en": "Mail"},
+    "post": {"de": "Nachrichten", "en": "Messages"},
     "home": {"de": "Zuhause", "en": "Home"},
     "private": {"de": "Privates", "en": "Private"},
     "server": {"de": "Server", "en": "Server"},
@@ -115,6 +115,13 @@ CORE_AREAS: tuple[Area, ...] = (
     _a("mail_write", "post", "E-Mails schreiben", "Write emails",
        "Entwürfe anlegen, Mails markieren, verschieben und senden", "Create drafts, flag, move and send mails", (R, P),
        "send_mail", "mailbox_draft", "mailbox_flag", "mailbox_move"),
+    _a("discord_read", "post", "Discord lesen", "Read Discord", "Kanäle und Beiträge auf dem Discord-Server lesen",
+       "Read channels and posts on the Discord server", (), "discord_read", "discord_channels"),
+    _a("discord_write", "post", "Discord schreiben", "Write on Discord",
+       "Auf Discord posten, antworten, Beiträge und den Server verwalten",
+       "Post and reply on Discord, manage posts and the server", (R,),
+       "discord_post", "discord_reply", "discord_edit", "discord_delete", "discord_message_pin", "discord_forum_tags",
+       "discord_thread_manage", "discord_server_manage", "discord_member_manage"),
     _a("home_view", "home", "Haus ansehen", "View the house",
        "Zustand von Lampen, Sensoren und Geräten lesen", "Read the state of lamps, sensors and devices", (),
        "ha_list_entities", "ha_get_state", "ha_render_template"),
