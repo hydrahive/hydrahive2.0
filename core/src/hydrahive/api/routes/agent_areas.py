@@ -1,6 +1,8 @@
-"""``GET /api/agent-areas``: das Bereichs-Verzeichnis für den Agenten-Editor (docs/specs/agent-bereiche.md 4.1).
+"""Bereichs-Routen (docs/specs/agent-bereiche.md 4.1, 4.3, 4.6, 4.8).
 
-Angemeldet genügt. ``unassigned`` (Tools ohne Bereich) sieht nur ein Admin, alle anderen bekommen eine leere Liste.
+- ``GET /api/agent-areas``: Bereichs-Verzeichnis. Angemeldet genügt; ``unassigned`` (Tools ohne Bereich) nur für Admins.
+- ``GET /api/agents/{id}/areas``: Bereichs-Status eines Agenten (Besitzer oder Admin), nur lesend.
+- ``POST /api/agents/{id}/area-suggestion``: Zweck-Vorschlag (nur Admin), speichert nichts.
 """
 from __future__ import annotations
 
@@ -16,7 +18,7 @@ from hydrahive.api.middleware.auth import require_admin, require_auth
 from hydrahive.api.middleware.errors import coded
 
 router = APIRouter(prefix="/api/agent-areas", tags=["agent-areas"])
-router_agent = APIRouter(prefix="/api/agents", tags=["agent-areas"])
+agent_router = APIRouter(prefix="/api/agents", tags=["agent-areas"])
 
 
 @router.get("")
@@ -25,6 +27,19 @@ def get_areas(auth: Annotated[tuple[str, str], Depends(require_auth)],
     _, role = auth
     return {"groups": registry.groups(lang), "areas": registry.all_areas(lang), "base": sorted(BASE_TOOLS),
             "unassigned": registry.unassigned() if role == "admin" else []}
+
+
+@agent_router.get("/{agent_id}/areas")
+def get_agent_areas(agent_id: str, auth: Annotated[tuple[str, str], Depends(require_auth)]) -> dict:
+    """Bereichs-Status eines Agenten (Besitzer oder Admin, fremd → 403 ``agent_no_access`` wie ``/tool-pool``). Nur lesend: gespeichert wird
+    über das bestehende ``PATCH /api/agents/{id}`` (Admin, Spec 4.8); ``editable`` sagt der Oberfläche, ob das geht."""
+    from hydrahive.agents.area_state import area_states
+    from hydrahive.api.routes._agent_schemas import check_agent_access
+    agent = agent_config.get(agent_id)
+    if not agent:
+        raise coded(status.HTTP_404_NOT_FOUND, "agent_not_found")
+    check_agent_access(agent, *auth)
+    return {"areas": area_states(agent), "editable": auth[1] == "admin"}
 
 
 class SuggestBody(BaseModel):
@@ -39,7 +54,7 @@ class SuggestBody(BaseModel):
         return v.strip()
 
 
-@router_agent.post("/{agent_id}/area-suggestion")
+@agent_router.post("/{agent_id}/area-suggestion")
 async def suggest_areas(agent_id: str, body: SuggestBody, _: Annotated[tuple[str, str], Depends(require_admin)]) -> dict:
     """Zweck-Vorschlag (Spec 4.6): nur Admin, speichert nichts. Modellfehler → 200 mit leerer Liste und ``llm_failed``."""
     from hydrahive.agents import area_suggest

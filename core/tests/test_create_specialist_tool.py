@@ -97,3 +97,11 @@ def test_create_specialist_template_und_modell_abgelehnt(monkeypatch):
     res = asyncio.run(cs.TOOL.execute({"name": "rev", "llm_model": "x", "max_iterations": 9}, _ctx()))
     assert not res.success and "llm_model" in res.error and "max_iterations" in res.error
     assert created == {}
+
+
+def test_create_specialist_startet_katalog(monkeypatch):
+    """AB10 (E2): Neue Spezialisten starten im Katalog-Modus."""
+    created: dict = {}
+    _fake_env(monkeypatch, created)
+    res = asyncio.run(cs.TOOL.execute({"name": "neu"}, _ctx()))
+    assert res.success and created["tool_mode"] == "catalog"

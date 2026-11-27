@@ -12,8 +12,8 @@ from hydrahive.api.middleware.upload_limit import ChatUploadLimitMiddleware
 from hydrahive.api.routes._agentlink_dashboard import router as agentlink_dashboard_router
 from hydrahive.api.routes.agentlink import router as agentlink_router
 from hydrahive.api.routes.agents import router as agents_router
+from hydrahive.api.routes.agent_areas import agent_router as agent_areas_agent_router
 from hydrahive.api.routes.agent_areas import router as agent_areas_router
-from hydrahive.api.routes.agent_areas import router_agent as agent_areas_agent_router
 from hydrahive.api.routes.agent_tool_pools import router as agent_tool_pools_router
 from hydrahive.api.routes.admin_tool_categories import router as admin_tool_categories_router
 from hydrahive.api.routes.catalog_metrics import router as catalog_metrics_router

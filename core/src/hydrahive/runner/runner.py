@@ -32,6 +32,7 @@ from hydrahive.runner._runner_cancel import persist_on_cancel
 from hydrahive.runner._runner_helpers import close_open_tool_uses, refusal_error
 from hydrahive.runner._runner_lessons import recall_lessons, start_lessons
 from hydrahive.runner import _catalog_mode as catalog_mode
+from hydrahive.catalog.auto_pin import auto_pinned
 from hydrahive.runner._assigned_tools import assigned_for_run, assigned_skills_for_run
 from hydrahive.runner._runner_iter import (
     IterationResult,
@@ -156,9 +157,10 @@ async def run(
         # berechnet; das Vormerken während des Laufs wirkt erst beim nächsten (Liste und Prompt bleiben byte-gleich).
         # Zugewiesene Tools aus dem Auftrag gehören direkt in die gezeigte Liste – dafür hat der Auftraggeber sie gewählt
         # (Buddy-Review #786); einmal je Lauf, also byte-gleich im Lauf (E4).
+        # Automatisch angeheftet (Bereiche AB6): meistbenutzte run_tool-Tools der letzten 30 Tage, ebenfalls einmal je Lauf.
         _shown = catalog_mode.catalog_schema_names(
-            local_tools, list(agent.get("pinned_tools") or []) + list(_assigned or []),
-            catalog_mode.remembered_for(session))
+            local_tools, list(agent.get("pinned_tools") or []) + auto_pinned(agent["id"], local_tools)
+            + list(_assigned or []), catalog_mode.remembered_for(session))
         tool_schemas = schemas_for(_shown) + mcp_schemas + plugin_bridge.schemas_for(_shown)
         allowed_tools = catalog_mode.allowed_with_catalog(local_tools) + [s["name"] for s in mcp_schemas]
         hint_tools: list[str] | None = [s["name"] for s in tool_schemas]

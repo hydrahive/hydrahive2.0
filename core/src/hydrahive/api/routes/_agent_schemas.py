@@ -36,6 +36,8 @@ class AgentCreate(BaseModel):
     tool_result_max_chars: int | None = None
     cache_ttl: str | None = None
     handoff_timeout_seconds: int | None = None
+    # Katalog-Standard (Bereiche E2/AB10): ohne Angabe startet ein neuer Editor-Agent im Modus catalog.
+    tool_mode: str | None = None
 
 
 class AgentUpdate(BaseModel):
