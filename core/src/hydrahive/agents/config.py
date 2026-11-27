@@ -88,6 +88,8 @@ def create(
         **({"template": template} if template else {}),
         **({"tool_mode": tool_mode} if tool_mode else {}),
     }
+    from hydrahive.agents.area_state import seen_snapshot
+    cfg["area_seen"] = seen_snapshot()          # Anlegen ist auch Speichern (Spec 4.3, Review #792): Stand der Bereiche merken
     runtime = {
         key: value for key, value in {
             "compact_model": compact_model,
@@ -144,8 +146,11 @@ def update(agent_id: str, *, _managed_by: str | None = None, **changes: Any) -> 
     if "tool_pool" in changes:
         raise _validation.AgentValidationError(
             "tool_pool lässt sich nicht über die Agenten-Konfiguration setzen (Pool: /api/agents/{id}/tool-pool)")
+    changes.pop("area_seen", None)             # nie von außen: der Server schreibt es beim Speichern der Tools mit
     if "tools" in changes:
         _validation.validate_tools(changes["tools"])
+        from hydrahive.agents.area_state import seen_snapshot
+        changes["area_seen"] = seen_snapshot()      # Spec 4.3: welche Tools es je Bereich beim Speichern gab (M6)
     if "tool_mode" in changes:
         _validation.validate_tool_mode(changes["tool_mode"])
     for _list_field in ("pinned_tools", "pinned_skills"):
