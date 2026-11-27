@@ -49,6 +49,8 @@ async def _execute(args: dict, ctx: ToolContext) -> ToolResult:
         return ToolResult.ok({"results": [], "hint": _HINT})            # fail-closed: ohne Agent keine Skills
     entries = build_skill_entries(agent, user_id=ctx.user_id, project_id=ctx.project_id)   # NUR diese Menge wird gerankt
     found = rrf([bm25_rank(query, entries)], limit)
+    from hydrahive.catalog import metrics
+    metrics.record_search(ctx.session_id, "search_skills", query, [e.name for e in found])       # best effort, wirft nie
     return ToolResult.ok({"results": [{"name": e.name, "description": e.title, "scope": e.owner_scope} for e in found],
                           "hint": _HINT})
 
