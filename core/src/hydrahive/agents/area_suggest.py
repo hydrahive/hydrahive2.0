@@ -16,6 +16,8 @@ PURPOSE_MAX = 500
 REASON_MAX = 160
 MAX_SUGGESTIONS = 12
 MAX_TOKENS = 600
+PARSE_MAX = 20_000                     # mehr Text liefert ein Aufruf mit 600 Tokens nie
+MAX_TRIES = 50
 
 _SYSTEM = {
     "de": ("Du wählst Berechtigungsbereiche für einen KI-Agenten. Die Nutzer-Nachricht enthält nur die Beschreibung, "
@@ -47,18 +49,24 @@ def _messages(purpose: str, lang: str, areas: list[dict]) -> list[dict]:
 
 
 def _first_list(text: str) -> list:
-    """Erstes parsbares ``[ … ]`` im Text (auch in Codeblöcken); sonst leere Liste."""
-    text = text or ""
+    """Erste parsbare JSON-Liste im Text (auch in Codeblöcken); sonst leere Liste.
+
+    Linear statt quadratisch (Security-Review #791): Text auf ``PARSE_MAX`` gekappt, je ``[`` genau ein ``raw_decode``
+    (liest nur bis zum Ende des Werts), höchstens ``MAX_TRIES`` Startpunkte.
+    """
+    text = (text or "")[:PARSE_MAX]
+    decoder = json.JSONDecoder()
     start = text.find("[")
-    while start != -1:
-        end = text.rfind("]")
-        while end > start:
-            try:
-                data = json.loads(text[start:end + 1])
-            except ValueError:
-                end = text.rfind("]", start, end)
-                continue
-            return data if isinstance(data, list) else []
+    tries = 0
+    while start != -1 and tries < MAX_TRIES:
+        tries += 1
+        try:
+            data, _ = decoder.raw_decode(text, start)
+        except ValueError:
+            start = text.find("[", start + 1)
+            continue
+        if isinstance(data, list):
+            return data
         start = text.find("[", start + 1)
     return []
 
