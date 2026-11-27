@@ -19,6 +19,7 @@
   "invalid_token": "Ungültiger Token",
   "admin_only": "Nur für Admins",
   "agent_not_found": "Agent nicht gefunden",
+  "llm_failed": "Der Vorschlag konnte gerade nicht erstellt werden",
   "agent_no_access": "Kein Zugriff auf diesen Agent",
   "soul_active": "Soul ist aktiv — der System-Prompt wird nicht verwendet. Bearbeite die Soul im Reiter „Soul“ oder leere dort alle Felder.",
   "session_not_found": "Session nicht gefunden",
