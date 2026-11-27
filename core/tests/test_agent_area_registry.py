@@ -187,7 +187,7 @@ def test_route_liefert_gruppen_bereiche_base(client, auth_headers):
     r = client.get("/api/agent-areas?lang=de", headers=auth_headers)
     assert r.status_code == 200, r.text
     body = r.json()
-    assert set(body) == {"groups", "areas", "base", "unassigned"}
+    assert set(body) == {"groups", "areas", "base", "categories", "unassigned"}
     assert len(body["groups"]) == 9 and len(body["areas"]) >= 26
     assert body["groups"][0]["id"] == "files_code" and body["groups"][0]["name"] == "Dateien & Code"
     assert "find_tools" in body["base"] and "file_read" not in body["base"]
@@ -257,3 +257,10 @@ def test_fremdes_modul_faengt_kein_kern_praefix(monkeypatch):
     assert _area_registry.area_of("task_purge_all_remote") is None
     assert _area_registry.area_of("graph_fake") is None
     assert {"task_purge_all_remote", "graph_fake"} <= set(_area_registry.unassigned())
+
+
+def test_route_liefert_kategorie_aufloesung(client, auth_headers):
+    """Review #794: Der Editor braucht, was hinter kategorie:x steckt, um „teilweise über Kategorie“ im Entwurf zu zeigen."""
+    body = client.get("/api/agent-areas", headers=auth_headers).json()
+    assert "files" in body["categories"] and "file_read" in body["categories"]["files"]
+    assert all(isinstance(v, list) for v in body["categories"].values())

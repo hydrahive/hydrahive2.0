@@ -19,7 +19,7 @@ import { PromptTab } from "@/features/agents/_PromptTab"
 import { SkillsTab } from "@/features/agents/_SkillsTab"
 import { SoulTab } from "@/features/agents/_SoulTab"
 import { activeTabFor, isManaged, visibleTabs } from "@/features/agents/managedAgent"
-import { ToolsTab } from "@/features/agents/_ToolsTab"
+import { AreasTab } from "@/features/agents/areas/AreasTab"
 import type { McpServerBrief } from "@/features/agents/api"
 import type { Agent, ToolMeta } from "@/features/agents/types"
 import type { RegistryModel } from "@/features/llm/api"
@@ -68,7 +68,7 @@ export function ProjectAgentEditorTabs({
     { id: "overview", label: "Übersicht", icon: LayoutGrid },
     { id: "model", label: "Modell", icon: Cpu },
     { id: "prompt", label: t("fields.system_prompt"), icon: FileText },
-    { id: "tools", label: "Tools", icon: Wrench },
+    { id: "tools", label: t("tabs.tools"), icon: Wrench },
     ...(hasMail ? [{ id: "mail", label: "Mail", icon: Mail }] : []),
     { id: "skills", label: "Skills", icon: Sparkles },
     { id: "soul", label: t("tabs.soul"), icon: BrainCircuit },
@@ -137,7 +137,7 @@ export function ProjectAgentEditorTabs({
           )}
           {activeTab === "prompt" && <PromptTab prompt={prompt} onChange={onPromptChange} soulActive={soulActive} />}
           {activeTab === "tools" && (
-            <ToolsTab draft={draft} tools={tools} mcpServers={mcpServers} onChange={onChange} />
+            <AreasTab draft={draft} tools={tools} mcpServers={mcpServers} onChange={onChange} />
           )}
           {activeTab === "mail" && hasMail && <MailTab draft={draft} onChange={onChange} />}
           {activeTab === "skills" && <SkillsTab agent={agent} draft={draft} onChange={onChange} />}

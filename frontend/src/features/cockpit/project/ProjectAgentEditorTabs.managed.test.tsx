@@ -25,7 +25,8 @@ describe("Projekt-Agent bearbeiten – verwaltet", () => {
   it("normal: alle Reiter, kein Hinweis", () => {
     const html = render(BASE)
     expect(html).not.toContain("managed.hint")
-    for (const k of ["fields.system_prompt", ">Tools<", ">Skills<", "tabs.soul"]) expect(html).toContain(k)
+    // Reiter „tools“ heißt jetzt „Was darf der Agent?“ (i18n tabs.tools, Agenten-Bereiche Aufgabe 4)
+    for (const k of ["fields.system_prompt", "tabs.tools", ">Skills<", "tabs.soul"]) expect(html).toContain(k)
   })
 })
 

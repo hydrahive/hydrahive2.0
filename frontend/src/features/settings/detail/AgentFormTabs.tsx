@@ -5,7 +5,7 @@ import { agentsApi, mcpInfoApi, type McpServerBrief } from "@/features/agents/ap
 import { CompactionSection } from "@/features/agents/CompactionSection"
 import { OverviewTab } from "@/features/agents/_OverviewTab"
 import { ModelTab } from "@/features/agents/_ModelTab"
-import { ToolsTab } from "@/features/agents/_ToolsTab"
+import { AreasTab } from "@/features/agents/areas/AreasTab"
 import { MailTab } from "@/features/agents/_MailTab"
 import { SoulTab } from "@/features/agents/_SoulTab"
 import { SkillsTab } from "@/features/agents/_SkillsTab"
@@ -120,7 +120,7 @@ export function AgentFormTabs({ agent, models, catalog, tools, onSaved, onDelete
         <div className="max-w-3xl">
           {tab === "overview" && <OverviewTab draft={draft} onChange={patch} />}
           {tab === "model" && <ModelTab draft={draft} catalog={catalog} onChange={patch} />}
-          {tab === "tools" && <ToolsTab draft={draft} tools={tools} mcpServers={mcpServers} onChange={patch} />}
+          {tab === "tools" && <AreasTab draft={draft} tools={tools} mcpServers={mcpServers} onChange={patch} />}
           {tab === "mail" && hasMail && <MailTab draft={draft} onChange={patch} />}
           {tab === "skills" && <SkillsTab agent={agent} draft={draft} onChange={patch} />}
           {tab === "soul" && <SoulTab agent={agent} />}
