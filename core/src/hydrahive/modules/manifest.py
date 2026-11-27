@@ -3,6 +3,7 @@ import json, re
 from dataclasses import dataclass
 from pathlib import Path, PurePosixPath, PureWindowsPath
 
+from hydrahive.modules._agent_areas import parse_agent_areas
 from hydrahive.modules._manifest_caps import CapabilitySpec, parse_capabilities
 from hydrahive.modules._manifest_sensitive import parse_sensitive_tools
 from hydrahive.modules._manifest_templates import parse_templates
@@ -59,6 +60,8 @@ class ModuleManifest:
     vault: bool = False
     # Eigene Agenten-Templates ((id, label, base), …) – Plan E5 agent-templates
     templates: tuple[tuple[str, str, str], ...] = ()
+    # Bereiche für den Agenten-Editor (docs/specs/agent-bereiche.md 4.1): Zuordnung oder neuer Bereich
+    agent_areas: tuple[dict, ...] = ()
 
     @classmethod
     def load(cls, path: Path) -> "ModuleManifest":
@@ -85,4 +88,5 @@ class ModuleManifest:
             sensitive_tools=parse_sensitive_tools(d.get("sensitive_tools"), ManifestError),
             vault=d.get("vault", False) is True,
             templates=parse_templates(d.get("templates"), ManifestError),
+            agent_areas=parse_agent_areas(d.get("agent_areas"), ManifestError),
         )
