@@ -1,6 +1,6 @@
 # Plan: Hilfe-Artikel nachziehen (Stand 28.11.2026)
 
-> **Status:** ENTWURF, wartet auf Tills Freigabe.
+> **Status:** FREIGEGEBEN (Till, 28.11.2026: „ok freigegeben“).
 > Teil 1 zu `docs/specs/hilfe-guard.md`: erst den Rückstand aufholen, dann verhindert der Guard neue Lücken.
 > Aufbau der Artikel nach `hydrahive2-modules/ziele/hilfe-aktuell.md` §2. Quellen kommen nur aus dem Code und den Specs auf `main`, Behauptungen werden am Code geprüft.
 

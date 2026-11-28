@@ -1,6 +1,6 @@
 # Hilfe-Guard: Nutzersichtbare Änderungen bringen ihre Hilfe mit
 
-> **Status:** ENTWURF, wartet auf Tills Freigabe.
+> **Status:** FREIGEGEBEN (Till, 28.11.2026: „ok freigegeben“).
 > **Anlass:** Till am 28.11.2026: „Vielleicht sollte man das mal automatisieren, dass nach jeder Erweiterung oder
 > Änderung das Handbuch angepasst wird.“
 
