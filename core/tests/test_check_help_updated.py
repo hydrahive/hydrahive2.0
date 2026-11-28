@@ -333,3 +333,8 @@ def test_aufruf_ohne_argumente_exit_2():
     result = subprocess.run([sys.executable, str(_SCRIPT)], capture_output=True, text=True)
     assert result.returncode == 2
     assert "Aufruf:" in result.stdout
+
+
+def test_ausnahme_platzhalter_aus_der_meldung_gilt_nicht():
+    # Wer die Zeile aus der Fehlermeldung unverändert in den PR-Text kopiert, hat nichts begründet.
+    assert _eval(["installer/update.sh"], body="Keine Hilfe nötig: <Begründung>").violation
