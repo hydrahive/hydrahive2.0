@@ -1,9 +1,9 @@
 {
   "title": "Communication",
-  "subtitle": "Messengers and channels that reach your master agent",
+  "subtitle": "Messengers and channels that reach your buddy",
   "whatsapp": {
     "label": "WhatsApp",
-    "description": "Incoming messages go straight to your master agent. 1:1 chats only, no media yet.",
+    "description": "Incoming messages go straight to your buddy. Group chats via switch, voice messages are transcribed.",
     "connect": "Connect",
     "disconnect": "Disconnect",
     "qr_hint": "Open WhatsApp → Linked devices → Scan this code",
@@ -37,7 +37,7 @@
   },
   "discord": {
     "label": "Discord",
-    "description": "DMs and @mentions go straight to your master agent.",
+    "description": "DMs and @mentions go straight to your buddy.",
     "unavailable": "Discord unavailable.",
     "connect": "Connect",
     "disconnect": "Disconnect",

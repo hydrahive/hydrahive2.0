@@ -11,9 +11,9 @@ Kurz: Dein Agent bekommt ein „Telefon", über das du ihm schreiben kannst.
 
 ## Verfügbare Kanäle
 
-- **WhatsApp** — eingehende Nachrichten gehen direkt an deinen Master-Agenten.
+- **WhatsApp** — eingehende Nachrichten gehen direkt an deinen Buddy.
 - **Discord** — Direktnachrichten (DMs) und **@Erwähnungen** gehen an deinen
-  Master-Agenten.
+  Buddy.
 
 (Welche Kanäle einsatzbereit sind, hängt von deiner Installation und den
 hinterlegten Zugangsdaten ab.)

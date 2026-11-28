@@ -11,8 +11,8 @@ In short: your agent gets a "phone" you can text.
 
 ## Available channels
 
-- **WhatsApp** — incoming messages go directly to your master agent.
-- **Discord** — direct messages (DMs) and **@mentions** go to your master agent.
+- **WhatsApp** — incoming messages go directly to your buddy.
+- **Discord** — direct messages (DMs) and **@mentions** go to your buddy.
 
 (Which channels are ready depends on your installation and the stored credentials.)
 
