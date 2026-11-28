@@ -35,7 +35,7 @@ Ein PR ist **nutzersichtbar**, wenn er mindestens eine dieser Dateien ändert. T
 | Repo | Muster |
 |---|---|
 | Kern | `frontend/src/features/**/*.tsx`, `frontend/src/shared/**/*.tsx`, `frontend/src/i18n/locales/de/*.json`, `installer/update*.sh`, `installer/lib/update-*.sh`, `installer/install*.sh` |
-| Module | `<modul>/frontend/**/*.tsx`, deutsche Texte `<modul>/frontend/**/i18n*.ts` (ohne `*.en.ts`) und `<modul>/frontend/**/texts.de.ts`, `<modul>/manifest.json` (nur wenn sich `name`, `description`, `icon`, `nav_group`, `vault` oder `agent_areas` ändern) |
+| Module | `<modul>/frontend/**/*.tsx`, deutsche Texte `<modul>/frontend/**/*i18n*.ts` bzw. `*I18n*.ts` (ohne `*.en.ts`) und `<modul>/frontend/**/texts*.de.ts`, `<modul>/manifest.json` (nur wenn sich `name`, `description`, `icon`, `nav_group`, `vault` oder `agent_areas` ändern) |
 
 Ein nutzersichtbarer PR braucht **eine geänderte oder neue Hilfe-Datei**:
 - Kern: `frontend/src/i18n/help/de/*.md`
@@ -50,8 +50,9 @@ Ein nutzersichtbarer PR braucht **eine geänderte oder neue Hilfe-Datei**:
 
 **Korrektur 28.11.2026 (Review modules #478):** Die erste Fassung nannte für Module `frontend/i18n/de*` und die
 Manifest-Felder `routes`, `nav`, `settings`. Beides gibt es im Repo nicht: Die Texte liegen in `frontend/i18n*.ts` bzw.
-`texts.de.ts`, und das Manifest kennt nur die Felder aus `core/src/hydrahive/modules/manifest.py`. Korrigiert in
-modules #479.
+`texts.de.ts` (auch Teildateien wie `texts.ghost.de.ts`, `seatsI18n.ts`), und das Manifest kennt nur die Felder aus
+`core/src/hydrahive/modules/manifest.py`. Korrigiert in modules #479. Bekannte Grenze: Textdateien ohne Namensmerkmal
+(z. B. `tonstudio/frontend/errors.ts`) erkennt der Guard nicht.
 
 ## 3. Modus
 
