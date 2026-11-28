@@ -96,7 +96,8 @@ def _suggest(visible: list[str], root: Path | None) -> list[str]:
             candidates = _topics_in_folder(root, feature.group(1)) or {feature.group(1)}
         elif locale:
             candidates = {locale.group(1)}
-        found.update(c for c in candidates if _TOPIC.fullmatch(f'topic="{c}"') and (root / HELP_DIR / f"{c}.md").is_file())
+        # Topics stammen aus _TOPIC ([a-z0-9_-]) – kein Pfad-Ausbruch möglich; Ordnername kommt aus _FEATURE (ohne „/“).
+        found.update(c for c in candidates if (root / HELP_DIR / f"{c}.md").is_file())
     return [f"{HELP_DIR}/{name}.md" for name in sorted(found)]
 
 
