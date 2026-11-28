@@ -3,7 +3,7 @@
 ## What is this?
 
 On this page you connect **external messengers** to HydraHive so you can reach
-your personal (master) agent **on the go** — without opening the web interface. If
+your buddy **on the go** — without opening the web interface. If
 you write on WhatsApp, for example, the message lands directly with your agent,
 and its reply comes back the same way.
 

@@ -3,7 +3,7 @@
 ## Was ist das?
 
 Auf dieser Seite verbindest du **externe Messenger** mit HydraHive, damit du
-deinen persönlichen (Master-)Agenten auch **von unterwegs** erreichst — ohne die
+deinen Buddy auch **von unterwegs** erreichst — ohne die
 Weboberfläche zu öffnen. Schreibst du z.B. auf WhatsApp, landet die Nachricht
 direkt bei deinem Agenten, und seine Antwort kommt auf demselben Weg zurück.
 
