@@ -42,11 +42,12 @@ DATA_HOME="${HH_DATA_DIR:-/var/lib/hydrahive2}"
 
 log "MCP-Config anlegen: $MCP_CONFIG"
 cat > "$MCP_CONFIG" <<MCPJSON
-[
+{"servers": [
   {
     "id": "filesystem",
     "name": "Filesystem",
     "description": "Lese- und Schreibzugriff auf Verzeichnisse",
+    "transport": "stdio",
     "command": "npx",
     "args": ["@modelcontextprotocol/server-filesystem", "$DATA_HOME"],
     "enabled": true
@@ -55,6 +56,7 @@ cat > "$MCP_CONFIG" <<MCPJSON
     "id": "git",
     "name": "Git",
     "description": "Git-Repository-Operationen",
+    "transport": "stdio",
     "command": "npx",
     "args": ["@modelcontextprotocol/server-git"],
     "enabled": true
@@ -63,6 +65,7 @@ cat > "$MCP_CONFIG" <<MCPJSON
     "id": "sqlite",
     "name": "SQLite",
     "description": "SQLite-Datenbank-Abfragen",
+    "transport": "stdio",
     "command": "npx",
     "args": ["@modelcontextprotocol/server-sqlite", "$DATA_HOME/sessions.db"],
     "enabled": false
@@ -71,6 +74,7 @@ cat > "$MCP_CONFIG" <<MCPJSON
     "id": "fetch",
     "name": "Fetch",
     "description": "HTTP-Requests und Web-Inhalte abrufen",
+    "transport": "stdio",
     "command": "npx",
     "args": ["@modelcontextprotocol/server-fetch"],
     "enabled": true
@@ -79,6 +83,7 @@ cat > "$MCP_CONFIG" <<MCPJSON
     "id": "sequential-thinking",
     "name": "Sequential Thinking",
     "description": "Strukturiertes mehrstufiges Denken",
+    "transport": "stdio",
     "command": "npx",
     "args": ["@modelcontextprotocol/server-sequential-thinking"],
     "enabled": true
@@ -87,12 +92,13 @@ cat > "$MCP_CONFIG" <<MCPJSON
     "id": "time",
     "name": "Time",
     "description": "Aktuelles Datum/Uhrzeit und Zeitzonenkonvertierung",
+    "transport": "stdio",
     "command": "npx",
     "args": ["@modelcontextprotocol/server-time"],
     "enabled": true
   }
-]
+]}
 MCPJSON
 
 chown "$HH_USER:$HH_USER" "$MCP_CONFIG"
-log "MCP-Server eingerichtet: $(jq 'length' "$MCP_CONFIG") Server konfiguriert"
+log "MCP-Server eingerichtet: $(jq '.servers | length' "$MCP_CONFIG") Server konfiguriert"
