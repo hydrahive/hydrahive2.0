@@ -15,9 +15,8 @@ CODEX_URL = "https://chatgpt.com/backend-api/codex/responses"
 
 class CodexModelNotAllowed(Exception):
     """Codex hat das Modell mit 'not supported when using Codex with a ChatGPT account'
-    abgelehnt. Bedeutet: ChatGPT-Plus-Account hat keinen Zugriff auf dieses Modell
-    (z.B. -codex-Suffix-Varianten erfordern oft ChatGPT-Pro). Tipp an User: anderes
-    Modell wählen — gpt-5.2, gpt-5.4, gpt-5.5 funktionieren bei den meisten Accounts."""
+    abgelehnt: Das Konto hat keinen Zugriff auf dieses Modell. Welche Modelle gehen, hängt vom
+    Konto ab – die Meldung nennt deshalb keine festen Modelle (Task c07187d6)."""
 
 
 _DEFAULT_INSTRUCTIONS = "You are a helpful assistant."
