@@ -93,10 +93,6 @@ async def _settle(cond, timeout=3.0):
     raise AssertionError("Bedingung nicht erreicht")
 
 
-def test_chain_depth_constant_matches_runner():
-    assert bg.MAX_CHAIN_DEPTH == _run_origin.MAX_CHAIN_DEPTH
-
-
 def test_chat_call_returns_immediately_and_delivers_result(spec_agent, session_id, agentlink, starter, tmp_path):
     posted, futures = agentlink
 
@@ -177,13 +173,16 @@ def test_wait_true_keeps_old_behaviour_in_chat(spec_agent, session_id, agentlink
     assert delegations_db.list_for_session(session_id) == []
 
 
-def test_chain_depth_limit_refuses_before_posting(spec_agent, session_id, agentlink, starter, tmp_path):
+def test_keine_kettensperre_auch_in_runde_10(spec_agent, session_id, agentlink, starter, tmp_path):
+    """Till 28.11.: Ein Abendauftrag soll durchlaufen. Die Sperre nach 3 automatischen Runden (MAX_CHAIN_DEPTH) ist
+    entfernt – Bremsen bleiben Iterationen, Budgets, höchstens 5 gleichzeitige Aufträge und die Gesamtfrist im Handoff."""
     posted, _ = agentlink
     res = asyncio.run(ask_agent._execute(
         {"goal": "Test-Ziel", "deliverable": "Test-Ergebnis", "agent_id": spec_agent["id"], "task": "x"},
-        _ctx(session_id, tmp_path, origin="delegation", depth=_run_origin.MAX_CHAIN_DEPTH)))
-    assert res.success is False and "Kette" in res.error
-    assert posted == []                            # kein Spezialist läuft umsonst
+        _ctx(session_id, tmp_path, origin="delegation", depth=10)))
+    assert res.success is True, res.error
+    assert len(posted) == 1
+    assert not hasattr(bg, "MAX_CHAIN_DEPTH") and not hasattr(_run_origin, "MAX_CHAIN_DEPTH")
 
 
 def test_running_limit_per_session(spec_agent, session_id, agentlink, starter, tmp_path):
