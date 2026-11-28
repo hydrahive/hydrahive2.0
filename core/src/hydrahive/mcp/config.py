@@ -21,10 +21,16 @@ def _load_all() -> dict:
     if not p.exists():
         return {"servers": []}
     try:
-        return json.loads(p.read_text())
+        data = json.loads(p.read_text())
     except json.JSONDecodeError:
         logger.warning("Defekte MCP-Config — leer behandelt")
         return {"servers": []}
+    if isinstance(data, list):
+        # Alter Installer (87-mcp-servers.sh) schrieb eine nackte Liste ohne „transport“ → 500 bei
+        # create/delete. Hier lesbar machen; beim nächsten Speichern steht das richtige Format da.
+        data = {"servers": [{"transport": "stdio", **s} if "command" in s else s
+                            for s in data if isinstance(s, dict)]}
+    return data
 
 
 def _save_atomic(data: dict) -> None:
