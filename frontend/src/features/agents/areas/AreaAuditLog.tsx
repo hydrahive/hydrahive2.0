@@ -3,9 +3,14 @@ import { useTranslation } from "react-i18next"
 import { AdminFeedback } from "@/features/cockpit/admin/ui"
 import { api } from "@/shared/api-client"
 
-export interface AuditEntry { at: string; actor: string; action: string; target: string; areas: string[]; tools: string[]; unknown: string[] }
+export interface AuditEntry {
+  at: string; actor: string; action: string; target: string; target_kind?: string; target_name?: string
+  areas: string[]; tools: string[]; unknown: string[]
+}
 
-/** Protokoll in Bereichssprache: wer wann welchen Bereich für wen freigegeben oder entzogen hat. Tool-Namen nur in der Expertenansicht. */
+/** Protokoll in ganzen Sätzen (Spec 4.7, Review #795): „anna hat Pool gesetzt für Agent Mailhelfer“ + Bereiche.
+ *  Gespeichert wird der neue Gesamtstand, nicht das Delta – „entzogen“ sieht man im Vergleich mit dem Eintrag darunter.
+ *  Tool-Namen nur in der Expertenansicht. Alles als Text gerendert. */
 export function AreaAuditLog({ lang, expert = false }: { lang: "de" | "en"; expert?: boolean }) {
   const { t } = useTranslation("agents")
   const [rows, setRows] = useState<AuditEntry[] | null>(null)
@@ -19,17 +24,24 @@ export function AreaAuditLog({ lang, expert = false }: { lang: "de" | "en"; expe
   if (failed) return <AdminFeedback tone="danger">{t("areas.load_failed")}</AdminFeedback>
   if (rows === null) return <AdminFeedback loading>{t("areas.loading")}</AdminFeedback>
   if (rows.length === 0) return <AdminFeedback>{t("areas.audit_empty")}</AdminFeedback>
+  return <ul className="space-y-1.5">{rows.map((e, i) => <AuditRow key={`${e.at}-${i}`} e={e} expert={expert} />)}</ul>
+}
+
+export function AuditRow({ e, expert }: { e: AuditEntry; expert: boolean }) {
+  const { t } = useTranslation("agents")
+  const target = t(`areas.target.${e.target_kind ?? "other"}`, { name: e.target_name ?? e.target })
+  const what = t(`areas.action.${e.action}`, { defaultValue: e.action })
   return (
-    <ul className="space-y-1.5">
-      {rows.map((e, i) => (
-        <li key={`${e.at}-${i}`} className="rounded-[4px] border border-s-rand bg-s-innen px-3 py-2 text-xs">
-          <span className="text-[#9aa7bc]">{e.at.slice(0, 16).replace("T", " ")} · {e.actor || "?"} · </span>
-          <span className="font-bold text-[#e8eef8]">{t(`areas.action.${e.action}`, { defaultValue: e.action })}</span>
-          <span className="text-[#9aa7bc]"> · {e.target}</span>
-          {e.areas.length > 0 && <span className="block text-[#e8eef8]">{e.areas.join(", ")}</span>}
-          {expert && e.tools.length > 0 && <span className="block font-mono text-[#9aa7bc]">{e.tools.join(", ")}</span>}
-        </li>
-      ))}
-    </ul>
+    <li className="rounded-[4px] border border-s-rand bg-s-innen px-3 py-2 text-xs" data-testid="audit-row">
+      <span className="block text-[#e8eef8]">
+        <span className="text-[#9aa7bc]">{e.at.slice(0, 16).replace("T", " ")} · </span>
+        {t("areas.audit_sentence", { actor: e.actor || "?", what, target })}
+      </span>
+      <span className="block text-[#9aa7bc]">
+        {e.areas.length > 0 ? e.areas.join(", ") : e.unknown.length === 0 ? t("areas.audit_none") : null}
+        {e.unknown.length > 0 && <span>{e.areas.length > 0 ? " · " : ""}{t("areas.audit_unknown", { count: e.unknown.length })}</span>}
+      </span>
+      {expert && e.tools.length > 0 && <span className="block font-mono text-[#9aa7bc]">{e.tools.join(", ")}</span>}
+    </li>
   )
 }

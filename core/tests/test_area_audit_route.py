@@ -168,3 +168,33 @@ def test_area_never_nimmt_check_item_als_massstab(client, admin_headers, monkeyp
     assert "delegate" in erwartet                                    # ask_agent ist FORBIDDEN → der Bereich ist nie vergebbar
     gemischt = next(a for a in registry.all_areas("de") if any(abgelehnt(t) for t in a["tools"]) and not all(abgelehnt(t) for t in a["tools"]))
     assert gemischt["id"] not in r.json()["areas"]                   # teilweise abgelehnt → bleibt schaltbar
+
+
+def test_area_audit_loest_ziel_auf(client, admin_headers):
+    """Review #795: kein rohes ``agent:<uuid>`` – Art und Name des Ziels; ein gelöschtes Ziel bricht nichts."""
+    from hydrahive.agents import config as agent_config
+    from hydrahive.agents import area_audit
+    a = agent_config.create(agent_type="specialist", name="Protokoll-Probe", llm_model="x", owner="admin", tools=[],
+                            temperature=0.5, max_tokens=1000, thinking_budget=0)
+    try:
+        _eintrag("tool_pool_set", f"agent:{a['id']}", "web_search")
+        _eintrag("tool_pool_set", "agent:gibt-es-nicht-795", "web_search")
+        rows = {e["target"]: e for e in area_audit.entries("de", 500)}
+        assert rows[f"agent:{a['id']}"]["target_kind"] == "agent"
+        assert rows[f"agent:{a['id']}"]["target_name"] == "Protokoll-Probe"
+        assert rows["agent:gibt-es-nicht-795"]["target_name"] == "gibt-es-nicht-795"
+    finally:
+        agent_config.delete(a["id"])
+
+
+def test_unassigned_details_mit_modul_und_beschreibung(monkeypatch):
+    from hydrahive.agents import _area_registry
+    from hydrahive.tools import REGISTRY
+    from hydrahive.tools.base import Tool, ToolResult
+
+    async def _x(args, ctx):
+        return ToolResult.ok("")
+    monkeypatch.setitem(REGISTRY, "probe_ohne_bereich", Tool(name="probe_ohne_bereich", description="Tut etwas", schema={"type": "object"},
+                                                              execute=_x, module_id="probe"))
+    d = {e["name"]: e for e in _area_registry.unassigned_details()}
+    assert d["probe_ohne_bereich"] == {"name": "probe_ohne_bereich", "module": "probe", "description": "Tut etwas"}

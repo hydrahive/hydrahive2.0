@@ -1,27 +1,39 @@
 import type { AreaCatalog, AreaInfo } from "./areasApi"
 
-/** Ein Bereich ist „an“, wenn alle seine vergebbaren Tools im Pool stehen (nie vergebbare zählen nicht). */
-export function areaIsOn(area: AreaInfo, items: Set<string>, never: Set<string>): boolean {
+export type PoolAreaState = "on" | "off" | "partial"
+
+/** Zustand eines Bereichs im Pool: an = alle vergebbaren Tools drin, teilweise = einige, aus = keins (nie vergebbare zählen nicht). */
+export function areaState(area: AreaInfo, items: Set<string>, never: Set<string>): PoolAreaState {
   const own = area.tools.filter((t) => !never.has(t))
-  return own.length > 0 && own.every((t) => items.has(t))
+  const have = own.filter((t) => items.has(t)).length
+  if (own.length === 0 || have === 0) return "off"
+  return have === own.length ? "on" : "partial"
+}
+
+/** Ein Bereich ist „an“, wenn alle seine vergebbaren Tools im Pool stehen. */
+export function areaIsOn(area: AreaInfo, items: Set<string>, never: Set<string>): boolean {
+  return areaState(area, items, never) === "on"
 }
 
 /**
- * Neue Pool-Liste aus den eingeschalteten Bereichen. Gespeichert werden TOOL-NAMEN, nie Bereichs-IDs oder `kategorie:x`.
- * Einträge, die zu keinem Bereich gehören (Kategorien, noch nicht zugeordnete Tools), bleiben unverändert erhalten.
+ * Ein Schalter wurde umgelegt: ändert den Pool als DIFFERENZ (Review #795, muss). Einschalten = Pool ∪ (Bereich − nie vergebbar),
+ * Ausschalten = Pool − Bereich. Alles andere bleibt unverändert: andere, auch teilweise belegte Bereiche, kategorie:x und
+ * Unzugeordnetes. Vorher wurde der Pool aus den „ganz an“-Bereichen neu gebaut – Teilbereiche fielen still weg, und ein
+ * Projekt-Pool konnte leer (= keine Einschränkung) werden. Gespeichert werden TOOL-NAMEN, nie Bereichs-IDs.
  */
-export function applyAreas(items: string[], areas: AreaInfo[], on: Set<string>, never: Set<string>): string[] {
-  const known = new Set(areas.flatMap((a) => a.tools))
-  const kept = items.filter((i) => !known.has(i))
-  const added = areas.filter((a) => on.has(a.id)).flatMap((a) => a.tools.filter((t) => !never.has(t)))
-  return [...new Set([...kept, ...added])]
+export function toggleArea(items: string[], catalog: AreaCatalog, areaId: string, on: boolean): string[] {
+  const area = catalog.areas.find((a) => a.id === areaId)
+  if (!area) return items
+  if (on) {
+    if (catalog.neverAreas.has(areaId)) return items
+    const have = new Set(items)
+    return [...items, ...area.tools.filter((t, i) => !catalog.never.has(t) && !have.has(t) && area.tools.indexOf(t) === i)]
+  }
+  const drop = new Set(area.tools)
+  return items.filter((i) => !drop.has(i))
 }
 
-/** Ein Schalter wurde umgelegt: die neue Pool-Liste (Tool-Namen). Nie vergebbare Bereiche lassen sich nicht einschalten. */
-export function toggleArea(items: string[], catalog: AreaCatalog, areaId: string, on: boolean): string[] {
-  const now = new Set(items)
-  const current = new Set(catalog.areas.filter((a) => areaIsOn(a, now, catalog.never)).map((a) => a.id))
-  if (on && !catalog.neverAreas.has(areaId)) current.add(areaId)
-  else if (!on) current.delete(areaId)
-  return applyAreas(items, catalog.areas, current, catalog.never)
+/** Würde dieser Klick einen bisher nicht leeren Pool leeren? (Im Projekt-Pool heißt leer „keine Einschränkung“.) */
+export function wouldEmpty(before: string[], after: string[]): boolean {
+  return before.length > 0 && after.length === 0
 }

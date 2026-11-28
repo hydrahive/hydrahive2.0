@@ -28,6 +28,22 @@ def _actor_names() -> dict[str, str]:
     return {u["user_id"]: u["username"] for u in list_users()}
 
 
+def _target(target: str, actors_by_name: dict[str, str]) -> dict:
+    """Ziel als Art + lesbarer Name (Review #795): ``agent:<id>`` → Agentenname, ``project:<id>`` → Projektname, ``user:x``."""
+    kind, _, ident = (target or "").partition(":")
+    name = ident
+    try:
+        if kind == "agent":
+            from hydrahive.agents import config as agent_config
+            name = (agent_config.get(ident) or {}).get("name") or ident
+        elif kind == "project":
+            from hydrahive.projects import config as project_config
+            name = (project_config.get(ident) or {}).get("name") or ident
+    except Exception:  # noqa: BLE001 – ein gelöschtes Ziel darf das Protokoll nie brechen
+        name = ident
+    return {"kind": kind if kind in ("agent", "project", "user", "tool_category") else "other", "name": name}
+
+
 def entries(lang: str = "de", limit: int = DEFAULT_LIMIT) -> list[dict]:
     """Neueste zuerst. ``areas`` = Bereichsnamen (je einmal, in Reihenfolge des ersten Tools), ``unknown`` = Tools ohne Bereich."""
     from hydrahive.db.connection import db
@@ -53,5 +69,6 @@ def entries(lang: str = "de", limit: int = DEFAULT_LIMIT) -> list[dict]:
             elif label not in areas:
                 areas.append(label)
         out.append({"at": r["at"], "actor": actors.get(r["actor_id"], ""), "action": r["action"], "target": r["target"],
+                    "target_kind": (tg := _target(r["target"], actors))["kind"], "target_name": tg["name"],
                     "areas": areas, "tools": tools, "unknown": unknown})
     return out

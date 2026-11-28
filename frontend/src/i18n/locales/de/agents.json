@@ -279,6 +279,23 @@
     "categories_none": "Keine Bestätigungen.",
     "inactive": "inaktiv",
     "revoke": "Widerrufen",
-    "expert_names": "Expertenansicht (Werkzeug-Namen zeigen)"
+    "expert_names": "Expertenansicht (Werkzeug-Namen zeigen)",
+    "pool_partial": "Teilweise freigegeben – ein Klick gibt den ganzen Bereich frei.",
+    "save_forbidden": "Dafür fehlt die Berechtigung.",
+    "project_empty_warning": "Achtung: Ist nichts an, gibt es im Projekt KEINE Einschränkung mehr. Erst speichern, wenn das gewollt ist.",
+    "unassigned_module_one": "Modul {{module}} – {{count}} Werkzeug",
+    "unassigned_module_other": "Modul {{module}} – {{count}} Werkzeuge",
+    "unassigned_no_description": "(ohne Beschreibung)",
+    "audit_sentence": "{{actor}} hat {{what}} für {{target}} gesetzt",
+    "target": {
+      "agent": "Agent {{name}}",
+      "project": "Projekt {{name}}",
+      "user": "Nutzer {{name}}",
+      "tool_category": "Kategorie {{name}}",
+      "other": "{{name}}"
+    },
+    "audit_unknown_one": "+{{count}} Werkzeug ohne Bereich",
+    "audit_unknown_other": "+{{count}} Werkzeuge ohne Bereich",
+    "audit_none": "keine Bereiche (leer)"
   }
 }

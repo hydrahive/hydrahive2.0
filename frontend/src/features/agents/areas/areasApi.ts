@@ -11,7 +11,10 @@ export interface AreaInfo {
   tools: string[]
 }
 export interface AreaGroup { id: string; name: string }
-export interface AreaCatalog { groups: AreaGroup[]; areas: AreaInfo[]; unassigned: string[]; never: Set<string>; neverAreas: Set<string> }
+export interface UnassignedTool { name: string; module: string; description: string }
+export interface AreaCatalog {
+  groups: AreaGroup[]; areas: AreaInfo[]; unassigned: string[]; unassignedDetails: UnassignedTool[]; never: Set<string>; neverAreas: Set<string>
+}
 
 /** Bereichs-Verzeichnis plus die nie vergebbaren Bereiche/Tools (Quelle: Backend, `tool_pools.check_item`). */
 export function useAreaCatalog(): { catalog: AreaCatalog | null; error: boolean } {
@@ -22,10 +25,10 @@ export function useAreaCatalog(): { catalog: AreaCatalog | null; error: boolean 
   useEffect(() => {
     let alive = true
     Promise.all([
-      api.get<{ groups: AreaGroup[]; areas: AreaInfo[]; unassigned: string[] }>(`/agent-areas?lang=${lang}`),
+      api.get<{ groups: AreaGroup[]; areas: AreaInfo[]; unassigned: string[]; unassigned_details?: UnassignedTool[] }>(`/agent-areas?lang=${lang}`),
       api.get<{ areas: string[]; tools: string[] }>("/agent-areas/never"),
     ]).then(([a, n]) => {
-      if (alive) setCatalog({ ...a, never: new Set(n.tools), neverAreas: new Set(n.areas) })
+      if (alive) setCatalog({ ...a, unassignedDetails: a.unassigned_details ?? [], never: new Set(n.tools), neverAreas: new Set(n.areas) })
     }).catch(() => { if (alive) setError(true) })
     return () => { alive = false }
   }, [lang])

@@ -1,6 +1,6 @@
 import { useTranslation } from "react-i18next"
 import { AdminToggle } from "@/features/cockpit/admin/ui"
-import { areaIsOn } from "./areaItems"
+import { areaState } from "./areaItems"
 import type { AreaCatalog } from "./areasApi"
 
 interface Props {
@@ -24,13 +24,16 @@ export function AreaSwitchList({ catalog, items, onToggle, disabled }: Props) {
             <ul className="space-y-1.5">
               {areas.map((a) => {
                 const never = catalog.neverAreas.has(a.id)
+                const state = never ? "off" : areaState(a, items, catalog.never)
                 return (
                   <li key={a.id} className={`flex items-start gap-3 rounded-[4px] border border-s-rand bg-s-innen px-3 py-2 ${never ? "opacity-50" : ""}`}>
-                    <AdminToggle checked={!never && areaIsOn(a, items, catalog.never)} disabled={disabled || never}
-                      aria-label={a.name} onChange={(e) => onToggle(a.id, e.target.checked)} />
+                    {/* teilweise = Häkchen aus, aber Hinweis: ein Klick schaltet den ganzen Bereich ein (Review #795) */}
+                    <AdminToggle checked={state === "on"} disabled={disabled || never} data-state={state}
+                      aria-label={a.name} onChange={() => onToggle(a.id, state !== "on")} />
                     <span className="min-w-0">
                       <span className="block text-sm font-bold text-[#e8eef8]">{a.name}</span>
                       <span className="block text-xs text-[#9aa7bc]">{never ? t("areas.never") : a.sentence}</span>
+                      {state === "partial" && <span className="block text-[11px] text-amber-300" data-testid="pool-partial">{t("areas.pool_partial")}</span>}
                     </span>
                   </li>
                 )

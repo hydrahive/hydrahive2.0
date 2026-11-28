@@ -19,7 +19,7 @@ export function CategoryApprovals() {
     try {
       await api.delete(`/admin/tool-categories/${encodeURIComponent(a.category)}/${encodeURIComponent(a.tool)}`)
       await load()
-    } catch (e) { setError(e instanceof Error ? e.message : t("areas.save_failed")) }
+    } catch { setError(t("areas.save_failed")) }   // nie Rohtext des Servers (Review #795)
   }
 
   return (

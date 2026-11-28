@@ -187,7 +187,7 @@ def test_route_liefert_gruppen_bereiche_base(client, auth_headers):
     r = client.get("/api/agent-areas?lang=de", headers=auth_headers)
     assert r.status_code == 200, r.text
     body = r.json()
-    assert set(body) == {"groups", "areas", "base", "categories", "unassigned"}
+    assert set(body) == {"groups", "areas", "base", "categories", "unassigned", "unassigned_details"}
     assert len(body["groups"]) == 9 and len(body["areas"]) >= 26
     assert body["groups"][0]["id"] == "files_code" and body["groups"][0]["name"] == "Dateien & Code"
     assert "find_tools" in body["base"] and "file_read" not in body["base"]

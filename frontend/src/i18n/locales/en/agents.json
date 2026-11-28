@@ -279,6 +279,23 @@
     "categories_none": "No approvals.",
     "inactive": "inactive",
     "revoke": "Revoke",
-    "expert_names": "Expert view (show tool names)"
+    "expert_names": "Expert view (show tool names)",
+    "pool_partial": "Partly released – one click releases the whole area.",
+    "save_forbidden": "You are not allowed to do this.",
+    "project_empty_warning": "Careful: with nothing switched on, the project has NO restriction at all. Only save if that is intended.",
+    "unassigned_module_one": "Module {{module}} – {{count}} tool",
+    "unassigned_module_other": "Module {{module}} – {{count}} tools",
+    "unassigned_no_description": "(no description)",
+    "audit_sentence": "{{actor}} set {{what}} for {{target}}",
+    "target": {
+      "agent": "agent {{name}}",
+      "project": "project {{name}}",
+      "user": "user {{name}}",
+      "tool_category": "category {{name}}",
+      "other": "{{name}}"
+    },
+    "audit_unknown_one": "+{{count}} tool without area",
+    "audit_unknown_other": "+{{count}} tools without area",
+    "audit_none": "no areas (empty)"
   }
 }

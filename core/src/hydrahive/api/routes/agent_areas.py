@@ -29,7 +29,8 @@ def get_areas(auth: Annotated[tuple[str, str], Depends(require_auth)],
     # categories: was hinter kategorie:x steckt – damit der Editor „teilweise über Kategorie“ auch im Entwurf zeigen kann
     categories = {name: resolve_categories([PREFIX + name]) for name in sorted(CATEGORY_MAP)}
     return {"groups": registry.groups(lang), "areas": registry.all_areas(lang), "base": sorted(BASE_TOOLS),
-            "categories": categories, "unassigned": registry.unassigned() if role == "admin" else []}
+            "categories": categories, "unassigned": registry.unassigned() if role == "admin" else [],
+            "unassigned_details": registry.unassigned_details() if role == "admin" else []}
 
 
 @router.get("/never")

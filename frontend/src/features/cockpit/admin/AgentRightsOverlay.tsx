@@ -25,7 +25,7 @@ export function AgentRightsOverlay({ onClose }: { onClose: () => void }) {
           <AreaAuditLog lang={lang} expert={expert} />
         </section>
         {error && <AdminFeedback tone="danger">{t("areas.load_failed")}</AdminFeedback>}
-        {catalog && <UnassignedTools tools={catalog.unassigned} />}
+        {catalog && <UnassignedTools tools={catalog.unassignedDetails} expert={expert} />}
         <CategoryApprovals />
       </div>
     </AdminOverlay>

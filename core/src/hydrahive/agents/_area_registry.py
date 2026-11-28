@@ -133,6 +133,23 @@ def unassigned() -> list[str]:
     return [t for t in _registered() if t not in BASE_TOOLS and t not in owner]
 
 
+def unassigned_details() -> list[dict]:
+    """Wie ``unassigned``, aber mit Modul und Beschreibung (Spec 4.7, Review #795): {name, module, description}."""
+    from hydrahive.plugins import tool_bridge
+    from hydrahive.tools import REGISTRY
+    plugin = {m["name"]: m for m in tool_bridge.all_tool_meta()}
+    out = []
+    for name in unassigned():
+        reg = REGISTRY.get(name)
+        if reg is not None:
+            out.append({"name": name, "module": getattr(reg, "module_id", "") or "", "description": (reg.description or "")[:200]})
+        else:
+            meta = plugin.get(name, {})
+            out.append({"name": name, "module": str(meta.get("category", "")).removeprefix("plugin:"),
+                        "description": str(meta.get("description", ""))[:200]})
+    return out
+
+
 def groups(lang: str = "de") -> list[dict]:
     lang = _lang(lang)
     return [{"id": g, "name": GROUP_NAMES[g][lang]} for g in GROUPS]

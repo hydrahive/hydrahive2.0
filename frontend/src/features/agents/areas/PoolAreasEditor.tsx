@@ -3,7 +3,7 @@ import { useTranslation } from "react-i18next"
 import { AdminAction, AdminFeedback } from "@/features/cockpit/admin/ui"
 import { api } from "@/shared/api-client"
 import { AreaSwitchList } from "./AreaSwitchList"
-import { toggleArea } from "./areaItems"
+import { toggleArea, wouldEmpty } from "./areaItems"
 import { useAreaCatalog } from "./areasApi"
 
 interface Props {
@@ -12,10 +12,12 @@ interface Props {
   readOnly?: boolean
   title: string
   hint: string
+  /** Projekt-Pool: leer heißt „keine Einschränkung“ – Hinweis, wenn ein Klick ihn leeren würde. */
+  emptyMeansOpen?: boolean
 }
 
 /** Gemeinsamer Kern von Besitzer-Freigabe und Projekt-Pool: Bereichs-Schalter, gespeichert werden Tool-Namen. */
-export function PoolAreasEditor({ path, readOnly, title, hint }: Props) {
+export function PoolAreasEditor({ path, readOnly, title, hint, emptyMeansOpen }: Props) {
   const { t } = useTranslation("agents")
   const { catalog, error } = useAreaCatalog()
   const [items, setItems] = useState<string[] | null>(null)
@@ -50,7 +52,9 @@ export function PoolAreasEditor({ path, readOnly, title, hint }: Props) {
       setSaved(r.items)
       setMsg({ ok: true, text: t("areas.saved") })
     } catch (e) {
-      setMsg({ ok: false, text: e instanceof Error ? e.message : t("areas.save_failed") })
+      // nie Rohtext des Servers (Tool-Namen, nur Deutsch) – Review #795
+      const status = (e as { status?: number } | null)?.status
+      setMsg({ ok: false, text: status === 403 ? t("areas.save_forbidden") : t("areas.save_failed") })
     } finally {
       setBusy(false)
     }
@@ -66,6 +70,7 @@ export function PoolAreasEditor({ path, readOnly, title, hint }: Props) {
       {!catalog || items === null
         ? !error && !msg && <AdminFeedback loading>{t("areas.loading")}</AdminFeedback>
         : <AreaSwitchList catalog={catalog} items={set} onToggle={toggle} disabled={busy || readOnly} />}
+      {emptyMeansOpen && items !== null && wouldEmpty(saved, items) && <AdminFeedback tone="warning">{t("areas.project_empty_warning")}</AdminFeedback>}
       {msg && <AdminFeedback tone={msg.ok ? "success" : "danger"}>{msg.text}</AdminFeedback>}
       {!readOnly && items !== null && (
         <AdminAction tone="primary" onClick={() => void save()} disabled={busy || !dirty}>{t("areas.save")}</AdminAction>
