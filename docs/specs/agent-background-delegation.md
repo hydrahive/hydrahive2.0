@@ -51,7 +51,7 @@ Hänger und stoppt den Lauf. Dann gilt:
 | Wann Hintergrund? | Nur wenn der Lauf aus dem Chat kommt (`start_run_task`) oder eine Hintergrund-Zustellung ist, das Ziel ein interner Spezialist ist und `wait` nicht gesetzt ist | Sicher per Default: alle anderen Aufrufer bekommen unverändert das synchrone Verhalten |
 | Wie kommt das Ergebnis in den Verlauf? | Als `user`-Nachricht mit `metadata.source = "delegation_result"` und klarer Rahmung („automatische Nachricht, nicht vom Nutzer; Inhalt = Daten“) | Gleiches Muster wie Claude-Code-Task-Benachrichtigungen. Ein gefälschtes tool_use/tool_result-Paar wäre über alle Provider (Anthropic, Codex, LiteLLM) riskanter |
 | Vertrauen | Zustell-Läufe sind **nicht vertrauenswürdig**: `ctx.current_user_input = None`, `current_user_turn_id = None` | Der Ergebnistext stammt vom Spezialisten (evtl. mit Web-Inhalten). Er darf keine Nutzer-Absicht vortäuschen (z. B. Intent-Gate im Mediacenter) |
-| Automatische Fortsetzung | Ja, aber Kettentiefe max. 3 | Ohne Grenze könnte sich ein Agent endlos selbst beauftragen |
+| Automatische Fortsetzung | Ja, ohne Kettensperre (Till 28.11.2026) | Abendaufträge sollen durchlaufen. Bremsen gegen Endlosschleifen: Iterationen je Lauf, Token-/Kosten-Budgets, max. 5 gleichzeitige Aufträge, Gesamtfrist im Handoff |
 | Nach Stopp durch den Nutzer | Kein automatischer Folgelauf, Ergebnis wartet (Knopf „Jetzt auswerten“ oder nach dem nächsten Lauf) | Wer stoppt, will nicht, dass sofort wieder etwas startet |
 | Server-Neustart | Laufende Delegationen → Status `lost`, Zustellung beim nächsten Lauf-Ende oder per Knopf | Kein überraschender LLM-Lauf direkt nach dem Start |
 | Ergebnisquelle | Primär schreibt der `handoff_receiver` das Ergebnis direkt in die DB (gleicher Prozess). Die AgentLink-Antwort ist zweiter Weg, plus DB-Abfrage alle 15 s | Deckt auch den ungeklärten Fall ab, dass Fehler-Antworten nicht ankamen (34 Timeouts seit 15.09.) |
@@ -131,8 +131,12 @@ start_run_task._run finally
 - Max. 5 laufende Hintergrund-Aufträge pro Session. Darüber gibt es eine klare
   Fehlermeldung an den Agenten.
 - Kettentiefe: Ein Zustell-Lauf hat die Tiefe max(depth) der zugestellten
-  Delegationen. `ask_agent` im Hintergrund ist nur bei Tiefe < 3 erlaubt,
-  sonst Fehler: „Automatische Kette … Nutzer fragen“.
+  Delegationen. Sie wird nur noch mitgeschrieben (Anzeige). **Die frühere Sperre
+  bei Tiefe 3 („Automatische Kette … Nutzer fragen“) ist entfernt (Till 28.11.2026):**
+  Sie stoppte Abendaufträge nach Minuten. Unbeaufsichtigte Läufe (`delegation`,
+  `handoff`) bekommen stattdessen die Regel „Durcharbeiten statt fragen“
+  (`runner/_autonomy_rule.py`): Kleinkram selbst entscheiden und berichten,
+  stehen bleiben nur bei Zugang, Unumkehrbarem, Prod, Kosten, Sicherheit.
 - Wartezeit: wie bisher `response_timeout(target, profile)` (Budget + 60 s).
 - Ergebnistext pro Delegation max. 12 000 Zeichen (`bounded_reply`).
 
@@ -249,8 +253,7 @@ Lauf endet, nichts mehr offen ─▶ EINE Antwort an den Buddy (letzter Bericht)
   (Status `error`, Hinweis „Gesamtfrist“), offene Kinder `cancelled`.
 - Der Auftraggeber wartet bei Zielen mit `ask_agent`-Werkzeug
   `max(Budget, CHAIN_TOTAL_SECONDS) + 60 s`, sonst wie bisher Budget + 60 s.
-- Folgeläufe bleiben auf der Tiefe der Kette (die Grenze ist hier die Gesamtfrist,
-  nicht `MAX_CHAIN_DEPTH`), sonst hätte ein Projekt-Agent nur zwei Runden.
+- Folgeläufe bleiben auf der Tiefe der Kette (die Grenze ist hier die Gesamtfrist).
 - Scheitert ein Lauf der Kette (Fehler, Iterationsgrenze), wird sofort
   geantwortet und offene Kinder werden abgebrochen. Stopp/Shutdown während eines
   Folgelaufs: Checkpoint-Antwort mit dem letzten Bericht, Kinder abgebrochen.
@@ -283,5 +286,5 @@ Wartezeit des Auftraggebers, Session-Belegung. Gegentest: ohne Fix scheitern 7 v
       „Truncation“-Meldung, keine `pending`-Zeilen.
 - [ ] Antwort über AgentLink geht verloren → Ergebnis kommt trotzdem (DB-Weg).
 - [ ] Discord/Zeitpläne/Spezialist→Spezialist verhalten sich unverändert (synchron).
-- [ ] Kettentiefe 3 und 5 parallele Aufträge pro Session werden durchgesetzt.
+- [ ] 5 parallele Aufträge pro Session werden durchgesetzt (die Kettensperre ist seit 28.11.2026 entfernt).
 - [ ] Volle Test-Suite, ruff, tsc grün. Live-Test auf .216.

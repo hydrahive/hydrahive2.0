@@ -15,9 +15,10 @@ from hydrahive.tools.base import ToolContext, ToolResult
 logger = logging.getLogger(__name__)
 
 MAX_RUNNING_PER_SESSION = 5
-# Spiegelt runner/_run_origin.MAX_CHAIN_DEPTH. Kein Import: tools → runner →
-# agents → tools wäre ein Zyklus. test_background_delegation prüft Gleichheit.
-MAX_CHAIN_DEPTH = 3
+# Keine Kettensperre mehr (Till 28.11.2026): Die alte Grenze von 3 automatischen Runden ohne Nutzer-Nachricht ließ
+# Abendaufträge nach Minuten stehen. Bremsen gegen Endlosschleifen sind Iterationen je Lauf, Token-/Kosten-Budgets,
+# höchstens MAX_RUNNING_PER_SESSION gleichzeitige Aufträge und die Gesamtfrist im Handoff. Die Tiefe wird weiter
+# in agent_delegations.depth mitgeschrieben (nur zur Anzeige).
 
 DESCRIPTION_HINT = (
     "Im Chat (und wenn du selbst per Auftrag läufst) läuft ein Auftrag an einen internen Spezialisten im HINTERGRUND: "
@@ -93,12 +94,6 @@ def refuse_reason(ctx: ToolContext) -> str | None:
             f"Gesamtfrist dieses Auftrags fast abgelaufen (noch {max(0, int(left // 60))} min). "
             "Nicht mehr beauftragen — der Spezialist würde mittendrin abgebrochen. "
             "Sichere den Stand (committen/pushen) und berichte, was erledigt ist und was fehlt."
-        )
-    if ctx.origin_depth + 1 > MAX_CHAIN_DEPTH:
-        return (
-            f"Automatische Kette zu tief ({MAX_CHAIN_DEPTH} Hintergrund-Runden ohne "
-            "Nutzer-Nachricht). Nicht erneut beauftragen — fasse den Stand für den "
-            "Nutzer zusammen und frag ihn, ob weitergemacht werden soll."
         )
     if delegations_db.count_running(ctx.session_id) >= MAX_RUNNING_PER_SESSION:
         return (
