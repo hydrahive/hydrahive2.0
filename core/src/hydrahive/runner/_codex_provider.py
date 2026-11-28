@@ -102,9 +102,9 @@ async def codex_stream(
                 body = (await resp.aread()).decode(errors="replace")[:500]
                 if resp.status_code == 400 and "not supported" in body and "ChatGPT account" in body:
                     raise CodexModelNotAllowed(
-                        f"Modell '{model}' ist mit deinem ChatGPT-Account nicht "
-                        f"verfügbar (vermutlich brauchst du ChatGPT Pro). "
-                        f"Wähle ein anderes Codex-Modell — gpt-5.2, gpt-5.4 oder gpt-5.5."
+                        f"Modell '{model}' ist mit deinem ChatGPT-Account nicht verfügbar. "
+                        f"Wähle auf der Seite für die KI-Modelle ein anderes ChatGPT-Modell – "
+                        f"welche gehen, hängt vom Konto ab."
                     )
                 raise RuntimeError(f"Codex API {resp.status_code}: {body}")
 
