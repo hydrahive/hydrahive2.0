@@ -2,7 +2,9 @@ import { useEffect, useState } from "react"
 import { Loader2 } from "lucide-react"
 import { HelpButton } from "@/i18n/HelpButton"
 import { projectsApi } from "@/features/projects/api"
+import { useAuthStore } from "@/features/auth/useAuthStore"
 import { ProjectFormTabs } from "./ProjectFormTabs"
+import { ProjectPoolAreas } from "./ProjectPoolAreas"
 import type { Project } from "@/features/projects/types"
 
 /**
@@ -12,6 +14,8 @@ import type { Project } from "@/features/projects/types"
 export function ProjectSettings({ itemId }: { itemId: string | null }) {
   const [project, setProject] = useState<Project | null>(null)
   const [loading, setLoading] = useState(false)
+  const username = useAuthStore((s) => s.username)
+  const role = useAuthStore((s) => s.role)
 
   useEffect(() => {
     if (!itemId) { setProject(null); return }
@@ -43,12 +47,16 @@ export function ProjectSettings({ itemId }: { itemId: string | null }) {
     )
   }
 
+  const canEditPool = role === "admin" || project.members.some((m) => m.username === username && m.role === "admin")
   return (
-    <ProjectFormTabs
-      key={project.id}
-      project={project}
-      onSaved={setProject}
-      onDeleted={() => setProject(null)}
-    />
+    <div className="space-y-6">
+      <ProjectFormTabs
+        key={project.id}
+        project={project}
+        onSaved={setProject}
+        onDeleted={() => setProject(null)}
+      />
+      <div className="px-4 pb-6"><ProjectPoolAreas key={project.id} projectId={project.id} canEdit={canEditPool} /></div>
+    </div>
   )
 }

@@ -29,7 +29,25 @@ def get_areas(auth: Annotated[tuple[str, str], Depends(require_auth)],
     # categories: was hinter kategorie:x steckt – damit der Editor „teilweise über Kategorie“ auch im Entwurf zeigen kann
     categories = {name: resolve_categories([PREFIX + name]) for name in sorted(CATEGORY_MAP)}
     return {"groups": registry.groups(lang), "areas": registry.all_areas(lang), "base": sorted(BASE_TOOLS),
-            "categories": categories, "unassigned": registry.unassigned() if role == "admin" else []}
+            "categories": categories, "unassigned": registry.unassigned() if role == "admin" else [],
+            "unassigned_details": registry.unassigned_details() if role == "admin" else []}
+
+
+@router.get("/never")
+def get_area_never(_: Annotated[tuple[str, str], Depends(require_auth)]) -> dict:
+    """Bereiche, deren Tools ``tool_pools.check_item`` ALLE ablehnt (nie per Auftrag vergebbar). Die Oberfläche graut sie aus;
+    entschieden wird hier, mit demselben Maßstab wie beim Speichern, nicht mit einer zweiten Liste im Frontend."""
+    from hydrahive.agents import tool_pools
+
+    def never(tool: str) -> bool:
+        try:
+            tool_pools.check_item(tool)
+            return False
+        except ValueError:
+            return True
+    catalog = registry.all_areas("de")
+    return {"areas": sorted(a["id"] for a in catalog if a["tools"] and all(never(t) for t in a["tools"])),
+            "tools": sorted({t for a in catalog for t in a["tools"] if never(t)})}   # beim Einschalten eines Bereichs bleiben sie weg
 
 
 @agent_router.get("/{agent_id}/areas")
@@ -67,3 +85,15 @@ async def suggest_areas(agent_id: str, body: SuggestBody, _: Annotated[tuple[str
         return {"suggestions": await area_suggest.suggest(body.purpose, body.lang)}
     except area_suggest.SuggestFailed:
         return {"suggestions": [], "error": "llm_failed"}
+
+
+audit_router = APIRouter(prefix="/api/admin", tags=["agent-areas"])
+
+
+@audit_router.get("/area-audit")
+def get_area_audit(_: Annotated[tuple[str, str], Depends(require_admin)], lang: Annotated[str, Query(max_length=8)] = "de",
+                   limit: Annotated[int, Query(ge=1, le=500)] = 100) -> dict:
+    """Protokoll in Bereichssprache (Spec 4.7), nur Admin, nur lesend: wer wann welchen Bereich für wen freigegeben oder
+    entzogen hat. Gefiltert nach Aktion (nicht nach Ziel), Tool-Namen auf Bereichsnamen abgebildet."""
+    from hydrahive.agents import area_audit
+    return {"entries": area_audit.entries(lang if lang in ("de", "en") else "de", limit)}

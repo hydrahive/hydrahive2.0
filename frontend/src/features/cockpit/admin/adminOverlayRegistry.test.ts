@@ -45,3 +45,11 @@ describe("Admin-Registry: Zahnfee", () => {
     expect(OVERLAY_BY_PATH["/zahnfee"]).toBeUndefined()
   })
 })
+
+// Agenten-Bereiche, Aufgabe 7 (AB8): Admin-Fenster „Agenten-Rechte“ (Review #795)
+describe("Admin-Registry: Agenten-Rechte", () => {
+  it("agent-rights ist ein gültiges Admin-Fenster und über /agent-rights erreichbar", () => {
+    expect(isAdminOverlayId("agent-rights")).toBe(true)
+    expect(OVERLAY_BY_PATH["/agent-rights"]).toBe("agent-rights")
+  })
+})

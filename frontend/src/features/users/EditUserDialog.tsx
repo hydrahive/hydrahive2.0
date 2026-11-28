@@ -3,6 +3,7 @@ import { Pencil } from "lucide-react"
 import { useTranslation } from "react-i18next"
 import { AdminAction, AdminDialog, AdminFeedback, AdminField, adminInputClass } from "@/features/cockpit/admin/ui"
 import { usersApi } from "./api"
+import { OwnerGrantsAreas } from "./OwnerGrantsAreas"
 import type { User, UserRole } from "./types"
 
 interface Props {
@@ -41,7 +42,7 @@ export function EditUserDialog({ user, onClose, onSaved }: Props) {
       title={t("edit_dialog.title", { name: user.username })}
       icon={<Pencil size={16} />}
       onClose={busy ? undefined : onClose}
-      maxWidthClass="max-w-md"
+      maxWidthClass="max-w-xl"
       footer={(
         <>
           <AdminAction onClick={onClose} disabled={busy}>{tCommon("actions.cancel")}</AdminAction>
@@ -58,6 +59,8 @@ export function EditUserDialog({ user, onClose, onSaved }: Props) {
         </AdminField>
         {error && <AdminFeedback tone="danger">{error}</AdminFeedback>}
       </form>
+      {/* Eigener Abschnitt mit eigenem Speichern-Knopf: gehört nicht zum Rollen-Formular (Sinn: was die Agenten dieses Nutzers per Auftrag bekommen dürfen). */}
+      <div className="mt-5 border-t border-s-rand pt-4"><OwnerGrantsAreas username={user.username} /></div>
     </AdminDialog>
   )
 }
