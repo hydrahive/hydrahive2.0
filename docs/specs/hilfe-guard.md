@@ -35,7 +35,7 @@ Ein PR ist **nutzersichtbar**, wenn er mindestens eine dieser Dateien ändert. T
 | Repo | Muster |
 |---|---|
 | Kern | `frontend/src/features/**/*.tsx`, `frontend/src/shared/**/*.tsx`, `frontend/src/i18n/locales/de/*.json`, `installer/update*.sh`, `installer/lib/update-*.sh`, `installer/install*.sh` |
-| Module | `<modul>/frontend/**/*.tsx`, `<modul>/frontend/i18n/de*`, `<modul>/manifest.json` (nur wenn sich `routes`, `nav` oder `settings` ändern) |
+| Module | `<modul>/frontend/**/*.tsx`, deutsche Texte `<modul>/frontend/**/*i18n*.ts` bzw. `*I18n*.ts` (ohne `*.en.ts`) und `<modul>/frontend/**/texts*.de.ts`, `<modul>/manifest.json` (nur wenn sich `name`, `description`, `icon`, `nav_group`, `vault` oder `agent_areas` ändern) |
 
 Ein nutzersichtbarer PR braucht **eine geänderte oder neue Hilfe-Datei**:
 - Kern: `frontend/src/i18n/help/de/*.md`
@@ -47,6 +47,12 @@ Ein nutzersichtbarer PR braucht **eine geänderte oder neue Hilfe-Datei**:
 - Kern: aus der Zuordnung Ordner unter `features/` → Hilfe-Thema. Die Zuordnung wird aus den `HelpButton topic="…"`-Stellen im Code gelesen, z. B. `features/communication` → `communication.md`.
 - Ohne Treffer nennt er „passenden Artikel unter frontend/src/i18n/help/de/ wählen oder neu anlegen“.
 - Module: immer `<modul>/frontend/help/de/`.
+
+**Korrektur 28.11.2026 (Review modules #478):** Die erste Fassung nannte für Module `frontend/i18n/de*` und die
+Manifest-Felder `routes`, `nav`, `settings`. Beides gibt es im Repo nicht: Die Texte liegen in `frontend/i18n*.ts` bzw.
+`texts.de.ts` (auch Teildateien wie `texts.ghost.de.ts`, `seatsI18n.ts`), und das Manifest kennt nur die Felder aus
+`core/src/hydrahive/modules/manifest.py`. Korrigiert in modules #479. Bekannte Grenze: Textdateien ohne Namensmerkmal
+(z. B. `tonstudio/frontend/errors.ts`) erkennt der Guard nicht.
 
 ## 3. Modus
 
@@ -95,7 +101,7 @@ BEHEBEN: frontend/src/i18n/help/de/agents.md ergänzen
 |---|---|
 | HG1 | Tests Kern: nutzersichtbar erkannt (je Muster), Tests und Doku allein lösen nichts aus, Hilfe-Datei gefunden → ok, Ausnahme mit genügend bzw. zu kurzer Begründung, Warn- und Blockmodus (Exit-Code) |
 | HG2 | Artikel-Vorschlag: `features/communication/X.tsx` → `communication.md` (Zuordnung aus `topic=`), unbekannter Ordner → allgemeiner Hinweis |
-| HG3 | Tests Modul-Repo: Modul-Muster, Hilfe desselben Moduls nötig (Hilfe eines anderen Moduls zählt nicht), Manifest nur bei routes, nav oder settings |
+| HG3 | Tests Modul-Repo: Modul-Muster, Hilfe desselben Moduls nötig (Hilfe eines anderen Moduls zählt nicht), Manifest nur bei sichtbaren Feldern (name, description, icon, nav_group, vault, agent_areas) |
 | HG4 | Probelauf gegen die echten PRs der letzten 30 Tage stimmt mit der Tabelle in Abschnitt 1 überein (Abweichungen erklärt) |
 | HG5 | Workflows: `pull_request`, `contents: read`, PR-Texte nur über env; Lauf auf einem Probe-PR zeigt die Warnung |
 | HG6 | Satz in der Arbeitsweise bzw. im Skill ergänzt, `_history.json` aktualisiert |
