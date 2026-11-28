@@ -64,6 +64,14 @@ Behebst du einen Fehler (aus Review, Live-Befund oder Nutzermeldung), gilt zusä
 
 Der CI-Check „Fix-Test-Guard“ warnt bei Fix-PRs ohne Testdatei (docs/specs/fix-test-guard.md).
 
+## Bei nutzersichtbaren Änderungen: Hilfe im selben PR
+
+Ändert sich etwas, das Nutzer sehen (Seite, Schalter, Text, Update- oder Installationsablauf), ergänzt du den
+passenden Hilfe-Artikel im selben PR – Kern: `frontend/src/i18n/help/de/<thema>.md`, Modul:
+`<modul>/frontend/help/de/`. Aus den Artikeln entstehen Wiki und PDF-Handbuch. Braucht es wirklich keine Hilfe
+(reiner Bugfix ohne neue Bedienung), schreib in die PR-Beschreibung „Keine Hilfe nötig: <Begründung>“.
+Der CI-Check „Hilfe-Guard“ warnt sonst (docs/specs/hilfe-guard.md).
+
 ## Was als Beweis zählt
 
 | Behauptung | Braucht | Reicht nicht |
