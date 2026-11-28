@@ -28,7 +28,7 @@ Der Reiter **Was darf der Agent?** ersetzt die frühere lange Werkzeug-Liste. St
 - **Darf bei Aufträgen zusätzliche Bereiche bekommen** — nur bei Spezialisten und Projekt-Agenten, siehe unten.
 - **Expertenansicht** — zugeklappt, für alle, die es genau steuern wollen.
 
-Eine kleine **Grundausstattung** hat jeder Agent immer. Sie erscheint nicht als Schalter: Skills auflisten und laden, die Hilfe von HydraHive lesen, einen Fehlerbericht vorbereiten, gespeicherte Prompts, die Aufgabenliste der Sitzung und die Werkzeugsuche.
+Einige harmlose Werkzeuge erscheinen nicht als Schalter: Skills auflisten und laden, die Hilfe von HydraHive lesen, einen Fehlerbericht vorbereiten, gespeicherte Prompts und die Aufgabenliste der Sitzung. Sie werden in der **Expertenansicht** einzeln vergeben. Ist **Werkzeuge bei Bedarf suchen** an, hat der Agent zusätzlich immer die Werkzeug- und Skill-Suche.
 
 ### Markierungen an den Bereichen
 
