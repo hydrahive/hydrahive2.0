@@ -121,6 +121,18 @@ def test_ausnahme_genau_zehn_zeichen_reicht():
     assert _eval(["installer/update.sh"], body="Keine Hilfe nötig: 0123456789").ok
 
 
+def test_ausnahme_neun_zeichen_gilt_nicht():
+    assert _eval(["installer/update.sh"], body="Keine Hilfe nötig: 123456789").violation
+
+
+def test_ausnahme_mit_windows_zeilenenden_wird_gleich_geprueft():
+    """Review #801: Mit \r\n zählte das \r zur Begründung – 9 Zeichen und der Platzhalter gingen durch."""
+    assert _eval(["installer/update.sh"], body="Text\r\nKeine Hilfe nötig: 123456789\r\n").violation
+    assert _eval(["installer/update.sh"], body="Keine Hilfe nötig: <Begründung>\r\n").violation
+    result = _eval(["installer/update.sh"], body="Text\r\nKeine Hilfe nötig: reiner interner Umbau\r\nmehr\r\n")
+    assert result.ok and result.exemption == "reiner interner Umbau"
+
+
 def test_ausnahme_zu_kurz_gilt_nicht():
     result = _eval(["installer/update.sh"], body="Keine Hilfe nötig: Bugfix")
     assert result.exemption is None

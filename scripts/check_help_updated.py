@@ -56,7 +56,8 @@ class Result:
 
 
 def _exemption(body: str | None) -> str | None:
-    for match in _EXEMPTION.finditer(body or ""):
+    # \r entfernen: Im Browser bearbeitete PR-Texte haben \r\n, sonst zählt das \r zur Begründung (Review #801).
+    for match in _EXEMPTION.finditer((body or "").replace("\r", "")):
         reason = match.group(1)
         if len(reason) >= _MIN_REASON and reason != _PLACEHOLDER:
             return reason
@@ -141,7 +142,7 @@ def main(argv: list[str]) -> int:
         sys.stdout.write("Aufruf: check_help_updated.py <base-sha> <head-sha>\n")
         return 2
     base, head = argv[1], argv[2]
-    files = [f for f in _git("diff", "--name-only", f"{base}...{head}").splitlines() if f.strip()]
+    files = [f for f in _git("-c", "core.quotepath=off", "diff", "--name-only", f"{base}...{head}").splitlines() if f.strip()]
     root = Path(_git("rev-parse", "--show-toplevel").strip())
     result = evaluate(files, body=os.environ.get("PR_BODY", ""), root=root)
     mode = os.environ.get("HILFE_GUARD_MODE", "warn")
