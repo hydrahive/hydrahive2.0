@@ -23,9 +23,6 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
-MAX_CHAIN_DEPTH = 3
-
-
 @dataclass(frozen=True, slots=True)
 class RunOrigin:
     kind: str = "other"          # chat | delegation | handoff | other
