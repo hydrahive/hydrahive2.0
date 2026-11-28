@@ -23,7 +23,7 @@
     "xhigh_title": "Long-horizon — recommended for agentic coding",
     "max_title": "Maximum depth, no token limit"
   },
-  "model_hint": "Switch model for this agent (applies to all sessions)",
+  "model_hint": "Switch model for this session",
   "model": "Model",
   "effort_label": "Depth",
   "tabs": {
@@ -37,7 +37,7 @@
     "no_buddy": "No Buddy sessions",
     "no_direct": "No direct chats",
     "no_project": "No project chats",
-    "select_or_new": "Select a session on the right or start a new one.",
+    "select_or_new": "Select a session on the left or start a new one.",
     "without_title": "Untitled",
     "id_short": "Session ID",
     "system_prompt_label": "System prompt:",

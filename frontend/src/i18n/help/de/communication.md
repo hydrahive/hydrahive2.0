@@ -3,7 +3,7 @@
 ## Was ist das?
 
 Auf dieser Seite verbindest du **externe Messenger** mit HydraHive, damit du
-deinen persönlichen (Master-)Agenten auch **von unterwegs** erreichst — ohne die
+deinen Buddy auch **von unterwegs** erreichst — ohne die
 Weboberfläche zu öffnen. Schreibst du z.B. auf WhatsApp, landet die Nachricht
 direkt bei deinem Agenten, und seine Antwort kommt auf demselben Weg zurück.
 
@@ -11,9 +11,9 @@ Kurz: Dein Agent bekommt ein „Telefon", über das du ihm schreiben kannst.
 
 ## Verfügbare Kanäle
 
-- **WhatsApp** — eingehende Nachrichten gehen direkt an deinen Master-Agenten.
+- **WhatsApp** — eingehende Nachrichten gehen direkt an deinen Buddy.
 - **Discord** — Direktnachrichten (DMs) und **@Erwähnungen** gehen an deinen
-  Master-Agenten.
+  Buddy.
 
 (Welche Kanäle einsatzbereit sind, hängt von deiner Installation und den
 hinterlegten Zugangsdaten ab.)

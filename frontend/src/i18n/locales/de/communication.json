@@ -1,9 +1,9 @@
 {
   "title": "Kommunikation",
-  "subtitle": "Messenger und Kanäle die deinen Master-Agent erreichen",
+  "subtitle": "Messenger und Kanäle, die deinen Buddy erreichen",
   "whatsapp": {
     "label": "WhatsApp",
-    "description": "Eingehende Nachrichten gehen direkt an deinen Master-Agent. Nur 1:1-Chats, kein Medien-Empfang.",
+    "description": "Eingehende Nachrichten gehen direkt an deinen Buddy. Gruppen-Chats per Schalter, Sprachnachrichten werden abgetippt.",
     "connect": "Verbinden",
     "disconnect": "Trennen",
     "qr_hint": "WhatsApp öffnen → Geräte verknüpfen → diesen Code scannen",
@@ -37,7 +37,7 @@
   },
   "discord": {
     "label": "Discord",
-    "description": "DMs und @Mentions gehen direkt an deinen Master-Agent.",
+    "description": "DMs und @Mentions gehen direkt an deinen Buddy.",
     "unavailable": "Discord nicht verfügbar.",
     "connect": "Verbinden",
     "disconnect": "Trennen",

@@ -23,7 +23,7 @@
     "xhigh_title": "Long-Horizon — empfohlen für Agentic Coding",
     "max_title": "Maximale Tiefe, keine Token-Grenze"
   },
-  "model_hint": "Modell für diesen Agenten wechseln (gilt für alle Sessions)",
+  "model_hint": "Modell für diese Session wechseln",
   "model": "Modell",
   "effort_label": "Tiefe",
   "tabs": {
@@ -37,7 +37,7 @@
     "no_buddy": "Keine Buddy-Sessions",
     "no_direct": "Keine direkten Chats",
     "no_project": "Keine Projekt-Chats",
-    "select_or_new": "Wähle rechts eine Session oder starte eine neue.",
+    "select_or_new": "Wähle links eine Session oder starte eine neue.",
     "without_title": "Ohne Titel",
     "id_short": "Session-ID",
     "system_prompt_label": "System-Prompt:",
